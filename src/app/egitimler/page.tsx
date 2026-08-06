@@ -13,7 +13,7 @@ export default function Egitimler() {
 
   return (
     <main className="bg-wash min-h-screen">
-      <Baslik ust="/" ustAd="Ana sayfa" baslik="Eğitimler" not={`${egitimler.length} eğitim`} />
+      <Baslik ust="/" ustAd="Ana sayfa" baslik="Eğitimler" not={`${egitimler.length} eğitim`} rehberBolum="hazirlama" />
 
       <div className="mx-auto max-w-5xl px-5 py-8">
         <form action={egitimOlusturEylem} className="card flex flex-wrap items-end gap-3 p-5">

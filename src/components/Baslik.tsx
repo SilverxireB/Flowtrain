@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Logo from "./Logo";
 import Icon from "./Icon";
+import RehberAc from "./rehber/RehberAc";
 
 /**
  * Sayfa başlığı.
@@ -15,12 +16,15 @@ export default function Baslik({
   baslik,
   not,
   sag,
+  rehberBolum,
 }: {
   ust?: string;
   ustAd?: string;
   baslik?: string;
   not?: string;
   sag?: React.ReactNode;
+  /** Rehber çekmecesi bu başlıkta açılsın (derin link). */
+  rehberBolum?: string;
 }) {
   return (
     <header className="border-b border-line bg-white/70 backdrop-blur sticky top-0 z-30">
@@ -44,7 +48,10 @@ export default function Baslik({
           <div className="flex-1" />
         )}
 
-        {sag ? <div className="flex shrink-0 items-center gap-2">{sag}</div> : null}
+        <div className="flex shrink-0 items-center gap-2">
+          {sag}
+          <RehberAc bolum={rehberBolum} />
+        </div>
       </div>
     </header>
   );

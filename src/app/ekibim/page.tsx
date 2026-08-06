@@ -32,7 +32,7 @@ export default async function Ekibim() {
 
   return (
     <main className="bg-wash min-h-screen">
-      <Baslik ust="/" ustAd="Ana sayfa" baslik="Ekibim" not={`${kisiSayisi} kişi`} />
+      <Baslik ust="/" ustAd="Ana sayfa" baslik="Ekibim" not={`${kisiSayisi} kişi`} rehberBolum="kiosk" />
 
       <div className="mx-auto max-w-3xl px-5 py-8">
         {/* AMİRİN KARNESİ: bu üç sayı onun her gün açma sebebi. Eğitimin

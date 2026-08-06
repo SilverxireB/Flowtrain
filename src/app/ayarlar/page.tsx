@@ -23,7 +23,7 @@ export default async function Ayarlar() {
 
   return (
     <main className="bg-wash min-h-screen">
-      <Baslik ust="/" ustAd="Ana sayfa" baslik="Ayarlar" />
+      <Baslik ust="/" ustAd="Ana sayfa" baslik="Ayarlar" rehberBolum="kurulum" />
 
       <div className="mx-auto max-w-3xl space-y-8 px-5 py-8">
         {/* ── kurulumun gerçeği ──

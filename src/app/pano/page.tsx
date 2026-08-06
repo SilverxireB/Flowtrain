@@ -54,6 +54,7 @@ export default async function Pano() {
         ustAd="Ana sayfa"
         baslik="Pano"
         not={`${toplam} atama`}
+        rehberBolum="takip"
         sag={
           <a href="/api/disa-aktar" className="btn-ghost text-sm" download>
             <Icon name="download" size={16} /> CSV

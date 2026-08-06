@@ -83,6 +83,7 @@ export default function Editor({
         ustAd="Eğitimler"
         baslik={egitim.ad}
         not={yayinda ? `Yayında · sürüm ${egitim.surum}` : "Taslak"}
+        rehberBolum="hazirlama"
         sag={
           <>
             <button
