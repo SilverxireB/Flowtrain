@@ -1,28 +1,43 @@
-import type { Config } from 'tailwindcss'
+import type { Config } from "tailwindcss";
 
-// Flow Studio tasarım dili (FlowMeter ile aynı): accent birincil aksiyon,
-// brand YALNIZ uyarı/danger, nötrler ink/paper/line/muted.
+/**
+ * Flow Studio tasarım dili — FlowMeter ile BİREBİR aynı ölçek ve renkler.
+ * Ürünler ayrı repolarda yaşasa da tek marka gibi görünmek zorunda; burada
+ * "biraz farklı" bir gri seçmek suite'i ikiye böler.
+ */
 const config: Config = {
-  content: ['./src/**/*.{ts,tsx}'],
+  content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
-      colors: {
-        accent: '#4f46e5',
-        'accent-dark': '#4338ca',
-        brand: '#e11d48',
-        lacivert: '#001e64',
-        ink: '#0f172a',
-        muted: '#64748b',
-        line: '#e2e8f0',
-        paper: '#ffffff',
-        wash: '#f8fafc',
-      },
       fontFamily: {
-        sans: ['var(--font-jakarta)', 'system-ui', 'sans-serif'],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-sans)", "system-ui", "sans-serif"],
+      },
+      colors: {
+        ink: "#18181b",
+        paper: "#fafafa",
+        line: "#ececeb",
+        muted: "#78716c",
+        brand: {
+          DEFAULT: "#e11d48",
+          dark: "#be123c",
+          soft: "#ffe4e6",
+        },
+        accent: {
+          DEFAULT: "#4f46e5",
+          dark: "#4338ca",
+          soft: "#e0e7ff",
+        },
+        // Skor/durum semantiği (Pulse ile aynı eşikler): iyi ≥70, orta ≥40.
+        iyi: "#16a34a",
+        orta: "#d97706",
+        lacivert: "#001e64",
+      },
+      borderRadius: {
+        blob: "1.25rem",
       },
     },
   },
   plugins: [],
-}
-
-export default config
+};
+export default config;

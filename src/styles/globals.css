@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Başlıklar da metin de aynı ailede — tutarlı, sade */
+  --font-display: var(--font-sans);
+}
+
+body {
+  @apply bg-paper text-ink antialiased;
+  font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: -0.011em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-pop {
+  animation: pop-in 0.35s ease-out both;
+}
+
+/* Rehber çekmecesi: sağdan kayar (telefonda tam ekran sayfa gibi görünür). */
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(3%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.22s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in {
+    animation: none;
+  }
+}
+
+@layer components {
+  /* Sayfa zemini: sakin, tek tonlu nötr yıkama (dikkat dağıtmayan) */
+  .bg-wash {
+    background:
+      radial-gradient(60rem 32rem at 50% -12%, rgba(24, 24, 27, 0.03), transparent 60%),
+      theme("colors.paper");
+  }
+
+  .card {
+    @apply bg-white rounded-2xl border border-line;
+    box-shadow:
+      0 1px 2px rgba(24, 24, 27, 0.04),
+      0 10px 30px -18px rgba(24, 24, 27, 0.15);
+  }
+
+  /* Birincil aksiyon = indigo. Gül YALNIZCA uyarı/danger. */
+  .btn-primary {
+    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
+    @apply inline-flex items-center justify-center gap-2 cursor-pointer select-none
+      bg-accent text-white font-semibold rounded-full px-5 py-3
+      transition-all duration-200 ease-out
+      hover:bg-accent-dark active:scale-[0.98]
+      disabled:opacity-30 disabled:active:scale-100 disabled:cursor-default;
+  }
+
+  .btn-ghost {
+    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
+    @apply inline-flex items-center justify-center gap-2 cursor-pointer select-none
+      border border-line bg-white font-semibold rounded-full px-5 py-2.5
+      transition-all duration-200 hover:bg-paper hover:border-muted/50 active:scale-[0.98]
+      disabled:opacity-30 disabled:cursor-default disabled:active:scale-100;
+  }
+
+  .btn-danger {
+    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-soft;
+    @apply inline-flex items-center justify-center gap-2 cursor-pointer select-none
+      bg-brand text-white font-semibold rounded-full px-5 py-3
+      transition-all duration-200 hover:bg-brand-dark active:scale-[0.98]
+      disabled:opacity-30 disabled:cursor-default;
+  }
+
+  .input-base {
+    @apply w-full bg-white border border-line rounded-xl px-4 py-3
+      transition-all duration-200
+      focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent-soft;
+  }
+
+  .eyebrow {
+    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-muted;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 bg-white border border-line rounded-full
+      px-3 py-1 text-sm font-semibold;
+  }
+
+  .btn-icon {
+    @apply inline-grid place-items-center w-9 h-9 shrink-0 rounded-lg
+      text-muted hover:text-ink hover:bg-line/60 transition-colors
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40
+      disabled:opacity-30 disabled:hover:bg-transparent;
+  }
+
+  /* ── KİOSK YÜZEYİ ────────────────────────────────────────────────────────
+     Kokpitten AYRI bir yüzey: eldivenle, ayakta, uzaktan kullanılır.
+     Dokunma hedefi 72px'in altına inmez, punto büyüktür, seçenek azdır.
+     Kokpit sınıflarını burada kullanma — 44px'lik buton eldivenle ıskalanıyor. */
+  .kiosk-btn {
+    @apply inline-flex min-h-[72px] w-full items-center justify-center gap-3 rounded-2xl
+      px-6 text-xl font-bold cursor-pointer select-none transition-all duration-150
+      active:scale-[0.99] focus-visible:outline-none focus-visible:ring-4;
+  }
+
+  .kiosk-btn-primary {
+    @apply kiosk-btn bg-accent text-white hover:bg-accent-dark focus-visible:ring-accent-soft
+      disabled:opacity-30 disabled:cursor-default;
+  }
+
+  .kiosk-btn-ghost {
+    @apply kiosk-btn border-2 border-line bg-white text-ink hover:border-accent/60
+      focus-visible:ring-accent-soft disabled:opacity-30 disabled:cursor-default;
+  }
+
+  /* Kiosk'ta seçilebilir şık: seçili hâli UZAKTAN okunmalı (renk tek başına
+     yetmez — kalın kenar + dolgu birlikte). */
+  .kiosk-secenek {
+    @apply flex w-full items-center gap-4 rounded-2xl border-2 border-line bg-white
+      px-6 py-5 text-left text-lg font-semibold transition-all cursor-pointer
+      hover:border-accent/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
+  }
+
+  .kiosk-secenek-secili {
+    @apply border-accent bg-accent-soft;
+  }
+}
