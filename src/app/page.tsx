@@ -1,37 +1,93 @@
-import Link from 'next/link'
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import Logo from "@/components/Logo";
+import Icon, { type IconName } from "@/components/Icon";
+import { cikisEylem } from "@/app/eylemler";
+import { aktifHesap, kurulumGerekli, yetkili } from "@/lib/kimlik";
+import type { Rol } from "@/lib/depo";
 
-const YUZEYLER = [
-  { yol: '/egitimler', ad: 'Eğitimler', not: 'Hazırla, sınavını kur, yayınla' },
-  { yol: '/atama', ad: 'Atama kuralları', not: 'Kim, ne zamana kadar' },
-  { yol: '/ekibim', ad: 'Ekibim', not: 'Amir tableti — eksikleri tamamlat' },
-  { yol: '/kiosk', ad: 'Kiosk', not: 'Kart okut, eğitimini tamamla' },
-  { yol: '/pano', ad: 'Pano', not: 'Tamamlama, gecikenler, süresi dolanlar' },
-  { yol: '/ayarlar', ad: 'Ayarlar', not: 'Personel kaynağı, kayıt hedefi, yedek' },
-]
+export const dynamic = "force-dynamic";
 
-export default function Home() {
+const YUZEYLER: { yol: string; ad: string; not: string; ikon: IconName; enAz: Rol }[] = [
+  { yol: "/egitimler", ad: "Eğitimler", not: "Hazırla, sınavını kur, yayınla", ikon: "book", enAz: "hazirlayan" },
+  { yol: "/atama", ad: "Atama kuralları", not: "Kim, ne zamana kadar", ikon: "target", enAz: "hazirlayan" },
+  { yol: "/ekibim", ad: "Ekibim", not: "Eksikleri gör, yanında tamamlat", ikon: "users", enAz: "amir" },
+  { yol: "/pano", ad: "Pano", not: "Tamamlama, gecikenler, anomali", ikon: "chart", enAz: "hazirlayan" },
+  { yol: "/ayarlar", ad: "Ayarlar", not: "Hesaplar, adaptörler, denetim izi", ikon: "settings", enAz: "yonetici" },
+];
+
+export default function Hub({ searchParams }: { searchParams: { yetki?: string } }) {
+  if (kurulumGerekli()) redirect("/kurulum");
+  const hesap = aktifHesap();
+  if (!hesap) redirect("/giris");
+
+  const acik = YUZEYLER.filter((y) => yetkili(hesap, y.enAz));
+
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
-      <p className="text-sm font-semibold uppercase tracking-wider text-accent">Flow Studio</p>
-      <h1 className="mt-2 text-4xl font-extrabold tracking-tight">FlowTrain</h1>
-      <p className="mt-3 max-w-xl text-muted">
-        Kapalı ağda çalışan eğitim dağıtım ve sınav aracı. İşçinin hesabı, şifresi veya
-        e-postası olmasına gerek yoktur.
-      </p>
+    <main className="bg-wash min-h-screen">
+      <div className="mx-auto max-w-3xl px-5 py-10 sm:py-14">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <Logo size="lg" />
+            <p className="mt-3 text-muted">
+              Merhaba <strong className="text-ink">{hesap.ad}</strong> · {ROL_ADI[hesap.rol]}
+            </p>
+          </div>
+          <form action={cikisEylem}>
+            <button className="btn-ghost text-sm" type="submit">
+              <Icon name="close" size={16} /> Çıkış
+            </button>
+          </form>
+        </div>
 
-      <div className="mt-10 grid gap-3 sm:grid-cols-2">
-        {YUZEYLER.map((y) => (
-          <Link key={y.yol} href={y.yol} className="card transition hover:border-accent">
-            <div className="font-semibold">{y.ad}</div>
-            <div className="mt-1 text-sm text-muted">{y.not}</div>
+        {searchParams.yetki === "yok" ? (
+          <p
+            role="alert"
+            className="mt-6 rounded-xl border border-brand/30 bg-brand-soft px-4 py-3 text-sm font-semibold text-brand-dark"
+          >
+            O sayfa için yetkiniz yok.
+          </p>
+        ) : null}
+
+        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          {acik.map((y) => (
+            <Link key={y.yol} href={y.yol} className="card flex items-start gap-3 p-5 transition hover:border-accent">
+              <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+                <Icon name={y.ikon} size={20} />
+              </span>
+              <span className="min-w-0">
+                <span className="block font-semibold">{y.ad}</span>
+                <span className="mt-0.5 block text-sm text-muted">{y.not}</span>
+              </span>
+            </Link>
+          ))}
+        </div>
+
+        {/* Kiosk hub'ın bir "sayfası" değil, AYRI bir yüzey: hesapsız açılır,
+            tam ekran çalışır. Bu yüzden kartların arasında değil, altta ve
+            farklı bir dille duruyor. */}
+        <div className="card mt-8 flex flex-wrap items-center gap-4 p-5">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-lacivert/10 text-lacivert">
+            <Icon name="monitor" size={20} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">Kiosk ekranı</p>
+            <p className="text-sm text-muted">
+              Hattaki tablette açık kalır. İşçi sicilini okutur, eğitimini tamamlar — hesap gerekmez.
+            </p>
+          </div>
+          <Link href="/kiosk" className="btn-ghost text-sm">
+            Aç <Icon name="chevronRight" size={16} />
           </Link>
-        ))}
+        </div>
       </div>
-
-      <p className="mt-10 text-sm text-muted">
-        İskelet aşaması — yüzeyler sırayla açılıyor. Kapsam:{' '}
-        <span className="font-mono text-xs">docs/KAPSAM.md</span>
-      </p>
     </main>
-  )
+  );
 }
+
+const ROL_ADI: Record<Rol, string> = {
+  yonetici: "Yönetici",
+  hazirlayan: "Hazırlayan",
+  onaylayan: "Onaylayan",
+  amir: "Amir",
+};

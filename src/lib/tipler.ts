@@ -8,6 +8,33 @@ export type KartTipi = 'kural' | 'yapYapma' | 'adim' | 'uyari' | 'video'
 
 export type SoruTipi = 'coktanSecmeli' | 'dogruYanlis' | 'cokluSecim'
 
+/**
+ * TEK KAYNAK: editördeki düğmeler, kiosk'taki çizim ve rehberdeki referans
+ * tablosu hep buradan türer. Yeni bir kart tipi eklenince üçü birden güncellenir
+ * — rehber elle bakılmaz, kendiliğinden doğru kalır.
+ */
+export const KART_ETIKET: Record<KartTipi, string> = {
+  kural: 'Kural kartı',
+  yapYapma: 'Yap / Yapma',
+  adim: 'Adım adım',
+  uyari: 'Tehlike uyarısı',
+  video: 'Video',
+}
+
+export const KART_ACIKLAMA: Record<KartTipi, string> = {
+  kural: 'Tek cümlelik kural + isteğe bağlı görsel.',
+  yapYapma: 'İki kolon: doğru davranış yeşil, yanlış davranış kırmızı.',
+  adim: 'Numaralı adımlar — her satır bir adım.',
+  uyari: 'Sabit kırmızı düzen. YALNIZ gerçek tehlike için; her sayfa kırmızıysa kırmızı hiçbir şey anlatmaz.',
+  video: 'Yerel diskteki video. İlk izlemede ileri sarılamaz.',
+}
+
+export const SORU_ETIKET: Record<SoruTipi, string> = {
+  coktanSecmeli: 'Çoktan seçmeli',
+  dogruYanlis: 'Doğru / Yanlış',
+  cokluSecim: 'Çoklu seçim',
+}
+
 export type EgitimDurumu = 'taslak' | 'yayin'
 
 export type Sonuc = 'gecti' | 'kaldi'

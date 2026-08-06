@@ -8,12 +8,15 @@
     "start": "next start",
     "lint": "next lint",
     "test": "node tests/kos.mjs",
-    "logo": "node scripts/logo-uret.mjs"
+    "logo": "node scripts/logo-uret.mjs",
+    "pdf-isci": "node -e \"require('fs').copyFileSync('node_modules/pdfjs-dist/build/pdf.worker.min.mjs','public/pdf.worker.min.mjs')\"",
+    "postinstall": "npm run pdf-isci"
   },
   "dependencies": {
     "@types/better-sqlite3": "^9.6.0",
     "better-sqlite3": "^13.0.3",
     "next": "14.2.15",
+    "pdfjs-dist": "^6.2.108",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "server-only": "^0.0.1"
