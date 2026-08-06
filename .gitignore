@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Kurulumun kendi verisi — repoya asla girmez (yedek = bu klasör)
+data/
+veri/
+
+.env
+.env.local
+.DS_Store
