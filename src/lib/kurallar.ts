@@ -41,9 +41,15 @@ export function gunFarki(a: string, b: string): number {
 export function kapsamda(kisi: Kisi, kural: Kural): boolean {
   if (!kural.aktif) return false;
   const k = kural.kosul;
-  const uyar = (secim: string[] | undefined, deger: string | undefined) =>
-    !secim || secim.length === 0 || (deger != null && secim.includes(deger));
-  return uyar(k.bolum, kisi.bolum) && uyar(k.hat, kisi.hat) && uyar(k.gorev, kisi.gorev);
+  return boyutUyar(k.bolum, kisi.bolum) && boyutUyar(k.hat, kisi.hat) && boyutUyar(k.gorev, kisi.gorev);
+}
+
+/**
+ * Modül seviyesinde, kapanış DEĞİL — `csv.ts`teki küçültücü tuzağının aynısı
+ * burada da mümkündü (parametre yakalayan, birden çok kez çağrılan yardımcı).
+ */
+function boyutUyar(secim: string[] | undefined, deger: string | undefined): boolean {
+  return !secim || secim.length === 0 || (deger != null && secim.includes(deger));
 }
 
 /**

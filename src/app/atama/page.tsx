@@ -17,9 +17,13 @@ export default async function Atama() {
   const egitimler = depo.egitimleriListele();
   const egitimAdi = new Map(egitimler.map((e) => [e.id, e]));
 
-  /** Süzgeç seçenekleri PERSONEL LİSTESİNDEN türer — elle liste tutulmaz. */
-  const secenek = (al: (k: (typeof kisiler)[number]) => string | undefined) =>
-    [...new Set(kisiler.map(al).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, "tr"));
+  /**
+   * Süzgeç seçenekleri PERSONEL LİSTESİNDEN türer — elle liste tutulmaz.
+   * Alan adıyla çağrılır, kapanışla değil: parametre yakalayıp birden çok kez
+   * çağrılan yardımcılar küçültücüde bozulabiliyor (bkz. `csv.ts` notu).
+   */
+  const secenek = (alan: "bolum" | "hat" | "gorev") =>
+    [...new Set(kisiler.map((k) => k[alan]).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, "tr"));
 
   return (
     <main className="bg-wash min-h-screen">
@@ -42,9 +46,9 @@ export default async function Atama() {
           </p>
           <KuralFormu
             egitimler={egitimler.map((e) => ({ id: e.id, ad: e.ad, yayinda: e.durum === "yayin" }))}
-            bolumler={secenek((k) => k.bolum)}
-            hatlar={secenek((k) => k.hat)}
-            gorevler={secenek((k) => k.gorev)}
+            bolumler={secenek("bolum")}
+            hatlar={secenek("hat")}
+            gorevler={secenek("gorev")}
           />
         </section>
 

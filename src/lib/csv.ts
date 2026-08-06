@@ -14,10 +14,25 @@
 
 export const BOM = "﻿";
 
-/** Satırdaki ayırıcıyı tahmin et (başlık satırında hangisi daha çok geçiyorsa). */
+/**
+ * Satırdaki ayırıcıyı tahmin et (başlık satırında hangisi daha çok geçiyorsa).
+ *
+ * DÜZ DÖNGÜ, KAPANIŞ YOK — ve bu bilinçli. Burada eskiden
+ * `const say = (c) => satir.match(...)` gibi, parametreyi yakalayıp iki kez
+ * çağrılan bir yardımcı vardı. SWC küçültücüsü onu satır içine alırken
+ * `satir`in İKİNCİ geçişini serbest bıraktı: derlenmiş dosyada
+ * `satir is not defined` çalışma hatası oluştu. Kaynak doğruydu, çıktı bozuktu
+ * — birim sınavlar küçültülmemiş kodu koştuğu için hiçbir şey görmedi;
+ * hatayı yalnız uçtan uca sınav yakaladı. Bu deseni geri getirmeyin.
+ */
 export function ayiriciBul(satir: string): string {
-  const say = (c: string) => (satir.match(new RegExp(`\\${c}`, "g")) ?? []).length;
-  return say(";") >= say(",") ? ";" : ",";
+  let noktaliVirgul = 0;
+  let virgul = 0;
+  for (const c of satir) {
+    if (c === ";") noktaliVirgul++;
+    else if (c === ",") virgul++;
+  }
+  return noktaliVirgul >= virgul ? ";" : ",";
 }
 
 /**
