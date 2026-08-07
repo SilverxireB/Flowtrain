@@ -103,6 +103,22 @@ body {
     @apply text-[11px] font-bold uppercase tracking-[0.14em] text-muted;
   }
 
+  /* KOKPİTİN TEK GENİŞLİĞİ.
+     Her ekran kendi `max-w`ini seçiyordu (3xl/4xl/5xl) ve başlık şeridi
+     gövdeden farklı hizalanıyordu: sayfalar arasında gezerken içerik sağa sola
+     kayıyor, geniş ekranda da iki yan boş kalıyordu. Genişlik TEK YERDE durur;
+     bir sayfa "biraz daha geniş olsun" diye buradan sapmaz.
+
+     Kiosk, giriş ve eğitim oynatıcı BİLEREK dışarıda: onlar tablet ve okuma
+     yüzeyi, kokpit ölçüsüyle bağlı değil. */
+  .sayfa-kap {
+    @apply mx-auto w-full max-w-7xl px-5 sm:px-8;
+  }
+
+  .sayfa-govde {
+    @apply sayfa-kap py-8;
+  }
+
   .chip {
     @apply inline-flex items-center gap-1.5 bg-white border border-line rounded-full
       px-3 py-1 text-sm font-semibold;

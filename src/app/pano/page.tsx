@@ -83,7 +83,7 @@ export default async function Pano() {
         sag={<Disari ozet={pdfOzeti} tarih={bugun()} />}
       />
 
-      <div className="mx-auto max-w-4xl space-y-8 px-5 py-8">
+      <div className="sayfa-govde space-y-8">
         <section className="card p-6">
           <div className="flex items-end justify-between gap-4">
             <div>

@@ -14,7 +14,7 @@ export default async function Ekibim() {
     return (
       <main className="bg-wash min-h-screen">
         <Baslik ust="/" ustAd="Ana sayfa" baslik="Ekibim" />
-        <div className="mx-auto max-w-2xl px-5 py-10">
+        <div className="sayfa-govde">
           <p className="card border-orta/40 bg-orta/5 p-6">
             <strong>Hesabınıza sicil numarası tanımlanmamış.</strong> Ekip listesi, personel dosyasındaki{" "}
             <span className="font-mono text-xs">amir</span> sütunundan çıkar; hesabınıza sicil girilene kadar kimse
@@ -34,7 +34,7 @@ export default async function Ekibim() {
     <main className="bg-wash min-h-screen">
       <Baslik ust="/" ustAd="Ana sayfa" baslik="Ekibim" not={`${kisiSayisi} kişi`} rehberBolum="kiosk" />
 
-      <div className="mx-auto max-w-3xl px-5 py-8">
+      <div className="sayfa-govde">
         {/* AMİRİN KARNESİ: bu üç sayı onun her gün açma sebebi. Eğitimin
             oynatılması bu ekranın alt işlemidir, ana işi değil. */}
         <div className="grid grid-cols-3 gap-3">

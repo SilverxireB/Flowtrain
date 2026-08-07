@@ -29,7 +29,7 @@ export default async function Atama() {
     <main className="bg-wash min-h-screen">
       <Baslik ust="/" ustAd="Ana sayfa" baslik="Atama kuralları" rehberBolum="atama" not={`${kisiler.length} kişi listede`} />
 
-      <div className="mx-auto max-w-4xl space-y-8 px-5 py-8">
+      <div className="sayfa-govde space-y-8">
         {kisiler.length === 0 ? (
           <p className="card border-orta/40 bg-orta/5 p-5 text-sm">
             <strong>Personel listesi boş.</strong> Ayarlar sayfasındaki yolu kullanarak{" "}

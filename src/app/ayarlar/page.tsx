@@ -26,7 +26,7 @@ export default async function Ayarlar() {
     <main className="bg-wash min-h-screen">
       <Baslik ust="/" ustAd="Ana sayfa" baslik="Ayarlar" rehberBolum="kurulum" />
 
-      <div className="mx-auto max-w-3xl space-y-8 px-5 py-8">
+      <div className="sayfa-govde space-y-8">
         {/* ── kurulumun gerçeği ──
             Bu satırlar DÜZENLENEMEZ ve diske yazılmaz; çalışma anında okunur.
             Amaç: "yedek nerede, sürüm ne, dosya duruyor mu" sorularının cevabı

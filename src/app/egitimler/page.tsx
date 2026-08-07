@@ -19,7 +19,7 @@ export default async function Egitimler() {
     <main className="bg-wash min-h-screen">
       <Baslik ust="/" ustAd="Ana sayfa" baslik="Eğitimler" not={`${egitimler.length} eğitim`} rehberBolum="hazirlama" />
 
-      <div className="mx-auto max-w-5xl px-5 py-8">
+      <div className="sayfa-govde">
         <form action={egitimOlusturEylem} className="card flex flex-wrap items-end gap-3 p-5">
           <label className="min-w-0 flex-1">
             <span className="eyebrow mb-1.5 block">Yeni eğitim</span>

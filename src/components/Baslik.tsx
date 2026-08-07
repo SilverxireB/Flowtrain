@@ -28,7 +28,9 @@ export default function Baslik({
 }) {
   return (
     <header className="border-b border-line bg-white/70 backdrop-blur sticky top-0 z-30">
-      <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3 sm:px-6">
+      {/* Şerit gövdeyle AYNI kapta: farklı genişlikteyken başlık ile içerik
+          birbirini tutmuyor, sayfa değiştikçe her şey kayıyordu. */}
+      <div className="sayfa-kap flex items-center gap-3 py-3">
         {ust ? (
           <Link href={ust} className="btn-icon" aria-label={ustAd ? `${ustAd} sayfasına dön` : "Geri"}>
             <Icon name="chevronLeft" size={20} />

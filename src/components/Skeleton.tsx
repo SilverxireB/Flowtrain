@@ -46,7 +46,9 @@ export function SkelCards({ count = 4, dark = false }: { count?: number; dark?: 
 export function SkelCockpit({ dark = false }: { dark?: boolean }) {
   const Box = dark ? SkelBoxDark : SkelBox;
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-5">
+    // Kokpitin kabıyla AYNI genişlik: iskelet dar çizilince sayfa yüklenince
+    // içerik yerinden zıplıyordu.
+    <div className="sayfa-govde flex flex-col gap-5">
       <Box className="h-8 w-56" />
       <Box className="h-24 w-full !rounded-2xl" />
       <Box className="h-40 w-full !rounded-2xl" />
