@@ -150,6 +150,24 @@ try {
   await s.getByLabel("Sınavdaki soru sayısı").blur();
   await s.waitForTimeout(800);
 
+  /* 4b. REHBER — açılışta çöküyor mu?
+     Bu adım bir hatanın bedelini ödeyerek eklendi: rehber içeriğindeki bir
+     sabit kullanıldığı yerin altında tanımlıydı, modül yüklenirken geçici
+     ölü bölgeye düşüyor ve rehber açılır açılmaz TÜM SAYFA "Application
+     error" ile çöküyordu. Derleme ve tip denetimi sessiz kaldı; ekranı
+     açmayan hiçbir sınav da göremezdi. */
+  await s.click('button[aria-label="Kullanım rehberi"]');
+  await s.waitForTimeout(1200);
+  kontrol(await s.getByText("FlowTrain rehberi").isVisible(), "rehber çekmecesi açılıyor (çökmüyor)");
+  kontrol(await s.getByText("Eğitim hazırlama").first().isVisible(), "derin link ilgili bölümü açtı");
+  kontrol(
+    await s.getByText("Tehlike uyarısı").first().isVisible(),
+    "kart tipi tablosu ürünün kendi sabitinden türüyor",
+  );
+  await s.keyboard.press("Escape");
+  await s.waitForTimeout(500);
+  kontrol(!(await s.getByText("FlowTrain rehberi").isVisible()), "ESC ile kapanıyor");
+
   /* 5. Prova — kayıt DÜŞMEMELİ */
   await s.click('button:has-text("Dene")');
   await s.waitForTimeout(600);
@@ -161,6 +179,13 @@ try {
   await s.click('button:has-text("Yayınla")');
   await s.waitForTimeout(2000);
   kontrol(await s.getByText(/Yayında/).first().isVisible(), "eğitim yayına alındı");
+
+  /* YAYINDAKİ EĞİTİM SALT OKUNUR: kayıtlar "sürüm N"e atıf yapıyor; içeriği
+     yerinde değiştirmek insanların kayıtta yazandan başka bir şeyden sınav
+     olmuş görünmesi demek. */
+  kontrol(await s.getByText("Yayında — düzenleme kapalı.").isVisible(), "yayındaki eğitim kilitli uyarısı çıkıyor");
+  kontrol(await s.locator('input[placeholder="Başlık"]').first().isDisabled(), "yayındayken içerik alanları kapalı");
+  kontrol(await s.locator('button:has-text("Kural kartı")').isDisabled(), "yayındayken kart eklenemiyor");
 
   /* 7. Atama kuralı — Kaynak bölümü */
   await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
@@ -245,9 +270,32 @@ try {
   await k.waitForTimeout(1500);
   kontrol(await k.getByText(/İşe giriş tarihi eşleşmedi/).isVisible(), "yanlış işe giriş tarihi reddedilir");
 
+  /* YANLIŞ TARİH OTURUMU YAKAR: PIN'i olmayan kişide sayaç tutacak bir satır
+     yok, dolayısıyla açık kalan bir oturumda tarih sınırsız denenebilirdi.
+     Kişi baştan başlar; iptal oturumlar deneme hakkını yemez. */
+  await k.click('button[aria-label="Çık"]');
+  await k.waitForTimeout(800);
+  await k.fill('input[aria-label="Sicil numarası"]', "1001");
+  await k.click('button:has-text("Devam")');
+  await k.waitForTimeout(1500);
+  kontrol(await k.getByText("Yüksekte Çalışma").isVisible(), "iptal oturum deneme hakkını yakmaz");
+  await k.click('button:has-text("Başla")');
+  await k.waitForTimeout(5500);
+  await k.locator("button.kiosk-btn-primary").first().click();
+  await k.waitForTimeout(2500);
+  await k.locator("button.kiosk-btn-primary").first().click();
+  await k.waitForTimeout(1200);
+  await k.getByRole("button", { name: /Doğru/ }).first().click();
+  await k.waitForTimeout(400);
+  await k.locator("button.kiosk-btn-primary").first().click();
+  await k.waitForTimeout(1200);
+
   // Personel dosyasında 2026-08-01 yazıyor; kullanıcı GG.AA.YYYY giriyor —
   // biçim farkı yüzünden kimse dışarıda kalmamalı.
-  await pinAlanlari.nth(2).fill("01.08.2026");
+  const pin2Alanlari = k.locator('input[inputmode="numeric"]');
+  await pin2Alanlari.nth(0).fill("1234");
+  await pin2Alanlari.nth(1).fill("1234");
+  await pin2Alanlari.nth(2).fill("01.08.2026");
   await k.click('button:has-text("Onayla ve bitir")');
   await k.waitForTimeout(3000);
   kontrol(await k.getByText("Tebrikler, geçtiniz").isVisible(), "sınav geçildi ve sonuç gösterildi");

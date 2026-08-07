@@ -18,10 +18,13 @@ export default function SayfaSatiri({
   onGuncelle,
   onSil,
   onTasi,
+  kilitli,
 }: {
   sayfa: Sayfa;
   sira: number;
   toplam: number;
+  /** Yayındaki eğitim salt okunur — sunucu da reddeder. */
+  kilitli?: boolean;
   onGuncelle: (yama: Record<string, unknown>) => void;
   onSil: () => void;
   onTasi: (yon: -1 | 1) => void;
@@ -58,13 +61,13 @@ export default function SayfaSatiri({
         </span>
         <span className="chip text-xs">{KART_ETIKET[sayfa.tip]}</span>
         <div className="flex-1" />
-        <button onClick={() => onTasi(-1)} disabled={sira === 1} className="btn-icon" aria-label="Yukarı taşı">
+        <button onClick={() => onTasi(-1)} disabled={kilitli || sira === 1} className="btn-icon" aria-label="Yukarı taşı">
           <Icon name="up" size={16} />
         </button>
-        <button onClick={() => onTasi(1)} disabled={sira === toplam} className="btn-icon" aria-label="Aşağı taşı">
+        <button onClick={() => onTasi(1)} disabled={kilitli || sira === toplam} className="btn-icon" aria-label="Aşağı taşı">
           <Icon name="down" size={16} />
         </button>
-        <button onClick={onSil} className="btn-icon hover:text-brand" aria-label="Sayfayı sil">
+        <button onClick={onSil} disabled={kilitli} className="btn-icon hover:text-brand" aria-label="Sayfayı sil">
           <Icon name="trash" size={16} />
         </button>
       </div>
@@ -73,6 +76,7 @@ export default function SayfaSatiri({
 
       <div className="mt-3 space-y-3">
         <input
+          disabled={kilitli}
           defaultValue={sayfa.baslik}
           onBlur={(e) => e.target.value !== sayfa.baslik && onGuncelle({ baslik: e.target.value })}
           placeholder="Başlık"
@@ -80,6 +84,7 @@ export default function SayfaSatiri({
         />
 
         <textarea
+          disabled={kilitli}
           defaultValue={sayfa.metin ?? ""}
           onBlur={(e) => e.target.value !== (sayfa.metin ?? "") && onGuncelle({ metin: e.target.value })}
           rows={sayfa.tip === "adim" ? 4 : 2}
@@ -95,6 +100,7 @@ export default function SayfaSatiri({
 
         {sayfa.tip === "yapYapma" ? (
           <textarea
+            disabled={kilitli}
             defaultValue={sayfa.metinKarsi ?? ""}
             onBlur={(e) => e.target.value !== (sayfa.metinKarsi ?? "") && onGuncelle({ metinKarsi: e.target.value })}
             rows={2}
@@ -104,7 +110,7 @@ export default function SayfaSatiri({
         ) : null}
 
         <div className="flex flex-wrap items-center gap-3">
-          <button onClick={() => dosyaGirdi.current?.click()} disabled={yukleniyor} className="btn-ghost text-sm">
+          <button onClick={() => dosyaGirdi.current?.click()} disabled={kilitli || yukleniyor} className="btn-ghost text-sm">
             <Icon name={video ? "video" : "image"} size={16} />
             {yukleniyor ? "Yükleniyor…" : medyaId ? "Değiştir" : video ? "Video yükle" : "Görsel yükle"}
           </button>
@@ -145,6 +151,7 @@ export default function SayfaSatiri({
             <input
               type="number"
               min={0}
+              disabled={kilitli}
               defaultValue={sayfa.asgariSure}
               onBlur={(e) => Number(e.target.value) !== sayfa.asgariSure && onGuncelle({ asgariSure: Number(e.target.value) })}
               className="input-base w-20 px-2 py-1 text-center"

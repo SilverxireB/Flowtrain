@@ -39,6 +39,8 @@ export async function GET(istek: Request, { params }: { params: { id: string } }
         "Content-Range": `bytes ${bas}-${son}/${boyut}`,
         "Accept-Ranges": "bytes",
         "Cache-Control": "private, max-age=3600",
+        // Tür tablodan geliyor ama tarayıcı yine de tahmin etmeye çalışmasın.
+        "X-Content-Type-Options": "nosniff",
       },
     });
   }
@@ -50,6 +52,7 @@ export async function GET(istek: Request, { params }: { params: { id: string } }
       "Content-Length": String(boyut),
       "Accept-Ranges": "bytes",
       "Cache-Control": "private, max-age=3600",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

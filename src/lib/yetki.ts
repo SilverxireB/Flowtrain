@@ -45,6 +45,11 @@ export function yetkili(hesap: Hesap | null, enAz: Rol): boolean {
  */
 export function guvenliYol(next: string | undefined, varsayilan = "/"): string {
   if (!next) return varsayilan;
+  /* KONTROL KARAKTERLERİ ÖNCE ELENİR. Tarayıcının URL ayrıştırıcısı ASCII
+     sekme ve satır sonlarını SESSİZCE atar: `/\t/kotu.example` ikinci
+     karakteri sekme olduğu için "iç yol" testini geçiyor, ama tarayıcıda
+     `//kotu.example` yani şema-göreli DIŞ adrese dönüşüyordu. */
+  if (/[\u0000-\u001f\u007f\s]/.test(next)) return varsayilan;
   if (!/^\/[^/\\]/.test(next)) return varsayilan;
   return next;
 }

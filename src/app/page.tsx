@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import Logo from "@/components/Logo";
 import Icon, { type IconName } from "@/components/Icon";
+import RehberAc from "@/components/rehber/RehberAc";
 import { cikisEylem } from "@/app/eylemler";
 import { aktifHesap, kurulumGerekli, yetkili } from "@/lib/kimlik";
 import type { Rol } from "@/lib/depo";
@@ -33,11 +34,14 @@ export default function Hub({ searchParams }: { searchParams: { yetki?: string }
               Merhaba <strong className="text-ink">{hesap.ad}</strong> · {ROL_ADI[hesap.rol]}
             </p>
           </div>
-          <form action={cikisEylem}>
-            <button className="btn-ghost text-sm" type="submit">
-              <Icon name="close" size={16} /> Çıkış
-            </button>
-          </form>
+          <div className="flex shrink-0 items-center gap-2">
+            <RehberAc />
+            <form action={cikisEylem}>
+              <button className="btn-ghost text-sm" type="submit">
+                <Icon name="close" size={16} /> Çıkış
+              </button>
+            </form>
+          </div>
         </div>
 
         {searchParams.yetki === "yok" ? (

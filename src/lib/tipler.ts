@@ -128,8 +128,10 @@ export interface Oturum {
   cihaz: string
   baslangic: string
   bitis?: string
-  /** sayfaId -> ekranda kalınan saniye. Anomali tespiti buradan çıkar. */
+  /** sayfaId -> ekranda kalınan saniye. İçerik geri bildirimi için. */
   sayfaSureleri: Record<string, number>
+  /** Bu oturumda sorulan soruların kimlikleri (açılışta sabitlenir). */
+  sorulanSoruIdleri: string[]
   puan?: number
   sonuc?: Sonuc
   senkron: 'bekliyor' | 'gonderildi' | 'hata'

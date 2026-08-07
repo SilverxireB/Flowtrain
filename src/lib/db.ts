@@ -81,6 +81,10 @@ CREATE TABLE IF NOT EXISTS oturum (
   baslangic TEXT NOT NULL,
   bitis TEXT,
   sayfaSureleri TEXT NOT NULL DEFAULT '{}',
+  /* Oturum açılırken SEÇİLEN soru kimlikleri. Bitişte havuzdan yeniden
+     üretilseydi, arada havuza tek bir soru eklenmesi permütasyonu değiştirip
+     kişiyi HİÇ GÖRMEDİĞİ sorulardan puanlardı. */
+  sorulanSoruIdleri TEXT NOT NULL DEFAULT '[]',
   puan INTEGER,
   sonuc TEXT,
   senkron TEXT NOT NULL DEFAULT 'bekliyor'
@@ -153,6 +157,7 @@ function gocleriUygula(d: Database.Database): void {
   const ekle = [
     "ALTER TABLE pin ADD COLUMN hataliDeneme INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE pin ADD COLUMN kilitBitis TEXT",
+    "ALTER TABLE oturum ADD COLUMN sorulanSoruIdleri TEXT NOT NULL DEFAULT '[]'",
   ];
   for (const sorgu of ekle) {
     try {

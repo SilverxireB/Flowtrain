@@ -75,6 +75,15 @@ esit(kioskOzet.length, 1, "gözetensiz oturumlar tek başlık altında toplanır
 kontrol(kioskOzet[0].gozeten.includes("gözetimsiz"), "başlık gözetimsiz olduğunu söyler");
 kontrol(kioskOzet[0].supheli, "kiosk'taki hızlı desen de işaretlenir");
 
+/* İPTAL edilen oturumlar ölçüye GİRMEZ. PIN'ini yanlış girip kilitlenen ya da
+   yarıda bırakılıp kapatılan kayıtlar 20 saniyeliktir; sayılsalardı masum bir
+   amir "hep hızlı bitiriyor" diye işaretlenirdi — modülün tam da kaçınmak
+   istediği yanlış suçlama. */
+const iptaller = Array.from({ length: 5 }, () => ({ ...damgali(4, "amir-temiz"), sonuc: "iptal" }));
+const temizOzet = gozetenOzetleri([...iptaller, ...Array.from({ length: 3 }, () => damgali(40, "amir-temiz"))], 30);
+esit(temizOzet[0].oturumSayisi, 3, "iptal oturumlar sayıma girmez");
+kontrol(!temizOzet[0].supheli, "iptal kayıtları masum amiri şüpheli göstermez");
+
 // Bitmemiş oturum girmez: yarıda bırakılan bir oturum "hızlı" değildir.
 esit(gozetenOzetleri([{ sayfaSureleri: { a: 1 }, gozeten: "amir1" }], 30).length, 0, "bitmemiş oturum özete girmez");
 

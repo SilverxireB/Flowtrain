@@ -40,7 +40,7 @@ export function gecenSure(oturum: Pick<Oturum, "sayfaSureleri" | "baslangic" | "
 /** Beklenenin bu oranının altı "hızlı" sayılır (yarısı). */
 export const HIZLI_ORAN = 0.5;
 
-type OturumOlcusu = Pick<Oturum, "sayfaSureleri" | "baslangic" | "bitis">;
+type OturumOlcusu = Pick<Oturum, "sayfaSureleri" | "baslangic" | "bitis"> & { sonuc?: Oturum["sonuc"] };
 
 export function hizliMi(oturum: OturumOlcusu, beklenen: number): boolean {
   if (beklenen <= 0) return false;
@@ -72,6 +72,10 @@ export function gozetenOzetleri(
   const grup = new Map<string, OturumOlcusu[]>();
   for (const o of oturumlar) {
     if (!o.bitis) continue;
+    /* İPTAL edilen oturumlar ölçüye GİRMEZ: PIN'ini yanlış girip kilitlenen
+       kişinin 20 saniyelik kaydı "hızlı oturum" sayılıyor ve masum amiri
+       şüpheli gösteriyordu — modülün tam da kaçınmak istediği şey. */
+    if (o.sonuc === "iptal") continue;
     // Gözeteni olmayan (kiosk) oturumlar da ölçülür, "Kiosk" başlığı altında.
     // Eskiden atlanıyorlardı — yani sahteciliğin EN KOLAY yolu (kiosk'ta
     // başkasının sicilini girmek) panoda hiç görünmüyordu; tek telafi edici

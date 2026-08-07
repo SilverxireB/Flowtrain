@@ -57,4 +57,13 @@ esit(guvenliYol("javascript:alert(1)"), "/", "javascript: elenir");
 esit(guvenliYol("pano"), "/", "eğik çizgisiz göreli yol elenir");
 esit(guvenliYol("/", "/hub"), "/hub", "tek eğik çizgi tek başına hedef sayılmaz");
 
+/* KONTROL KARAKTERLERİ: tarayıcı ASCII sekme/satır sonunu URL'den SESSİZCE
+   atar, yani `/\t/site` adres çubuğunda `//site` olur — şema-göreli dış adres.
+   Regex tek başına buna kanıyordu. */
+esit(guvenliYol("/\t/kotu.example"), "/", "sekme içeren yol elenir");
+esit(guvenliYol("/\n/kotu.example"), "/", "satır sonu içeren yol elenir");
+esit(guvenliYol("/\r/kotu.example"), "/", "satır başı içeren yol elenir");
+esit(guvenliYol("/ /kotu.example"), "/", "boşluk içeren yol elenir");
+esit(guvenliYol("/\u0000/x"), "/", "boş karakter içeren yol elenir");
+
 bitir("yetki");

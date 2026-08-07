@@ -75,6 +75,8 @@ export default function Editor({
   }
 
   const yayinaHazir = sayfalar.length > 0;
+  /** Yayındayken hiçbir içerik kontrolü çalışmaz (sunucu da reddeder). */
+  const kilitli = yayinda;
 
   return (
     <main className="bg-wash min-h-screen pb-24">
@@ -119,6 +121,18 @@ export default function Editor({
       />
 
       <div className="mx-auto max-w-3xl space-y-8 px-5 py-8">
+        {yayinda ? (
+          /* Yayındaki eğitim bir KAYITTIR: tamamlanmış oturumlar "sürüm N"e
+             atıf yapıyor. İçeriği yerinde değiştirmek, insanların kayıtta
+             yazandan başka bir şeyden sınav olmuş görünmesi demek. */
+          <p className="rounded-xl border border-orta/40 bg-orta/5 px-4 py-3 text-sm">
+            <strong>Yayında — düzenleme kapalı.</strong>{" "}
+            {onaylayabilir
+              ? "Değişiklik için önce Taslağa alın; yeniden yayınlandığında sürüm numarası artar."
+              : "Değişiklik için onaylayan rolündeki bir kişi eğitimi taslağa almalı."}
+          </p>
+        ) : null}
+
         {!onaylayabilir && !yayinda ? (
           <p className="rounded-xl border border-line bg-white px-4 py-3 text-sm text-muted">
             Hazırladığınız eğitimi <strong className="text-ink">onaylayan</strong> rolündeki bir kişi yayına alır.
@@ -133,6 +147,7 @@ export default function Editor({
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold">Eğitim adı</span>
               <input
+                disabled={kilitli}
                 defaultValue={egitim.ad}
                 onBlur={(e) =>
                   e.target.value !== egitim.ad && calistir(() => egitimGuncelleEylem(egitim.id, { ad: e.target.value }))
@@ -143,6 +158,7 @@ export default function Editor({
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold">Açıklama</span>
               <textarea
+                disabled={kilitli}
                 defaultValue={egitim.aciklama ?? ""}
                 onBlur={(e) =>
                   e.target.value !== (egitim.aciklama ?? "") &&
@@ -162,7 +178,7 @@ export default function Editor({
             <h2 className="eyebrow">İçerik · {sayfalar.length} sayfa</h2>
           </div>
 
-          {sayfalar.length === 0 ? (
+          {sayfalar.length === 0 && !kilitli ? (
             <PdfYukle
               egitimId={egitim.id}
               onBitti={async (kartlar) => {
@@ -179,6 +195,7 @@ export default function Editor({
                 sayfa={s}
                 sira={i + 1}
                 toplam={sayfalar.length}
+                kilitli={kilitli}
                 onGuncelle={(yama) => calistir(() => sayfaGuncelleEylem(egitim.id, s.id, yama))}
                 onSil={() =>
                   confirm(
@@ -199,13 +216,13 @@ export default function Editor({
 
           <div className="mt-4 flex flex-wrap gap-2">
             {(Object.keys(KART_ETIKET) as KartTipi[]).map((t) => (
-              <button key={t} onClick={() => calistir(() => sayfaEkleEylem(egitim.id, t))} className="btn-ghost text-sm">
+              <button key={t} disabled={kilitli} onClick={() => calistir(() => sayfaEkleEylem(egitim.id, t))} className="btn-ghost text-sm">
                 <Icon name="plus" size={16} /> {KART_ETIKET[t]}
               </button>
             ))}
           </div>
 
-          {sayfalar.length > 0 ? (
+          {sayfalar.length > 0 && !kilitli ? (
             <details className="mt-4">
               <summary className="cursor-pointer text-sm font-semibold text-muted hover:text-ink">
                 Başka bir PDF ekle
@@ -241,6 +258,7 @@ export default function Editor({
                 soru={s}
                 sira={i + 1}
                 zor={zorSoruIdleri.includes(s.id)}
+                kilitli={kilitli}
                 onGuncelle={(yama) => calistir(() => soruGuncelleEylem(egitim.id, s.id, yama))}
                 onSil={() =>
                   confirm({ title: "Soru silinsin mi?", message: "Soru havuzdan kalıcı olarak çıkar.", danger: true }, () =>
@@ -253,7 +271,7 @@ export default function Editor({
 
           <div className="mt-4 flex flex-wrap gap-2">
             {(Object.keys(SORU_ETIKET) as SoruTipi[]).map((t) => (
-              <button key={t} onClick={() => calistir(() => soruEkleEylem(egitim.id, t))} className="btn-ghost text-sm">
+              <button key={t} disabled={kilitli} onClick={() => calistir(() => soruEkleEylem(egitim.id, t))} className="btn-ghost text-sm">
                 <Icon name="plus" size={16} /> {SORU_ETIKET[t]}
               </button>
             ))}
@@ -274,21 +292,25 @@ export default function Editor({
           {ayarlarAcik ? (
             <div className="card grid gap-4 p-5 sm:grid-cols-2">
               <Sayi
+                kilitli={kilitli}
                 etiket="Geçme notu"
                 deger={egitim.gecmeNotu}
                 onDegis={(v) => calistir(() => egitimGuncelleEylem(egitim.id, { gecmeNotu: v }))}
               />
               <Sayi
+                kilitli={kilitli}
                 etiket="Deneme hakkı"
                 deger={egitim.denemeHakki}
                 onDegis={(v) => calistir(() => egitimGuncelleEylem(egitim.id, { denemeHakki: v }))}
               />
               <Sayi
+                kilitli={kilitli}
                 etiket="Sınavdaki soru sayısı"
                 deger={egitim.soruSayisi}
                 onDegis={(v) => calistir(() => egitimGuncelleEylem(egitim.id, { soruSayisi: v }))}
               />
               <Sayi
+                kilitli={kilitli}
                 etiket="Tekrar (ay) — boş: tekrar yok"
                 deger={egitim.tekrarAy ?? 0}
                 onDegis={(v) => calistir(() => egitimGuncelleEylem(egitim.id, { tekrarAy: v || undefined }))}
@@ -296,6 +318,7 @@ export default function Editor({
               <label className="flex items-center gap-3 sm:col-span-2">
                 <input
                   type="checkbox"
+                  disabled={kilitli}
                   defaultChecked={egitim.karisik}
                   onChange={(e) => calistir(() => egitimGuncelleEylem(egitim.id, { karisik: e.target.checked }))}
                   className="h-5 w-5 accent-accent"
@@ -354,12 +377,23 @@ export default function Editor({
   );
 }
 
-function Sayi({ etiket, deger, onDegis }: { etiket: string; deger: number; onDegis: (v: number) => void }) {
+function Sayi({
+  etiket,
+  deger,
+  onDegis,
+  kilitli,
+}: {
+  etiket: string;
+  deger: number;
+  onDegis: (v: number) => void;
+  kilitli?: boolean;
+}) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-sm font-semibold">{etiket}</span>
       <input
         type="number"
+        disabled={kilitli}
         defaultValue={deger}
         min={0}
         onBlur={(e) => Number(e.target.value) !== deger && onDegis(Number(e.target.value))}

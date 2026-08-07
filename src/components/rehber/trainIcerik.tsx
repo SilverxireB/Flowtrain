@@ -18,6 +18,23 @@ import { DURUM_ETIKET, type AtamaDurumu } from "@/lib/kurallar";
  * her bölümde bir "sık karşılaşılanlar" tablosu, uyarı kutusu YALNIZ gerçek
  * tuzak için.
  */
+/**
+ * Pano tablosunun açıklama sütunu — durum etiketleriyle aynı kaynaktan beslenir.
+ *
+ * TRAIN_BOLUMLER'DEN ÖNCE tanımlı olmak ZORUNDA: bölümlerin içeriği JSX olarak
+ * modül yüklenirken değerlendiriliyor ve içindeki `.map(...)` bu sabiti okuyor.
+ * Aşağıda dursaydı geçici ölü bölgeye düşer ve rehber açılır açılmaz tüm sayfa
+ * "Application error" ile çökerdi — derleme de, tip denetimi de sessiz kalır.
+ */
+const DURUM_ACIKLAMA: Record<AtamaDurumu, string> = {
+  tamam: "Geçerli bir tamamlama var, yapılacak bir şey yok.",
+  suresiDoluyor: "Geçerliliğin bitmesine 30 günden az kaldı.",
+  suresiDoldu: "Tekrar süresi geçti; yeniden alınmalı.",
+  eksik: "Hiç girilmemiş, son tarih henüz geçmemiş.",
+  gecikti: "Son tarih geçti ve hâlâ girilmemiş.",
+  kaldi: "Girmiş ama geçememiş — \"hiç girmemiş\" ile karıştırmayın.",
+};
+
 export const TRAIN_BOLUMLER: RehberBolum[] = [
   {
     id: "kurulum",
@@ -286,13 +303,3 @@ export const TRAIN_BOLUMLER: RehberBolum[] = [
     ),
   },
 ];
-
-/** Pano tablosunun açıklama sütunu — durum etiketleriyle aynı kaynaktan beslenir. */
-const DURUM_ACIKLAMA: Record<AtamaDurumu, string> = {
-  tamam: "Geçerli bir tamamlama var, yapılacak bir şey yok.",
-  suresiDoluyor: "Geçerliliğin bitmesine 30 günden az kaldı.",
-  suresiDoldu: "Tekrar süresi geçti; yeniden alınmalı.",
-  eksik: "Hiç girilmemiş, son tarih henüz geçmemiş.",
-  gecikti: "Son tarih geçti ve hâlâ girilmemiş.",
-  kaldi: "Girmiş ama geçememiş — \"hiç girmemiş\" ile karıştırmayın.",
-};

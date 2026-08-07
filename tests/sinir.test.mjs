@@ -78,6 +78,33 @@ for (const yasak of ["durum", "onaylayan", "surum"]) {
   kontrol(!beyazListe.includes(`"${yasak}"`), `hazırlayan '${yasak}' alanını yazamaz`);
 }
 
+/* ── 5b. Yayındaki eğitim düzenlenemez ─────────────────────────────────────
+   Alan beyaz listesi dört göz kuralını ALAN bazında kapatıyor; bu kapı da
+   İÇERİK bazında kapatıyor. Biri olmadan diğeri yarım. */
+kontrol(/function taslakMi\(/.test(eylemler?.metin ?? ""), "yayın kilidi yardımcısı duruyor");
+for (const fn of [
+  "egitimGuncelleEylem",
+  "sayfaEkleEylem",
+  "sayfaGuncelleEylem",
+  "sayfaSilEylem",
+  "sayfalariSiralaEylem",
+  "sayfalariTopluEkleEylem",
+  "soruEkleEylem",
+  "soruGuncelleEylem",
+  "soruSilEylem",
+]) {
+  const govde = eylemler?.metin.match(new RegExp(`export async function ${fn}\\([\\s\\S]*?\\n}`))?.[0] ?? "";
+  kontrol(/taslakMi\(/.test(govde), `${fn} yayındaki eğitimi reddediyor`);
+}
+
+/* ── 5c. Sınav seti oturumda SABİT ────────────────────────────────────────
+   Bitişte havuzdan yeniden üretilirse, arada havuz değişince kişi hiç
+   görmediği sorulardan puanlanır. */
+kontrol(
+  kioskEylem && /sorulariKimlikle\(oturum\.sorulanSoruIdleri\)/.test(kioskEylem.metin),
+  "puanlama oturumun sabitlenmiş soru setinden yapılıyor",
+);
+
 /* ── 6. Küçültücü tuzağı ───────────────────────────────────────────────────
    Parametre yakalayıp birden çok kez çağrılan yardımcı, SWC satır içine
    alırken serbest değişken bırakabiliyor (bkz. csv.ts notu). Kural yazılı;

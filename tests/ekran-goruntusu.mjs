@@ -25,6 +25,15 @@ writeFileSync(
   "utf8",
 );
 
+// Önceki çöken koşudan kalan sunucu portu tutuyor olabilir: tutuyorsa yeni
+// sunucu bağlanamaz ve betik ESKİ verinin üstünde çalışır.
+try {
+  spawn("pkill", ["-f", `next start -p ${PORT}`]).on("close", () => {});
+  await new Promise((r) => setTimeout(r, 1500));
+} catch {
+  /* pkill yoksa sorun değil */
+}
+
 const sunucu = spawn("node_modules/.bin/next", ["start", "-p", String(PORT)], {
   env: { ...process.env, FLOWTRAIN_DATA: veri, NODE_ENV: "production" },
   stdio: ["ignore", "ignore", "ignore"],
@@ -38,6 +47,13 @@ for (let i = 0; i < 60; i++) {
   }
   await new Promise((r) => setTimeout(r, 500));
 }
+
+process.on("exit", () => sunucu.kill("SIGTERM"));
+process.on("uncaughtException", (e) => {
+  console.error(e.message);
+  sunucu.kill("SIGTERM");
+  process.exit(1);
+});
 
 const tarayici = await chromium.launch({ executablePath: KROM });
 const kokpit = await tarayici.newContext({ viewport: { width: 1180, height: 900 }, deviceScaleFactor: 2 });

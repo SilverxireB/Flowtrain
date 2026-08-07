@@ -159,8 +159,24 @@ export async function sablondanAcEylem(sablonId: string): Promise<void> {
  */
 const HAZIRLAYAN_ALANLARI = ["ad", "aciklama", "gecmeNotu", "denemeHakki", "soruSayisi", "karisik", "tekrarAy"] as const;
 
+/**
+ * YAYINDAKİ EĞİTİM DEĞİŞTİRİLEMEZ.
+ *
+ * Alan beyaz listesi dört göz kuralını alan bazında kapatıyordu ama içerik
+ * bazında açık bırakıyordu: `hazirlayan`, yayındaki bir eğitimin sorularını,
+ * sayfalarını ve geçme notunu onaysız değiştirebiliyordu. Kayıtlar "sürüm N"e
+ * atıf yaptığı ve sürüm artmadığı için denetimde hiçbir iz kalmıyordu —
+ * yani insanlar, kayıtta yazandan BAŞKA bir içerikten sınav olmuş oluyordu.
+ *
+ * Değişiklik için eğitim önce taslağa alınır; o da `onaylayan` yetkisi ister.
+ */
+function taslakMi(egitimId: string): boolean {
+  return depo.egitimGetir(egitimId)?.durum !== "yayin";
+}
+
 export async function egitimGuncelleEylem(id: string, yama: Record<string, unknown>): Promise<void> {
   const ben = kapi("hazirlayan", `/egitimler/${id}`);
+  if (!taslakMi(id)) return;
   const suzulmus: Record<string, unknown> = {};
   for (const alan of HAZIRLAYAN_ALANLARI) {
     if (yama[alan] !== undefined) suzulmus[alan] = yama[alan];
@@ -218,6 +234,7 @@ export async function taslagaAlEylem(id: string): Promise<void> {
 
 export async function sayfaEkleEylem(egitimId: string, tip: KartTipi): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
+  if (!taslakMi(egitimId)) return;
   depo.sayfaEkle(egitimId, { tip });
   revalidatePath(`/egitimler/${egitimId}`);
 }
@@ -232,6 +249,7 @@ export async function sayfalariTopluEkleEylem(
   kartlar: { gorselId: string; baslik: string }[],
 ): Promise<void> {
   const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
+  if (!taslakMi(egitimId)) return;
   for (const k of kartlar) {
     depo.sayfaEkle(egitimId, { tip: "kural", baslik: k.baslik, gorselId: k.gorselId });
   }
@@ -241,18 +259,21 @@ export async function sayfalariTopluEkleEylem(
 
 export async function sayfaGuncelleEylem(egitimId: string, id: string, yama: Record<string, unknown>): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
+  if (!taslakMi(egitimId)) return;
   depo.sayfaGuncelle(id, yama);
   revalidatePath(`/egitimler/${egitimId}`);
 }
 
 export async function sayfaSilEylem(egitimId: string, id: string): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
+  if (!taslakMi(egitimId)) return;
   depo.sayfaSil(id);
   revalidatePath(`/egitimler/${egitimId}`);
 }
 
 export async function sayfalariSiralaEylem(egitimId: string, sirali: string[]): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
+  if (!taslakMi(egitimId)) return;
   depo.sayfalariSirala(egitimId, sirali);
   revalidatePath(`/egitimler/${egitimId}`);
 }
@@ -261,6 +282,7 @@ export async function sayfalariSiralaEylem(egitimId: string, sirali: string[]): 
 
 export async function soruEkleEylem(egitimId: string, tip: SoruTipi): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
+  if (!taslakMi(egitimId)) return;
   depo.soruEkle(egitimId, {
     tip,
     metin: "",
@@ -272,12 +294,14 @@ export async function soruEkleEylem(egitimId: string, tip: SoruTipi): Promise<vo
 
 export async function soruGuncelleEylem(egitimId: string, id: string, yama: Partial<Soru>): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
+  if (!taslakMi(egitimId)) return;
   depo.soruGuncelle(id, yama);
   revalidatePath(`/egitimler/${egitimId}`);
 }
 
 export async function soruSilEylem(egitimId: string, id: string): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
+  if (!taslakMi(egitimId)) return;
   depo.soruSil(id);
   revalidatePath(`/egitimler/${egitimId}`);
 }

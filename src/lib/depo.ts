@@ -63,6 +63,7 @@ function oturumdan(r: Satir): Oturum {
     baslangic: r.baslangic as string,
     bitis: (r.bitis as string) ?? undefined,
     sayfaSureleri: JSON.parse(r.sayfaSureleri as string),
+    sorulanSoruIdleri: JSON.parse((r.sorulanSoruIdleri as string) ?? "[]"),
     puan: (r.puan as number) ?? undefined,
     sonuc: (r.sonuc as Oturum["sonuc"]) ?? undefined,
     senkron: r.senkron as Oturum["senkron"],
@@ -217,8 +218,23 @@ export function sayfalariSirala(egitimId: string, sirali: string[]): void {
 
 /* ── soru ─────────────────────────────────────────────────────────────────── */
 
+/** Sıra GARANTİ ALTINDA: `ORDER BY` olmadan karıştırmasız sınav SQLite'ın
+    keyfine kalıyordu. */
 export function sorulariGetir(egitimId: string): Soru[] {
-  return db().prepare("SELECT * FROM soru WHERE egitimId=?").all(egitimId).map((r) => sorudan(r as Satir));
+  return db().prepare("SELECT * FROM soru WHERE egitimId=? ORDER BY id").all(egitimId).map((r) => sorudan(r as Satir));
+}
+
+/** Belirli kimliklerdeki sorular — oturumun sabitlenmiş setini geri okumak için. */
+export function sorulariKimlikle(idler: string[]): Soru[] {
+  if (idler.length === 0) return [];
+  const yer = idler.map(() => "?").join(",");
+  const bulunan = db()
+    .prepare(`SELECT * FROM soru WHERE id IN (${yer})`)
+    .all(...idler)
+    .map((r) => sorudan(r as Satir));
+  // Sıra oturumdaki sırayla aynı olmalı; `IN` sırayı korumaz.
+  const karta = new Map(bulunan.map((s) => [s.id, s]));
+  return idler.map((id) => karta.get(id)).filter((s): s is Soru => !!s);
 }
 
 export function soruEkle(egitimId: string, veri: Omit<Soru, "id" | "egitimId">): Soru {
@@ -311,6 +327,7 @@ export function oturumBaslat(veri: {
   sicil: string;
   gozeten?: string;
   cihaz: string;
+  sorulanSoruIdleri: string[];
 }): Oturum {
   const o: Oturum = {
     id: kimlik("otr"),
@@ -321,11 +338,36 @@ export function oturumBaslat(veri: {
   };
   db()
     .prepare(
-      `INSERT INTO oturum (id,egitimId,egitimSurum,sicil,gozeten,cihaz,baslangic,sayfaSureleri,senkron)
-       VALUES (?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO oturum (id,egitimId,egitimSurum,sicil,gozeten,cihaz,baslangic,sayfaSureleri,sorulanSoruIdleri,senkron)
+       VALUES (?,?,?,?,?,?,?,?,?,?)`,
     )
-    .run(o.id, o.egitimId, o.egitimSurum, o.sicil, o.gozeten ?? null, o.cihaz, o.baslangic, "{}", "bekliyor");
+    .run(
+      o.id,
+      o.egitimId,
+      o.egitimSurum,
+      o.sicil,
+      o.gozeten ?? null,
+      o.cihaz,
+      o.baslangic,
+      "{}",
+      JSON.stringify(o.sorulanSoruIdleri),
+      "bekliyor",
+    );
   return o;
+}
+
+/**
+ * Yarıda bırakılmış eski oturumları kapatır.
+ * Kiosk kimlik istemediği için biri başkasının sicilini yazıp "Başla"ya
+ * deneme hakkı kadar basarsa o kişiyi eğitimden KALICI olarak kilitleyebilirdi;
+ * kazara yarıda bırakan işçi de her seferinde bir hak yakıyordu.
+ */
+export function eskiOturumlariKapat(sicil: string, egitimId: string, saat = 2): number {
+  const sinir = new Date(Date.now() - saat * 3_600_000).toISOString();
+  const r = db()
+    .prepare("UPDATE oturum SET bitis=?, sonuc='iptal', senkron='gonderildi' WHERE sicil=? AND egitimId=? AND bitis IS NULL AND baslangic < ?")
+    .run(simdi(), sicil, egitimId, sinir);
+  return r.changes;
 }
 
 export function oturumBitir(

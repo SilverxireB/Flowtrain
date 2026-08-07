@@ -18,10 +18,13 @@ export default function SoruSatiri({
   zor,
   onGuncelle,
   onSil,
+  kilitli,
 }: {
   soru: Soru;
   sira: number;
   zor: boolean;
+  /** Yayındaki eğitim salt okunur — sunucu da reddeder. */
+  kilitli?: boolean;
   onGuncelle: (yama: Partial<Soru>) => void;
   onSil: () => void;
 }) {
@@ -70,12 +73,13 @@ export default function SoruSatiri({
           </span>
         ) : null}
         <div className="flex-1" />
-        <button onClick={onSil} className="btn-icon hover:text-brand" aria-label="Soruyu sil">
+        <button onClick={onSil} disabled={kilitli} className="btn-icon hover:text-brand" aria-label="Soruyu sil">
           <Icon name="trash" size={16} />
         </button>
       </div>
 
       <textarea
+        disabled={kilitli}
         defaultValue={soru.metin}
         onBlur={(e) => e.target.value !== soru.metin && onGuncelle({ metin: e.target.value })}
         rows={2}
@@ -95,6 +99,7 @@ export default function SoruSatiri({
           <li key={i} className="flex items-center gap-2">
             <button
               onClick={() => dogruDegistir(i)}
+              disabled={kilitli}
               aria-label={`${i + 1}. şıkkı doğru işaretle`}
               aria-pressed={soru.dogru.includes(i)}
               className={`grid h-8 w-8 shrink-0 place-items-center border-2 transition ${
@@ -107,11 +112,12 @@ export default function SoruSatiri({
               defaultValue={s}
               onBlur={(e) => e.target.value !== s && secenekDegistir(i, e.target.value)}
               readOnly={sabitSecenek}
+              disabled={kilitli}
               placeholder={`${i + 1}. şık`}
               className={`input-base py-2 ${sabitSecenek ? "bg-paper text-muted" : ""}`}
             />
             {!sabitSecenek && soru.secenekler.length > 2 ? (
-              <button onClick={() => secenekSil(i)} className="btn-icon" aria-label="Şıkkı sil">
+              <button onClick={() => secenekSil(i)} disabled={kilitli} className="btn-icon" aria-label="Şıkkı sil">
                 <Icon name="close" size={16} />
               </button>
             ) : null}
@@ -120,7 +126,7 @@ export default function SoruSatiri({
       </ul>
 
       {!sabitSecenek ? (
-        <button onClick={secenekEkle} className="btn-ghost mt-3 text-sm">
+        <button onClick={secenekEkle} disabled={kilitli} className="btn-ghost mt-3 text-sm">
           <Icon name="plus" size={16} /> Şık ekle
         </button>
       ) : null}

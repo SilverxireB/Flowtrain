@@ -384,13 +384,23 @@ function PinAlani({ deger, ayarla, etiket }: { deger: string; ayarla: (v: string
 
 /**
  * Video bekçisi: videonun sonuna gelinmeden ileri açılmaz.
- * İleri sarma engellenir — ama YALNIZ ilk izlemede; geri sarıp tekrar izlemek
- * serbesttir (anlamadığı yeri tekrar izleyen kişiyi cezalandırmayız).
+ *
+ * İLERİ SARMA engellenir, GERİ SARMA serbesttir — anlamadığı yeri tekrar
+ * izleyen kişiyi cezalandırmayız.
+ *
+ * ETKİ SABİT TUTULUR (`useRef` + boş bağımlılık): `onBitti` satır içi bir ok
+ * fonksiyonu olarak geliyordu ve bağımlılıktaydı; ebeveyn her saniye süre
+ * sayacıyla yeniden çizildiği için etki her saniye sökülüp kuruluyor,
+ * `enUzak` sıfırlanıyordu. Sonuç iki katmanlı bir hataydı: ilerleme takibi
+ * ölü koda dönüşmüştü ve geri saran kişi videonun BAŞINA atılıyordu — yani
+ * yorumun vaat ettiğinin tam tersi çalışıyordu.
  */
 function VideoBekci({ sayfaId, onBitti }: { sayfaId: string; onBitti: () => void }) {
+  const bitti = useRef(onBitti);
+  bitti.current = onBitti;
+
   useEffect(() => {
-    // Sayfadaki İLK video değil, İÇERİK videosu: `querySelector("video")`
-    // bugün çalışıyordu çünkü tek video vardı; ikinci bir <video> eklendiğinde
+    // Sayfadaki İLK video değil, İÇERİK videosu: ikinci bir <video> eklendiğinde
     // sessizce yanlış öğeyi izlemeye başlardı.
     const v = document.querySelector<HTMLVideoElement>("video[data-icerik-videosu]");
     if (!v) return;
@@ -401,22 +411,23 @@ function VideoBekci({ sayfaId, onBitti }: { sayfaId: string; onBitti: () => void
       // almak, kaydırıcıyı sürükleyen kişinin ilerlemeyi kendi eliyle
       // yazmasına izin veriyordu.
       if (!v.seeking && v.currentTime > enUzak && v.currentTime - enUzak < 1.5) enUzak = v.currentTime;
-      if (v.duration && enUzak >= v.duration - 1.5) onBitti();
+      if (v.duration && enUzak >= v.duration - 1.5) bitti.current();
     };
     const atlamaEngeli = () => {
-      // İleriye doğru HİÇBİR atlamaya tolerans yok. Eskiden 1.5 sn pay vardı;
-      // kaydırıcıyı yavaş sürükleyen kişi her adımda payın altında kalıp
-      // videoyu hiç oynatmadan sonuna yürüyebiliyordu.
+      // İleriye doğru HİÇBİR atlamaya tolerans yok; geriye serbest.
       if (v.currentTime > enUzak + 0.4) v.currentTime = enUzak;
     };
+    const sonaGeldi = () => bitti.current();
+
     v.addEventListener("timeupdate", izle);
     v.addEventListener("seeking", atlamaEngeli);
-    v.addEventListener("ended", onBitti);
+    v.addEventListener("ended", sonaGeldi);
     return () => {
       v.removeEventListener("timeupdate", izle);
       v.removeEventListener("seeking", atlamaEngeli);
-      v.removeEventListener("ended", onBitti);
+      v.removeEventListener("ended", sonaGeldi);
     };
-  }, [sayfaId, onBitti]);
+  }, [sayfaId]);
+
   return null;
 }

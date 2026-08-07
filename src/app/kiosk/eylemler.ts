@@ -4,6 +4,7 @@ import { personelKaynagi, kaydiGonder } from "@/lib/adaptorlar";
 import * as depo from "@/lib/depo";
 import { kisininBekleyenleri } from "@/lib/atamaServis";
 import { aktifHesap } from "@/lib/kimlik";
+import { kimlik } from "@/lib/db";
 import { puanla, sinaviKur, tohumla } from "@/lib/sinav";
 import type { Egitim, Sayfa, Soru } from "@/lib/tipler";
 
@@ -87,21 +88,31 @@ export async function oturumBaslat(sicil: string, egitimId: string): Promise<{ h
     return { hata: "Bu eğitim size atanmış görünmüyor." };
   }
 
-  /* DENEME HAKKI: bitmiş oturumlar DEĞİL, TÜM oturumlar sayılır. Yalnız
-     bitmişleri saymak, "bitirmeden 20 oturum aç, sonra hepsini kapat"
-     yarışına açık kapı bırakıyordu. */
+  /* DENEME HAKKI.
+     Açık oturumlar da sayılır — yoksa "bitirmeden 20 oturum aç, sonra hepsini
+     kapat" yarışı hakkı sessizce aşardı. Ama yalnız TAZE olanlar: kiosk kimlik
+     istemediği için biri başkasının siciliyle iki kez "Başla"ya basıp o kişiyi
+     eğitimden kalıcı kilitleyebilirdi, ve eğitimi yarıda bırakan işçi her
+     seferinde bir hak yakardı. Eskiyenler burada kapanır. */
+  depo.eskiOturumlariKapat(temiz, egitimId);
   const gecmis = depo.oturumlariGetir({ sicil: temiz, egitimId }).filter((o) => o.sonuc !== "iptal");
   if (gecmis.length >= egitim.denemeHakki) {
     return { hata: `Deneme hakkınız doldu (${egitim.denemeHakki}). Amirinize başvurun.` };
   }
 
   const kokpit = aktifHesap();
+  /* Sınav BİR KEZ kurulur ve oturumun üstünde saklanır. Bitişte havuzdan
+     yeniden üretilseydi, arada havuza tek bir soru eklenmesi permütasyonu
+     değiştirip kişiyi HİÇ GÖRMEDİĞİ sorulardan puanlardı; sorular silinseydi
+     set boşalıp sınavsız "geçti" kaydı üretirdi. */
+  const sinav = sinaviKur(depo.sorulariGetir(egitimId), egitim.soruSayisi, egitim.karisik, tohumla(kimlik("tohum")));
   const oturum = depo.oturumBaslat({
     egitimId,
     egitimSurum: egitim.surum,
     sicil: temiz,
     gozeten: kokpit?.kullanici,
     cihaz: kokpit ? "amir-tableti" : "kiosk",
+    sorulanSoruIdleri: sinav.map((q) => q.id),
   });
   depo.izBirak(kokpit?.kullanici ?? "kiosk", `oturum açıldı: ${temiz} · ${egitim.ad}`);
 
@@ -114,21 +125,11 @@ export async function oturumBaslat(sicil: string, egitimId: string): Promise<{ h
       // Cevap anahtarı istemciye HİÇ inmez: eskiden `dogru` dizileriyle
       // birlikte gönderiliyordu, yani sınavın cevapları tek istekle
       // indirilebiliyordu.
-      sorular: sinavSorulari(egitimId, egitim, oturum.id).map(({ dogru: _dogru, ...s }) => s),
+      sorular: sinav.map(({ dogru: _dogru, ...s }) => s),
       pinKurulacak: pinYok,
       iseGirisSorulacak: pinYok && !!kisi.iseGiris,
     },
   };
-}
-
-/**
- * Oturumun sınav sorularını üretir — TOHUM OTURUM KİMLİĞİ.
- * Deterministik olduğu için sunucu, istemciye ne gönderdiğini bitişte
- * yeniden kurabilir; "hangi sorular soruldu" bilgisi için istemciye
- * güvenmeye gerek kalmaz.
- */
-function sinavSorulari(egitimId: string, egitim: Egitim, oturumId: string): Soru[] {
-  return sinaviKur(depo.sorulariGetir(egitimId), egitim.soruSayisi, egitim.karisik, tohumla(oturumId));
 }
 
 export interface TamamlamaSonucu {
@@ -174,6 +175,10 @@ export async function oturumTamamla(
     const kisi = await personelKaynagi().bul(oturum.sicil);
     if (kisi?.iseGiris) {
       if (!tarihEsit(gonderi.iseGiris, kisi.iseGiris)) {
+        /* Oturumu KAPAT: PIN'i olmayan kişide sayaç tutacak bir satır yok,
+           dolayısıyla tek bir açık oturumla tarih sınırsız denenebilirdi.
+           Her deneme artık bir oturuma (ve bir deneme hakkına) mal oluyor. */
+        depo.oturumIptal(oturumId, "işe giriş tarihi eşleşmedi");
         return { hata: "İşe giriş tarihi eşleşmedi. Amirinize başvurun." };
       }
     }
@@ -185,9 +190,10 @@ export async function oturumTamamla(
   const egitim = depo.egitimGetir(oturum.egitimId);
   if (!egitim) return { hata: "Eğitim bulunamadı." };
 
-  // Sorular oturum kimliğinden yeniden kurulur: hangi soruların sorulduğu
-  // bilgisi de, doğru cevaplar da istemciden GELMEZ.
-  const sorulan = sinavSorulari(oturum.egitimId, egitim, oturumId);
+  // Sorular OTURUMUN KENDİ kaydından okunur: hangi soruların sorulduğu bilgisi
+  // de, doğru cevaplar da istemciden GELMEZ — ve arada havuz değişse bile
+  // kişi gördüğü sorulardan puanlanır.
+  const sorulan = depo.sorulariKimlikle(oturum.sorulanSoruIdleri);
   const p = puanla(sorulan, gonderi.cevaplar);
 
   /* SINAVSIZ EĞİTİM = "okudum, onaylıyorum" kaydı.
@@ -221,15 +227,22 @@ export async function oturumTamamla(
 
 /**
  * Tarihleri yazım farkına takılmadan karşılaştırır.
- * Personel dosyası `2026-08-01` de yazabilir `01.08.2026` de; kullanıcı
- * ekrana ikisinden birini girer. Rakamları alıp gün/ay/yıl kümesi olarak
- * karşılaştırmak, bu ürünün kontrol edemediği bir biçim farkı yüzünden
- * insanları dışarıda bırakmaktan iyidir.
+ * Personel dosyası `2026-08-01` de yazabilir `01.08.2026` de; kullanıcı ekrana
+ * ikisinden birini girer. Biçim farkı yüzünden insanları dışarıda bırakmayız —
+ * ama GÜN/AY SIRASI korunur: rakamları sıralayıp karşılaştırmak 03.05 ile
+ * 05.03'ü eşit sayıyor ve tahmin uzayını gereksiz yere daraltıyordu.
  */
 function tarihEsit(girilen: string | undefined, beklenen: string): boolean {
-  const parcala = (s: string) => (s.match(/\d+/g) ?? []).map((x) => x.replace(/^0+(?=\d)/, ""));
-  const a = parcala(girilen ?? "");
-  const b = parcala(beklenen);
-  if (a.length < 3 || b.length < 3) return false;
-  return [...a].sort().join("-") === [...b].sort().join("-");
+  const coz = (metin: string): string | null => {
+    const p = (metin.match(/\d+/g) ?? []).map(Number);
+    if (p.length < 3) return null;
+    // Dört haneli parça YIL: başta ise YYYY-AA-GG, sonda ise GG.AA.YYYY.
+    const [a, b, c] = p;
+    const [yil, ay, gun] = String(a).length === 4 ? [a, b, c] : [c, b, a];
+    if (!yil || ay < 1 || ay > 12 || gun < 1 || gun > 31) return null;
+    return `${yil}-${String(ay).padStart(2, "0")}-${String(gun).padStart(2, "0")}`;
+  };
+  const g = coz(girilen ?? "");
+  const b = coz(beklenen);
+  return !!g && !!b && g === b;
 }
