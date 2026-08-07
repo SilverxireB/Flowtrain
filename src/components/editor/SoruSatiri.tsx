@@ -1,6 +1,7 @@
 "use client";
 
 import Icon from "@/components/Icon";
+import OtoMetin from "@/components/editor/OtoMetin";
 import { SORU_ETIKET, type Soru } from "@/lib/tipler";
 
 /**
@@ -78,13 +79,13 @@ export default function SoruSatiri({
         </button>
       </div>
 
-      <textarea
+      <OtoMetin
         disabled={kilitli}
         defaultValue={soru.metin}
         onBlur={(e) => e.target.value !== soru.metin && onGuncelle({ metin: e.target.value })}
         rows={2}
         placeholder="Soru metni"
-        className="input-base mt-3 resize-y font-semibold"
+        className="input-base mt-3 font-semibold"
       />
 
       {cokluSecim ? (

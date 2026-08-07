@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Icon from "@/components/Icon";
+import OtoMetin from "@/components/editor/OtoMetin";
 import { KART_ACIKLAMA, KART_ETIKET, type Sayfa } from "@/lib/tipler";
 
 /**
@@ -83,7 +84,7 @@ export default function SayfaSatiri({
           className="input-base font-semibold"
         />
 
-        <textarea
+        <OtoMetin
           disabled={kilitli}
           defaultValue={sayfa.metin ?? ""}
           onBlur={(e) => e.target.value !== (sayfa.metin ?? "") && onGuncelle({ metin: e.target.value })}
@@ -95,17 +96,17 @@ export default function SayfaSatiri({
                 ? "YAP kolonuna yazılacak"
                 : "Metin"
           }
-          className="input-base resize-y"
+          className="input-base"
         />
 
         {sayfa.tip === "yapYapma" ? (
-          <textarea
+          <OtoMetin
             disabled={kilitli}
             defaultValue={sayfa.metinKarsi ?? ""}
             onBlur={(e) => e.target.value !== (sayfa.metinKarsi ?? "") && onGuncelle({ metinKarsi: e.target.value })}
             rows={2}
             placeholder="YAPMA kolonuna yazılacak"
-            className="input-base resize-y border-brand/30"
+            className="input-base border-brand/30"
           />
         ) : null}
 

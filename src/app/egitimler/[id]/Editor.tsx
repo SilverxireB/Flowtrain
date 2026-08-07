@@ -7,6 +7,7 @@ import Baslik from "@/components/Baslik";
 import Icon from "@/components/Icon";
 import { useConfirm } from "@/components/ConfirmDialog";
 import EgitimOyun from "@/components/oyun/EgitimOyun";
+import OtoMetin from "@/components/editor/OtoMetin";
 import SayfaSatiri from "@/components/editor/SayfaSatiri";
 import SoruSatiri from "@/components/editor/SoruSatiri";
 import { KART_ETIKET, SORU_ETIKET, type Egitim, type KartTipi, type Sayfa, type Soru, type SoruTipi } from "@/lib/tipler";
@@ -120,7 +121,7 @@ export default function Editor({
         }
       />
 
-      <div className="mx-auto max-w-3xl space-y-8 px-5 py-8">
+      <div className="sayfa-govde space-y-8">
         {yayinda ? (
           /* Yayındaki eğitim bir KAYITTIR: tamamlanmış oturumlar "sürüm N"e
              atıf yapıyor. İçeriği yerinde değiştirmek, insanların kayıtta
@@ -157,7 +158,7 @@ export default function Editor({
             </label>
             <label className="block">
               <span className="mb-1.5 block text-sm font-semibold">Açıklama</span>
-              <textarea
+              <OtoMetin
                 disabled={kilitli}
                 defaultValue={egitim.aciklama ?? ""}
                 onBlur={(e) =>
@@ -165,7 +166,7 @@ export default function Editor({
                   calistir(() => egitimGuncelleEylem(egitim.id, { aciklama: e.target.value }))
                 }
                 rows={2}
-                className="input-base resize-y"
+                className="input-base"
                 placeholder="Kimin, neyi öğrenmesi bekleniyor?"
               />
             </label>
