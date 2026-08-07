@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { chromium } from "playwright";
 
 const KROM = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
-const PORT = 3112;
+const PORT = 3117;
 const ADRES = `http://127.0.0.1:${PORT}`;
 const CIKTI = process.env.CIKTI ?? "/tmp/flowtrain-ekran";
 

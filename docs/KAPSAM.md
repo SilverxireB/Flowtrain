@@ -1,4 +1,4 @@
-# FlowTrain — Kapsam v0.1
+# FlowTrain — Kapsam v1.0 (uygulandı)
 
 **Ne:** Kapalı ağda çalışan eğitim dağıtım ve sınav aracı. Sistem kaydı tutan yer
 değil — **hazırlama, dağıtma, sınav** katmanı.
@@ -25,18 +25,28 @@ Dolayısıyla: **tek kutu, iç ağda, hesapsız erişim.**
 
 1. **Eğitim listesi** — taslak/yayında, sürüm, kaç kişiye atandı.
 2. **Eğitim editörü** — tek dikey liste. Üstte **"Dosya yükle"** kapısı
-   (PDF/PPTX → her sayfa bir kart). Kart tipleri: kural · yap-yapma · adım adım ·
-   uyarı · video. Altta soru havuzu. Sağ üstte **▶ Dene** (kiosk görünümü,
-   kayıt düşmez).
+   (PDF → her sayfa bir kart; çevirim tarayıcıda). Kart tipleri: kural ·
+   yap-yapma · adım adım · uyarı · video. Altta soru havuzu. Sağ üstte
+   **▶ Dene** (kiosk görünümü, kayıt düşmez). Ayrıca iskelet şablonlar.
+   **PPTX YOK, bilinçli:** PowerPoint'te "PDF olarak kaydet" tek tıktır;
+   slaytları kendi motorumuzla yeniden çizmek (yazı tipi, SmartArt, animasyon)
+   bitmeyen bir kuyudur.
+   **Yayındaki eğitim SALT OKUNUR** — kayıtlar "sürüm N"e atıf yapar; içeriği
+   yerinde değiştirmek insanların kayıtta yazandan başka bir şeyden sınav
+   olmuş görünmesi demektir. Değişiklik için önce taslağa alınır (onaylayan).
 3. **Atama kuralları** — kişi kişi değil kural: "Kaynak bölümü", "işe girişten
    itibaren 3 gün içinde", "yılda bir tekrar".
 4. **Ekibim (amir tableti)** — `Ekibim 14 · Eksik 4 · Süresi doluyor 2` →
    satıra bas → `Başlat`.
 5. **Kiosk** — kart okut/sicil → bekleyen eğitimler → izle → sınav →
    **kendi PIN'i ile bitir**.
-6. **Pano** — bölüm/hat bazında tamamlama, gecikenler, süresi dolanlar,
-   **anomali işareti**, CSV/PDF dışa aktarma.
-7. **Ayarlar** — adaptör seçimi, veri klasörü (= yedek yeri), sürüm, denetim izi.
+6. **Pano** — bölüm bazında tamamlama, gecikenler, süresi dolanlar,
+   **anomali işareti**, CSV (tam liste, denetim belgesi) + PDF (özet rapor).
+7. **Ayarlar** — "kurulumun gerçeği" satırları (veri klasörü/yedek yeri,
+   personel dosyası durumu, amir sütunu doluluk, kayıt hedefi, bekleyen
+   senkron), hesaplar, PIN yönetimi/sıfırlama, denetim izi.
+   **Adaptör SEÇİMİ yok, gösterimi var:** v1'de tek uygulama var; tek
+   seçenekli bir açılır kutu yalan söylerdi. Seçim OPM adaptörüyle gelir.
 
 ---
 
@@ -65,10 +75,16 @@ Amir tableti tamamlama oranını yükseltir ama aynı tablet 12 kişiyi 4 dakika
 yasal kayıt.** Satılan şey kayıttır; kayıt sahteyse ürün yoktur.
 
 - PIN'i **işçi** girer, **sonda** — imza yerine geçer. Amir başlatır, işçi bitirir.
+  Beş hatalı denemede 15 dk kilit; kilitte oturum kapanır. İlk PIN'de işe
+  giriş tarihi sorulur (yanlış tarih oturumu yakar).
+- **Puan sunucuda** hesaplanır; cevap anahtarı istemciye hiç inmez; sınav seti
+  oturum açılışında sabitlenir (havuz değişse bile kişi gördüğünden puanlanır).
 - Soru havuzundan karışık seçim — aynı dokunma deseni 12 kere işlemez.
-- Video ilk izlemede atlanamaz; kartlarda asgari kalma süresi.
+- Video ilk izlemede atlanamaz (geri sarma serbest); kartlarda asgari süre,
+  sekme arkaya atılınca sayaç durur.
+- **Süre sunucu damgalarından** ölçülür, istemciden gelen sayıdan değil.
 - Panoda anomali satırı: *"12 kayıt · ort. 90 sn · beklenen 6 dk"* — kimseyi
-  suçlamadan görünür.
+  suçlamadan görünür. Gözetimsiz (kiosk) oturumlar da ölçülür.
 
 ---
 
@@ -95,7 +111,8 @@ yasal kayıt.** Satılan şey kayıttır; kayıt sahteyse ürün yoktur.
 
 SCORM/xAPI · kurs katalogu, öğrenme patikaları · rozet/gamification · serbest
 tasarım tuvali · SMS entegrasyonu (v2 modülü) · mobil uygulama · içerik üretim
-hizmeti · çoklu dil.
+hizmeti · çoklu dil · PPTX ayrıştırma · otomatik soru üretimi (dil modeli
+gerektirir; "dış servis yok" kuralıyla çelişir — karar bekliyor).
 
 ---
 
@@ -113,7 +130,18 @@ Hiçbiri Aşama 1'i bloklamıyor.
 
 ## Yol
 
-- **Aşama 1 (çekirdek):** editör + yükle kapısı + sınav + kiosk + CSV adaptörü →
-  tek eğitimle bir hatta pilot.
-- **Aşama 2:** amir tableti + kural motoru + pano + anomali.
-- **Aşama 3:** OPM adaptörü + besleme, self-host kurulum paketi, rehber.
+- ✅ **Aşama 1 (çekirdek):** editör + PDF yükleme kapısı + sınav + kiosk + CSV
+  adaptörü.
+- ✅ **Aşama 2:** amir tableti + kural motoru + pano + anomali.
+- ✅ Rehber, PIN yönetimi, PDF/CSV çıktı, iskelet şablonlar, 178 birim + 56
+  uçtan uca doğrulama.
+- ⏳ **Aşama 3:** OPM adaptörü + besleme, self-host kurulum paketi/Docker,
+  SMS dürtme modülü.
+
+## Sınavlar
+
+`npm test` (saf mantık) ve `npm run e2e` (gerçek tarayıcı + gerçek sunucu).
+**İkisi de gerekli:** birim sınavlar küçültülmemiş kod koşar; SWC'nin bir
+yardımcıyı satır içine alırken serbest değişken bıraktığı hatayı yalnız uçtan
+uca sınav yakaladı. Rehberi çökerten geçici-ölü-bölge hatasını ise ancak ekranı
+gerçekten AÇAN bir adım gördü — bu yüzden her yüzey en az bir kez açılır.
