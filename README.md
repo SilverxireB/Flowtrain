@@ -12,11 +12,19 @@ izler, sınavını olur, kaydı düşer.
 
 ## Kurulum
 
+**Çift tıklayın:** Windows'ta `kur.bat`, macOS'ta `kur.command`. Bağımlılıkları
+kurar, derler, örnek personel listesini hazırlar, sunucuyu başlatır ve
+tarayıcıyı açar. Terminalden: `npm run kur`.
+
+Adım adım yapmak isterseniz:
+
 ```bash
 npm install
 npm run build
 npm start                      # http://localhost:3000
 ```
+
+Ayrıntı ve sorun giderme: **`KURULUM.md`**.
 
 Veri klasörü varsayılan olarak `./data`; `FLOWTRAIN_DATA` ile değiştirilir.
 İlk açılışta kurulum ekranı gelir ve ilk yönetici hesabı orada açılır —

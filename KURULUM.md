@@ -35,20 +35,40 @@ açtığınız klasöre girin.
 
 ## 3. Kurun ve başlatın
 
+### En kolayı: çift tıklayın
+
+| İşletim sistemi | Dosya |
+|---|---|
+| Windows | **`kur.bat`** |
+| macOS | **`kur.command`** (ilk seferde sağ tık → Aç) |
+
+Bu dosya her şeyi kendisi yapar: Node sürümünü kontrol eder, bağımlılıkları
+kurar, uygulamayı derler, veri klasörünü ve örnek personel listesini hazırlar,
+sunucuyu başlatır ve **tarayıcıyı açar**. İlk kurulum birkaç dakika sürer;
+sonraki açılışlar saniyeler.
+
+Kapatmak için o pencerede **Ctrl+C**. Tekrar açmak için aynı dosyaya yine çift
+tıklayın.
+
+### Ya da terminalden
+
 ```bash
-npm install
+npm run kur      # yukarıdakinin aynısı
+```
+
+```bash
+npm install      # adım adım yapmak isterseniz
 npm run build
 npm start
 ```
 
-Tarayıcıda açın: **<http://localhost:3000>**
+Tarayıcıda: **<http://localhost:3000>**
 
-> `npm install` birkaç dakika sürebilir. Veritabanı motoru (`better-sqlite3`)
-> makinenize uygun hazır ikili dosyayı indirir; ek bir program kurmanız
-> gerekmez.
+> Veritabanı motoru (`better-sqlite3`) makinenize uygun hazır ikili dosyayı
+> indirir; derleyici ya da başka bir program kurmanız gerekmez.
 
-**Geliştirme yaparken** `npm start` yerine `npm run dev` kullanın — dosyaları
-kaydettikçe sayfa kendini yeniler, `npm run build` gerekmez.
+**Geliştirme yaparken** `npm run dev` kullanın — dosyaları kaydettikçe sayfa
+kendini yeniler, `npm run build` gerekmez.
 
 ---
 
@@ -61,20 +81,14 @@ kaydettikçe sayfa kendini yeniler, `npm run build` gerekmez.
 
 ---
 
-## 5. Personel listesini koyun
+## 5. Personel listesi
 
-Kural motoru ve kiosk, personel dosyasını okur. Depodaki örneği veri
-klasörüne kopyalayın:
+Kural motoru ve kiosk bu dosyayı okur. **`kur.bat`/`kur.command` ile
+kurduysanız 6 kişilik örnek liste zaten kopyalandı** — hemen deneyebilirsiniz.
 
-```bash
-# macOS / Linux
-cp ornek/personel.csv data/personel.csv
-
-# Windows (PowerShell)
-copy ornek\personel.csv data\personel.csv
-```
-
-Sonra **Ayarlar → "Personel dosyasını yeniden oku"** deyin.
+Kendi listenizle değiştirmek için `data/personel.csv` dosyasının üstüne yazın,
+sonra **Ayarlar → "Personel dosyasını yeniden oku"** deyin. (Kurulum betiği var
+olan bir listenin üstüne asla yazmaz.)
 
 Dosyanın biçimi (ayırıcı `;` ya da `,` olabilir, Excel'in UTF-8 çıktısı da
 okunur):
@@ -151,6 +165,8 @@ verin.
 
 | Belirti | Sebebi |
 |---|---|
+| `kur.bat` bir anda kapanıyor | Node kurulu değil. Pencere kapanmadan mesajı okuyamıyorsanız komut isteminden `node scripts/kur.mjs` çalıştırın. |
+| Windows "bu uygulamayı çalıştırmak güvenli değil" diyor | İndirilen dosya işaretlenmiştir: `kur.bat` → sağ tık → Özellikler → **Engellemeyi kaldır**. |
 | `npm start` → "next: not found" | `npm install` çalışmamış ya da yanlış klasördesiniz. |
 | `npm start` → "Could not find a production build" | Önce `npm run build`. |
 | Port 3000 dolu | `npx next start -p 3001` ile başka port kullanın. |
