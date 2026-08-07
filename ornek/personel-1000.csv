@@ -1,0 +1,1001 @@
+﻿Sicil;Ad;Bölüm;Hat;Görev;Amir;İşe giriş
+8001;Burak Arslan;Kaynak;;Müdür;;2022-02-16
+8002;Osman Doğan;Montaj;;Müdür;;2016-02-17
+8003;Onur Tekin;Boya;;Müdür;;2020-04-29
+8004;Nesrin Demir;Presleme;;Müdür;;2024-03-05
+8005;Gökhan Kaya;Kalite;;Müdür;;2009-03-10
+8006;Ayşe Çakır;Bakım;;Müdür;;2012-01-13
+8007;Yusuf Sarı;Lojistik;;Müdür;;2023-04-27
+8008;Meryem Korkmaz;Depo;;Müdür;;2019-12-26
+9001;Cem Korkmaz;Kaynak;Hat 1;Amir;8001;2022-07-26
+9002;Sultan Çelik;Kaynak;Hat 2;Amir;8001;2020-10-28
+9003;Büşra Yıldırım;Kaynak;Hat 3;Amir;8001;2014-07-27
+9004;Sevgi Acar;Montaj;Hat 1;Amir;8002;2023-05-30
+9005;Serkan Karaca;Montaj;Hat 2;Amir;8002;2017-02-20
+9006;Ferhat Balcı;Montaj;Hat 3;Amir;8002;2021-04-18
+9007;Havva Erdoğan;Montaj;Hat 4;Amir;8002;2019-09-02
+9008;Volkan Yıldırım;Boya;Hat 1;Amir;8003;2023-05-30
+9009;Dilek Kara;Boya;Hat 2;Amir;8003;2026-07-14
+9010;Emre Başaran;Presleme;Hat 1;Amir;8004;2014-06-20
+9011;Emine Doğan;Presleme;Hat 2;Amir;8004;2018-09-25
+9012;Ergün Yalçın;Kalite;Hat 1;Amir;8005;2025-04-01
+9013;Cem Yıldırım;Kalite;Hat 2;Amir;8005;2023-11-17
+9014;Ali Çetin;Bakım;Hat 1;Amir;8006;2025-01-30
+9015;Ayşe Öztürk;Bakım;Hat 2;Amir;8006;2023-02-24
+9016;Dilek Sezer;Lojistik;Hat 1;Amir;8007;2018-04-20
+9017;Ayşe Özdemir;Lojistik;Hat 2;Amir;8007;2020-09-02
+9018;Sinan Yalçın;Depo;Hat 1;Amir;8008;2025-12-23
+1001;Okan Özkan;Kaynak;Hat 1;Robot Operatörü;9001;2022-07-25
+1002;Burak Toprak;Kaynak;Hat 2;Robot Operatörü;9002;2015-09-13
+1003;Nurten Tosun;Kaynak;Hat 3;Kaynakçı;9003;2025-12-10
+1004;Betül Arslan;Montaj;Hat 1;Takım Lideri;9004;2019-11-18
+1005;Kadir Coşkun;Montaj;Hat 2;Montajcı;9005;2023-01-31
+1006;Fatma Genç;Montaj;Hat 3;Montajcı;9006;2015-12-06
+1007;Nihal Ekinci;Montaj;Hat 4;Takım Lideri;9007;2022-01-28
+1008;Zehra Özkan;Boya;Hat 1;Boyacı;9008;2018-01-01
+1009;Özlem Tekin;Boya;Hat 2;Boyacı;9009;2022-02-26
+1010;Yasemin Yalçın;Presleme;Hat 1;Operatör;9010;2024-05-18
+1011;Selim Öztürk;Presleme;Hat 2;Operatör;9011;2021-03-07
+1012;Elif Bal;Kalite;Hat 1;Denetçi;9012;2021-06-08
+1013;Ergün Büyük;Kalite;Hat 2;Denetçi;9013;2021-05-18
+1014;Esra Aktaş;Bakım;Hat 1;Bakımcı;9014;2020-04-04
+1015;Murat Duman;Bakım;Hat 2;Elektrikçi;9015;2015-03-20
+1016;Yasemin Arslan;Lojistik;Hat 1;Forklift;9016;2024-01-28
+1017;Bülent Korkmaz;Lojistik;Hat 2;Forklift;9017;2022-01-29
+1018;Ceren Özdemir;Depo;Hat 1;Depocu;9018;2017-05-31
+1019;Ömer Genç;Kaynak;Hat 1;Robot Operatörü;9001;2024-06-29
+1020;Fatma Başaran;Kaynak;Hat 2;Kaynakçı;9002;2022-04-28
+1021;Turgay Yılmaz;Kaynak;Hat 3;Kaynakçı;9003;2021-07-28
+1022;Salih Başaran;Montaj;Hat 1;Forklift;9004;2021-11-25
+1023;Volkan Sarı;Montaj;Hat 2;Montajcı;9005;2024-12-10
+1024;Yusuf Bulut;Montaj;Hat 3;Operatör;9006;2018-12-06
+1025;Nihal Kara;Montaj;Hat 4;Montajcı;9007;2021-06-24
+1026;Turgay Yalçın;Boya;Hat 1;Kabin Operatörü;9008;2015-09-29
+1027;Görkem Turan;Boya;Hat 2;Boyacı;9009;2025-09-05
+1028;Havva Çelik;Presleme;Hat 1;Pres Operatörü;9010;2021-07-15
+1029;Fatma Korkmaz;Presleme;Hat 2;Pres Operatörü;9011;2026-01-02
+1030;Halil Bulut;Kalite;Hat 1;Denetçi;9012;2026-07-30
+1031;Esra Coşkun;Kalite;Hat 2;Kalite Kontrol;9013;2019-05-07
+1032;Uğur Özkan;Bakım;Hat 1;Mekanikçi;9014;2017-11-06
+1033;Hülya Bulut;Bakım;Hat 2;Bakımcı;9015;2021-12-31
+1034;Osman Aslan;Lojistik;Hat 1;Sevkiyat;9016;2017-08-11
+1035;Nurten Özkan;Lojistik;Hat 2;Operatör;9017;2022-10-14
+1036;Tolga Bozkurt;Depo;Hat 1;Forklift;9018;2023-10-19
+1037;Levent Yılmaz;Kaynak;Hat 1;Takım Lideri;9001;2016-06-23
+1038;Büşra Taş;Kaynak;Hat 2;Kaynakçı;9002;2020-08-18
+1039;Selim Aksoy;Kaynak;Hat 3;Takım Lideri;9003;2024-06-12
+1040;Fatma Çakır;Montaj;Hat 1;Operatör;9004;2025-08-26
+1041;Merve Korkmaz;Montaj;Hat 2;Montajcı;9005;2023-02-26
+1042;Ferhat Sezer;Montaj;Hat 3;Montajcı;9006;2025-05-08
+1043;Esra Ekinci;Montaj;Hat 4;Takım Lideri;9007;2021-08-12
+1044;Okan Avcı;Boya;Hat 1;Boyacı;9008;2023-04-02
+1045;Cem Uçar;Boya;Hat 2;Boyacı;9009;2015-12-14
+1046;Halil Kurt;Presleme;Hat 1;Kalıpçı;9010;2024-10-31
+1047;Seda Kara;Presleme;Hat 2;Kalıpçı;9011;2020-04-22
+1048;Sibel Ünal;Kalite;Hat 1;Ölçüm Teknisyeni;9012;2024-02-01
+1049;Nazlı Ünal;Kalite;Hat 2;Kalite Kontrol;9013;2015-10-22
+1050;Yasemin Şimşek;Bakım;Hat 1;Bakımcı;9014;2016-04-30
+1051;Meryem Güler;Bakım;Hat 2;Bakımcı;9015;2017-02-25
+1052;Yusuf Erdem;Lojistik;Hat 1;Forklift;9016;2024-07-22
+1053;Nazlı Bozkurt;Lojistik;Hat 2;Operatör;9017;2024-05-16
+1054;Gamze Öztürk;Depo;Hat 1;Depocu;9018;2023-07-02
+1055;Hatice Yıldırım;Kaynak;Hat 1;Robot Operatörü;9001;2022-02-26
+1056;Pınar Aksoy;Kaynak;Hat 2;Kaynakçı;9002;2021-10-30
+1057;Ömer Coşkun;Kaynak;Hat 3;Takım Lideri;9003;2018-11-27
+1058;Şule Çetin;Montaj;Hat 1;Takım Lideri;9004;2021-01-17
+1059;Tuğba Kılıç;Montaj;Hat 2;Takım Lideri;9005;2015-03-29
+1060;Ceren Uçar;Montaj;Hat 3;Takım Lideri;9006;2017-02-05
+1061;Ergün Kurt;Montaj;Hat 4;Takım Lideri;9007;2020-04-29
+1062;Burak Bal;Boya;Hat 1;Operatör;9008;2019-05-23
+1063;Volkan Öztürk;Boya;Hat 2;Kabin Operatörü;9009;2023-04-04
+1064;Erhan Coşkun;Presleme;Hat 1;Operatör;9010;2022-07-07
+1065;Levent Şahin;Presleme;Hat 2;Operatör;9011;2021-12-28
+1066;Gamze Erdem;Kalite;Hat 1;Kalite Kontrol;9012;2022-01-10
+1067;Hatice Küçük;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2020-05-20
+1068;Tuğba Avcı;Bakım;Hat 1;Mekanikçi;9014;2026-07-05
+1069;Onur Sarı;Bakım;Hat 2;Mekanikçi;9015;2017-10-06
+1070;Mehmet Özdemir;Lojistik;Hat 1;Forklift;9016;2023-03-04
+1071;Ergün Aslan;Lojistik;Hat 2;Operatör;9017;2026-01-03
+1072;Ahmet Aktaş;Depo;Hat 1;Sayım Görevlisi;9018;2022-07-14
+1073;Fatma Işık;Kaynak;Hat 1;Kaynakçı;9001;2022-10-30
+1074;Rabia Güler;Kaynak;Hat 2;Kaynakçı;9002;2021-02-25
+1075;Esra Şener;Kaynak;Hat 3;Kaynakçı;9003;2026-06-29
+1076;Nazlı Yıldız;Montaj;Hat 1;Forklift;9004;2023-12-06
+1077;Turgay Coşkun;Montaj;Hat 2;Takım Lideri;9005;2020-08-04
+1078;Nesrin Çakır;Montaj;Hat 3;Montajcı;9006;2017-08-29
+1079;Seda Yıldırım;Montaj;Hat 4;Operatör;9007;2019-08-06
+1080;Ali Erdem;Boya;Hat 1;Kabin Operatörü;9008;2018-04-18
+1081;Halil Çetin;Boya;Hat 2;Boyacı;9009;2024-03-05
+1082;Hatice Ünal;Presleme;Hat 1;Operatör;9010;2016-11-20
+1083;Melis Bulut;Presleme;Hat 2;Operatör;9011;2023-01-29
+1084;Halil Uçar;Kalite;Hat 1;Denetçi;9012;2019-05-03
+1085;Sinan Şener;Kalite;Hat 2;Denetçi;9013;2018-03-03
+1086;Rabia Erdem;Bakım;Hat 1;Mekanikçi;9014;2017-07-26
+1087;Kadir Bulut;Bakım;Hat 2;Elektrikçi;9015;2025-09-17
+1088;Gökhan Küçük;Lojistik;Hat 1;Sevkiyat;9016;2017-10-14
+1089;Burak Aktaş;Lojistik;Hat 2;Sevkiyat;9017;2020-09-25
+1090;Pınar Acar;Depo;Hat 1;Depocu;9018;2026-05-24
+1091;Ferhat Aksoy;Kaynak;Hat 1;Robot Operatörü;9001;2023-02-21
+1092;Turgay Aydın;Kaynak;Hat 2;Takım Lideri;9002;2024-07-14
+1093;Cem Küçük;Kaynak;Hat 3;Kaynakçı;9003;2025-09-11
+1094;Seda Uçar;Montaj;Hat 1;Forklift;9004;2026-01-01
+1095;Cihan Güneş;Montaj;Hat 2;Takım Lideri;9005;2016-11-17
+1096;Görkem Taş;Montaj;Hat 3;Operatör;9006;2017-11-06
+1097;Tuğba Bozkurt;Montaj;Hat 4;Montajcı;9007;2024-02-29
+1098;Derya Aydın;Boya;Hat 1;Kabin Operatörü;9008;2021-01-27
+1099;Ceren Ekinci;Boya;Hat 2;Operatör;9009;2015-06-22
+1100;Ebru Avcı;Presleme;Hat 1;Pres Operatörü;9010;2023-07-13
+1101;Elif Acar;Presleme;Hat 2;Kalıpçı;9011;2023-01-23
+1102;Sibel Uçar;Kalite;Hat 1;Denetçi;9012;2017-05-13
+1103;Nesrin Özkan;Kalite;Hat 2;Denetçi;9013;2022-07-16
+1104;Ergün Şimşek;Bakım;Hat 1;Bakımcı;9014;2018-09-06
+1105;Uğur Duman;Bakım;Hat 2;Mekanikçi;9015;2017-03-12
+1106;Taner Balcı;Lojistik;Hat 1;Sevkiyat;9016;2018-07-29
+1107;Tolga Bulut;Lojistik;Hat 2;Sevkiyat;9017;2021-12-16
+1108;Zehra Uysal;Depo;Hat 1;Sayım Görevlisi;9018;2020-05-20
+1109;Merve Yıldız;Kaynak;Hat 1;Operatör;9001;2021-09-27
+1110;Turgay Ateş;Kaynak;Hat 2;Kaynakçı;9002;2026-06-26
+1111;Recep Aydın;Kaynak;Hat 3;Operatör;9003;2018-11-05
+1112;Osman Kurt;Montaj;Hat 1;Operatör;9004;2020-11-04
+1113;Dilek Ünal;Montaj;Hat 2;Operatör;9005;2017-04-26
+1114;Ömer Aslan;Montaj;Hat 3;Forklift;9006;2022-07-08
+1115;Songül Gündoğdu;Montaj;Hat 4;Operatör;9007;2025-09-02
+1116;Ebru Uysal;Boya;Hat 1;Boyacı;9008;2018-06-15
+1117;Recep Avcı;Boya;Hat 2;Operatör;9009;2024-11-08
+1118;Meryem Işık;Presleme;Hat 1;Pres Operatörü;9010;2020-11-19
+1119;Ömer Erdem;Presleme;Hat 2;Pres Operatörü;9011;2022-08-17
+1120;Nazlı Acar;Kalite;Hat 1;Denetçi;9012;2021-11-17
+1121;Ebru Şimşek;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2021-01-03
+1122;Gamze Karataş;Bakım;Hat 1;Mekanikçi;9014;2021-12-16
+1123;Kadir Karataş;Bakım;Hat 2;Elektrikçi;9015;2024-05-14
+1124;Yusuf Güneş;Lojistik;Hat 1;Forklift;9016;2019-01-29
+1125;Hatice Gündoğdu;Lojistik;Hat 2;Sevkiyat;9017;2025-11-17
+1126;Merve Acar;Depo;Hat 1;Depocu;9018;2016-11-18
+1127;Havva Yıldız;Kaynak;Hat 1;Kaynakçı;9001;2017-04-09
+1128;Ramazan Çelik;Kaynak;Hat 2;Takım Lideri;9002;2021-01-28
+1129;İbrahim Taş;Kaynak;Hat 3;Takım Lideri;9003;2023-08-12
+1130;Kadir Küçük;Montaj;Hat 1;Montajcı;9004;2020-06-28
+1131;Nihal Arslan;Montaj;Hat 2;Takım Lideri;9005;2021-01-23
+1132;Salih Doğan;Montaj;Hat 3;Montajcı;9006;2023-11-09
+1133;Nesrin Aslan;Montaj;Hat 4;Montajcı;9007;2022-03-21
+1134;Nurten Yavuz;Boya;Hat 1;Kabin Operatörü;9008;2015-01-12
+1135;Mustafa Şener;Boya;Hat 2;Boyacı;9009;2015-06-14
+1136;Serkan Turan;Presleme;Hat 1;Kalıpçı;9010;2019-02-01
+1137;Gökhan Yıldırım;Presleme;Hat 2;Pres Operatörü;9011;2018-03-07
+1138;Emre Şimşek;Kalite;Hat 1;Ölçüm Teknisyeni;9012;2023-06-13
+1139;Gökhan Uysal;Kalite;Hat 2;Kalite Kontrol;9013;2026-03-29
+1140;Derya Korkmaz;Bakım;Hat 1;Bakımcı;9014;2023-01-19
+1141;Selim Korkmaz;Bakım;Hat 2;Bakımcı;9015;2021-11-10
+1142;Sevgi Erdem;Lojistik;Hat 1;Sevkiyat;9016;2021-03-26
+1143;Erhan Şimşek;Lojistik;Hat 2;Operatör;9017;2017-12-24
+1144;Ahmet Gündoğdu;Depo;Hat 1;Depocu;9018;2018-07-29
+1145;Aygül Sezer;Kaynak;Hat 1;Takım Lideri;9001;2015-10-16
+1146;Erhan Güneş;Kaynak;Hat 2;Takım Lideri;9002;2018-03-09
+1147;Mustafa Aslan;Kaynak;Hat 3;Kaynakçı;9003;2018-05-15
+1148;Merve Şimşek;Montaj;Hat 1;Forklift;9004;2016-07-04
+1149;Melike Yıldız;Montaj;Hat 2;Montajcı;9005;2016-10-20
+1150;Ayşe Yıldız;Montaj;Hat 3;Montajcı;9006;2015-12-25
+1151;Ayşe Avcı;Montaj;Hat 4;Montajcı;9007;2017-01-07
+1152;Yavuz Duman;Boya;Hat 1;Operatör;9008;2019-11-07
+1153;Ceren Başaran;Boya;Hat 2;Boyacı;9009;2020-08-23
+1154;Turgay Ekinci;Presleme;Hat 1;Operatör;9010;2023-11-28
+1155;Tuğba Gündoğdu;Presleme;Hat 2;Operatör;9011;2016-03-29
+1156;Merve Uçar;Kalite;Hat 1;Kalite Kontrol;9012;2023-01-22
+1157;Dilek Avcı;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2022-07-11
+1158;İbrahim Kaya;Bakım;Hat 1;Bakımcı;9014;2015-02-02
+1159;Derya Kara;Bakım;Hat 2;Mekanikçi;9015;2017-06-23
+1160;Gökhan Güneş;Lojistik;Hat 1;Forklift;9016;2019-10-25
+1161;Serkan Özdemir;Lojistik;Hat 2;Sevkiyat;9017;2015-11-26
+1162;Yusuf Karataş;Depo;Hat 1;Depocu;9018;2019-12-18
+1163;Aygül Koç;Kaynak;Hat 1;Takım Lideri;9001;2019-04-05
+1164;Aygül Şimşek;Kaynak;Hat 2;Kaynakçı;9002;2019-11-04
+1165;Levent Sarı;Kaynak;Hat 3;Robot Operatörü;9003;2021-12-05
+1166;Hüseyin Balcı;Montaj;Hat 1;Montajcı;9004;2025-01-28
+1167;Betül Yıldız;Montaj;Hat 2;Operatör;9005;2020-02-17
+1168;İbrahim Arslan;Montaj;Hat 3;Montajcı;9006;2022-01-07
+1169;Bülent Büyük;Montaj;Hat 4;Montajcı;9007;2026-01-16
+1170;Tuğba Kara;Boya;Hat 1;Operatör;9008;2024-11-26
+1171;Nurten Ateş;Boya;Hat 2;Kabin Operatörü;9009;2023-11-14
+1172;Hasan Karaca;Presleme;Hat 1;Kalıpçı;9010;2024-04-17
+1173;Bülent Şener;Presleme;Hat 2;Pres Operatörü;9011;2021-09-30
+1174;Songül Yalçın;Kalite;Hat 1;Kalite Kontrol;9012;2017-09-30
+1175;Kemal Çakır;Kalite;Hat 2;Kalite Kontrol;9013;2024-10-07
+1176;Taner Işık;Bakım;Hat 1;Elektrikçi;9014;2018-05-25
+1177;Zeynep Balcı;Bakım;Hat 2;Bakımcı;9015;2025-02-27
+1178;Bülent Yıldız;Lojistik;Hat 1;Operatör;9016;2020-05-03
+1179;Taner Sarı;Lojistik;Hat 2;Operatör;9017;2025-09-26
+1180;Şule Doğan;Depo;Hat 1;Forklift;9018;2020-07-22
+1181;Osman Karataş;Kaynak;Hat 1;Takım Lideri;9001;2015-12-26
+1182;Osman Güler;Kaynak;Hat 2;Takım Lideri;9002;2019-12-30
+1183;Zehra Bal;Kaynak;Hat 3;Operatör;9003;2019-02-18
+1184;Recep Aktaş;Montaj;Hat 1;Operatör;9004;2024-04-20
+1185;Selim Başaran;Montaj;Hat 2;Montajcı;9005;2018-03-17
+1186;Mustafa Erdem;Montaj;Hat 3;Takım Lideri;9006;2023-01-21
+1187;Nesrin Şimşek;Montaj;Hat 4;Forklift;9007;2020-03-22
+1188;Bülent Aslan;Boya;Hat 1;Kabin Operatörü;9008;2020-09-01
+1189;Betül Toprak;Boya;Hat 2;Operatör;9009;2022-12-31
+1190;Turgay Karaca;Presleme;Hat 1;Pres Operatörü;9010;2021-10-03
+1191;Şerife Erdoğan;Presleme;Hat 2;Operatör;9011;2016-04-11
+1192;Hüseyin Demir;Kalite;Hat 1;Denetçi;9012;2022-08-24
+1193;Seda Koç;Kalite;Hat 2;Kalite Kontrol;9013;2019-01-26
+1194;Gamze Ünal;Bakım;Hat 1;Elektrikçi;9014;2026-04-06
+1195;Fatma Taş;Bakım;Hat 2;Bakımcı;9015;2015-06-19
+1196;Nesrin Şahin;Lojistik;Hat 1;Forklift;9016;2023-03-07
+1197;Salih Karaca;Lojistik;Hat 2;Forklift;9017;2018-07-10
+1198;Mehmet Yıldız;Depo;Hat 1;Forklift;9018;2022-09-25
+1199;Büşra Kılıç;Kaynak;Hat 1;Kaynakçı;9001;2022-04-24
+1200;Songül Balcı;Kaynak;Hat 2;Kaynakçı;9002;2024-03-13
+1201;Ramazan Kılıç;Kaynak;Hat 3;Operatör;9003;2020-05-31
+1202;Görkem Işık;Montaj;Hat 1;Takım Lideri;9004;2020-11-03
+1203;Büşra Koç;Montaj;Hat 2;Takım Lideri;9005;2024-04-13
+1204;Zehra Turan;Montaj;Hat 3;Montajcı;9006;2026-03-31
+1205;Zehra Kaya;Montaj;Hat 4;Takım Lideri;9007;2020-04-01
+1206;Havva Bozkurt;Boya;Hat 1;Kabin Operatörü;9008;2024-08-29
+1207;Ebru Özdemir;Boya;Hat 2;Kabin Operatörü;9009;2026-01-22
+1208;Tuğba Bulut;Presleme;Hat 1;Kalıpçı;9010;2017-11-05
+1209;Gamze Şener;Presleme;Hat 2;Kalıpçı;9011;2020-12-14
+1210;Kübra Güler;Kalite;Hat 1;Denetçi;9012;2022-02-08
+1211;Melike Bal;Kalite;Hat 2;Kalite Kontrol;9013;2023-11-01
+1212;Zehra Arslan;Bakım;Hat 1;Bakımcı;9014;2016-10-20
+1213;Büşra Acar;Bakım;Hat 2;Mekanikçi;9015;2021-06-25
+1214;Ali Koç;Lojistik;Hat 1;Forklift;9016;2018-08-08
+1215;Ayşe Ateş;Lojistik;Hat 2;Sevkiyat;9017;2020-02-04
+1216;Ayşe Korkmaz;Depo;Hat 1;Depocu;9018;2018-05-14
+1217;Nihal Turan;Kaynak;Hat 1;Operatör;9001;2019-03-19
+1218;Emre Gündoğdu;Kaynak;Hat 2;Operatör;9002;2021-04-01
+1219;Hüseyin Erdoğan;Kaynak;Hat 3;Robot Operatörü;9003;2017-06-19
+1220;Havva Aksoy;Montaj;Hat 1;Montajcı;9004;2025-01-27
+1221;Nazlı Özkan;Montaj;Hat 2;Takım Lideri;9005;2015-12-26
+1222;Nazlı Genç;Montaj;Hat 3;Operatör;9006;2019-02-25
+1223;Gamze Polat;Montaj;Hat 4;Takım Lideri;9007;2015-11-14
+1224;Ergün Polat;Boya;Hat 1;Kabin Operatörü;9008;2022-06-12
+1225;Sinan Yıldırım;Boya;Hat 2;Kabin Operatörü;9009;2020-08-09
+1226;Kemal Bulut;Presleme;Hat 1;Kalıpçı;9010;2025-12-29
+1227;Melis Polat;Presleme;Hat 2;Operatör;9011;2025-02-24
+1228;Dilek Küçük;Kalite;Hat 1;Ölçüm Teknisyeni;9012;2021-03-10
+1229;Yavuz Kara;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2025-02-14
+1230;Barış Yılmaz;Bakım;Hat 1;Elektrikçi;9014;2024-10-17
+1231;Aygül Uysal;Bakım;Hat 2;Mekanikçi;9015;2020-12-30
+1232;Selim Bal;Lojistik;Hat 1;Forklift;9016;2022-10-26
+1233;Aygül Öztürk;Lojistik;Hat 2;Forklift;9017;2022-12-08
+1234;Meryem Toprak;Depo;Hat 1;Forklift;9018;2023-11-05
+1235;Hasan Aksoy;Kaynak;Hat 1;Operatör;9001;2020-10-17
+1236;Nurten Doğan;Kaynak;Hat 2;Robot Operatörü;9002;2025-01-11
+1237;Hasan Korkmaz;Kaynak;Hat 3;Robot Operatörü;9003;2023-09-26
+1238;Kübra Ünal;Montaj;Hat 1;Takım Lideri;9004;2020-10-10
+1239;Hülya Şimşek;Montaj;Hat 2;Forklift;9005;2023-06-22
+1240;Murat Küçük;Montaj;Hat 3;Takım Lideri;9006;2015-12-21
+1241;Bülent Şahin;Montaj;Hat 4;Forklift;9007;2021-08-18
+1242;Osman Yıldırım;Boya;Hat 1;Boyacı;9008;2016-02-27
+1243;Ebru Polat;Boya;Hat 2;Kabin Operatörü;9009;2015-02-24
+1244;Hülya Ateş;Presleme;Hat 1;Pres Operatörü;9010;2022-11-19
+1245;Özlem Şahin;Presleme;Hat 2;Kalıpçı;9011;2024-06-08
+1246;Nesrin Yıldırım;Kalite;Hat 1;Ölçüm Teknisyeni;9012;2015-01-30
+1247;Sinan Çelik;Kalite;Hat 2;Denetçi;9013;2017-10-10
+1248;Recep Bozkurt;Bakım;Hat 1;Bakımcı;9014;2018-02-03
+1249;Emre Acar;Bakım;Hat 2;Mekanikçi;9015;2025-07-11
+1250;Görkem Gündoğdu;Lojistik;Hat 1;Forklift;9016;2022-12-29
+1251;Volkan Ünal;Lojistik;Hat 2;Forklift;9017;2018-10-25
+1252;Murat Genç;Depo;Hat 1;Forklift;9018;2022-11-02
+1253;Ahmet Arslan;Kaynak;Hat 1;Operatör;9001;2016-03-04
+1254;Şule Aydın;Kaynak;Hat 2;Operatör;9002;2025-09-09
+1255;Nazlı Toprak;Kaynak;Hat 3;Takım Lideri;9003;2020-06-20
+1256;Şerife Güneş;Montaj;Hat 1;Forklift;9004;2020-09-01
+1257;Sevgi Uçar;Montaj;Hat 2;Takım Lideri;9005;2021-10-18
+1258;Melike Koç;Montaj;Hat 3;Montajcı;9006;2025-03-11
+1259;Ergün Yıldırım;Montaj;Hat 4;Takım Lideri;9007;2017-05-11
+1260;Volkan Balcı;Boya;Hat 1;Kabin Operatörü;9008;2016-08-02
+1261;Songül Koç;Boya;Hat 2;Kabin Operatörü;9009;2024-10-17
+1262;Meryem Küçük;Presleme;Hat 1;Operatör;9010;2018-06-13
+1263;İbrahim Aydın;Presleme;Hat 2;Operatör;9011;2018-05-04
+1264;Pınar Şener;Kalite;Hat 1;Denetçi;9012;2018-12-21
+1265;Sinan Güler;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2019-05-24
+1266;Aygül Erdem;Bakım;Hat 1;Bakımcı;9014;2015-05-29
+1267;Nihal Işık;Bakım;Hat 2;Elektrikçi;9015;2017-03-15
+1268;Esra Balcı;Lojistik;Hat 1;Forklift;9016;2016-09-11
+1269;Ergün Kılıç;Lojistik;Hat 2;Sevkiyat;9017;2016-11-01
+1270;Erhan Toprak;Depo;Hat 1;Sayım Görevlisi;9018;2023-08-27
+1271;İbrahim Kara;Kaynak;Hat 1;Operatör;9001;2019-08-14
+1272;Nurten Uçar;Kaynak;Hat 2;Robot Operatörü;9002;2026-05-11
+1273;Merve Arslan;Kaynak;Hat 3;Kaynakçı;9003;2015-04-28
+1274;Aslı Gündoğdu;Montaj;Hat 1;Montajcı;9004;2022-06-19
+1275;Meryem Kara;Montaj;Hat 2;Forklift;9005;2015-03-15
+1276;Ferhat Küçük;Montaj;Hat 3;Takım Lideri;9006;2020-12-21
+1277;Yavuz Şahin;Montaj;Hat 4;Takım Lideri;9007;2017-12-01
+1278;Tolga Avcı;Boya;Hat 1;Operatör;9008;2022-02-24
+1279;Dilek Genç;Boya;Hat 2;Kabin Operatörü;9009;2017-09-22
+1280;Mustafa Güler;Presleme;Hat 1;Operatör;9010;2017-08-18
+1281;Nurten Sezer;Presleme;Hat 2;Operatör;9011;2015-06-18
+1282;Cihan Toprak;Kalite;Hat 1;Denetçi;9012;2024-12-01
+1283;Havva Özkan;Kalite;Hat 2;Denetçi;9013;2025-10-17
+1284;Salih Ateş;Bakım;Hat 1;Mekanikçi;9014;2015-08-30
+1285;Hatice Yılmaz;Bakım;Hat 2;Mekanikçi;9015;2017-11-09
+1286;Emre Karataş;Lojistik;Hat 1;Forklift;9016;2019-11-12
+1287;Nurten Yılmaz;Lojistik;Hat 2;Operatör;9017;2025-04-18
+1288;Hüseyin Ekinci;Depo;Hat 1;Sayım Görevlisi;9018;2021-06-30
+1289;Osman Toprak;Kaynak;Hat 1;Operatör;9001;2019-09-03
+1290;Levent Başaran;Kaynak;Hat 2;Kaynakçı;9002;2018-07-24
+1291;Sevgi Özdemir;Kaynak;Hat 3;Operatör;9003;2018-03-17
+1292;Cihan Erdoğan;Montaj;Hat 1;Operatör;9004;2021-11-25
+1293;Büşra Bozkurt;Montaj;Hat 2;Forklift;9005;2016-06-03
+1294;Selim Gündoğdu;Montaj;Hat 3;Montajcı;9006;2021-12-01
+1295;Recep Karaca;Montaj;Hat 4;Montajcı;9007;2019-05-23
+1296;Bülent Özkan;Boya;Hat 1;Boyacı;9008;2020-10-07
+1297;Hülya Yılmaz;Boya;Hat 2;Boyacı;9009;2022-03-27
+1298;Turgay Yıldız;Presleme;Hat 1;Operatör;9010;2016-06-30
+1299;Selim Sezer;Presleme;Hat 2;Kalıpçı;9011;2017-07-15
+1300;Hatice Erdem;Kalite;Hat 1;Denetçi;9012;2023-10-27
+1301;Hülya Coşkun;Kalite;Hat 2;Denetçi;9013;2023-12-22
+1302;Cihan Başaran;Bakım;Hat 1;Mekanikçi;9014;2023-04-28
+1303;Barış Işık;Bakım;Hat 2;Elektrikçi;9015;2021-09-17
+1304;Onur Kara;Lojistik;Hat 1;Sevkiyat;9016;2016-03-01
+1305;Uğur Turan;Lojistik;Hat 2;Forklift;9017;2022-11-05
+1306;Derya Demir;Depo;Hat 1;Depocu;9018;2019-06-18
+1307;Aslı Karaca;Kaynak;Hat 1;Kaynakçı;9001;2024-03-15
+1308;Şule Bozkurt;Kaynak;Hat 2;Operatör;9002;2021-04-25
+1309;Recep Bulut;Kaynak;Hat 3;Operatör;9003;2024-09-25
+1310;Kübra Kılıç;Montaj;Hat 1;Operatör;9004;2021-10-21
+1311;Havva Kılıç;Montaj;Hat 2;Montajcı;9005;2016-11-04
+1312;Elif Ünal;Montaj;Hat 3;Takım Lideri;9006;2023-04-20
+1313;Ebru Kurt;Montaj;Hat 4;Takım Lideri;9007;2018-11-18
+1314;Ceren Tosun;Boya;Hat 1;Boyacı;9008;2025-08-17
+1315;Emre Doğan;Boya;Hat 2;Boyacı;9009;2018-08-12
+1316;Yusuf Taş;Presleme;Hat 1;Pres Operatörü;9010;2015-06-04
+1317;Selim Küçük;Presleme;Hat 2;Kalıpçı;9011;2019-11-03
+1318;Merve Yıldırım;Kalite;Hat 1;Kalite Kontrol;9012;2015-01-29
+1319;Recep Duman;Kalite;Hat 2;Kalite Kontrol;9013;2022-07-09
+1320;Görkem Karaca;Bakım;Hat 1;Bakımcı;9014;2022-01-22
+1321;Özlem Turan;Bakım;Hat 2;Mekanikçi;9015;2016-07-26
+1322;Gökhan Şahin;Lojistik;Hat 1;Operatör;9016;2020-11-11
+1323;Görkem Kara;Lojistik;Hat 2;Operatör;9017;2015-12-06
+1324;Betül Aslan;Depo;Hat 1;Forklift;9018;2017-06-24
+1325;Cihan Özkan;Kaynak;Hat 1;Robot Operatörü;9001;2023-07-26
+1326;Levent Kaya;Kaynak;Hat 2;Robot Operatörü;9002;2018-04-28
+1327;Onur Karaca;Kaynak;Hat 3;Kaynakçı;9003;2015-07-30
+1328;Nesrin Balcı;Montaj;Hat 1;Takım Lideri;9004;2025-04-06
+1329;Tuğba Yıldırım;Montaj;Hat 2;Forklift;9005;2022-12-30
+1330;Havva Toprak;Montaj;Hat 3;Forklift;9006;2020-09-10
+1331;Tuğba Şimşek;Montaj;Hat 4;Montajcı;9007;2024-05-23
+1332;Ergün Çakır;Boya;Hat 1;Operatör;9008;2025-06-29
+1333;Nihal Şahin;Boya;Hat 2;Boyacı;9009;2018-06-27
+1334;Barış Tekin;Presleme;Hat 1;Pres Operatörü;9010;2019-12-07
+1335;Aygül Şener;Presleme;Hat 2;Pres Operatörü;9011;2025-07-27
+1336;Sinan Ünal;Kalite;Hat 1;Kalite Kontrol;9012;2018-12-15
+1337;Melis Küçük;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2023-04-30
+1338;Levent Ünal;Bakım;Hat 1;Elektrikçi;9014;2022-03-09
+1339;Yusuf Ekinci;Bakım;Hat 2;Bakımcı;9015;2021-10-10
+1340;Halil Coşkun;Lojistik;Hat 1;Sevkiyat;9016;2024-03-16
+1341;Barış Avcı;Lojistik;Hat 2;Operatör;9017;2023-09-20
+1342;Burak Koç;Depo;Hat 1;Forklift;9018;2018-06-10
+1343;Emine Uçar;Kaynak;Hat 1;Robot Operatörü;9001;2026-01-16
+1344;Seda Acar;Kaynak;Hat 2;Kaynakçı;9002;2022-11-04
+1345;Gamze Arslan;Kaynak;Hat 3;Operatör;9003;2017-11-19
+1346;Nihal Uysal;Montaj;Hat 1;Montajcı;9004;2018-01-27
+1347;Yasemin Ekinci;Montaj;Hat 2;Forklift;9005;2019-02-26
+1348;Aslı Korkmaz;Montaj;Hat 3;Montajcı;9006;2025-05-31
+1349;Okan Ateş;Montaj;Hat 4;Operatör;9007;2022-10-09
+1350;Esra Korkmaz;Boya;Hat 1;Boyacı;9008;2026-02-16
+1351;Osman Ekinci;Boya;Hat 2;Kabin Operatörü;9009;2022-01-03
+1352;İbrahim Çakır;Presleme;Hat 1;Operatör;9010;2017-05-19
+1353;Burak Taş;Presleme;Hat 2;Operatör;9011;2020-10-29
+1354;İbrahim Şahin;Kalite;Hat 1;Kalite Kontrol;9012;2020-12-18
+1355;Hasan Aslan;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2021-11-01
+1356;Rabia Balcı;Bakım;Hat 1;Mekanikçi;9014;2024-09-22
+1357;Aygül Doğan;Bakım;Hat 2;Mekanikçi;9015;2025-10-03
+1358;Esra Acar;Lojistik;Hat 1;Sevkiyat;9016;2017-09-17
+1359;Hüseyin Polat;Lojistik;Hat 2;Sevkiyat;9017;2023-08-19
+1360;Gamze Demir;Depo;Hat 1;Depocu;9018;2016-10-09
+1361;Erhan Taş;Kaynak;Hat 1;Operatör;9001;2024-02-01
+1362;Ayşe Özkan;Kaynak;Hat 2;Takım Lideri;9002;2023-02-08
+1363;Dilek Aslan;Kaynak;Hat 3;Operatör;9003;2024-02-12
+1364;Gökhan Erdoğan;Montaj;Hat 1;Takım Lideri;9004;2021-09-17
+1365;Elif Özdemir;Montaj;Hat 2;Montajcı;9005;2019-12-21
+1366;Uğur Şener;Montaj;Hat 3;Operatör;9006;2022-05-06
+1367;Melis Sezer;Montaj;Hat 4;Operatör;9007;2023-06-03
+1368;Taner Doğan;Boya;Hat 1;Operatör;9008;2021-12-09
+1369;Gamze Gündoğdu;Boya;Hat 2;Kabin Operatörü;9009;2023-06-23
+1370;Songül Sarı;Presleme;Hat 1;Kalıpçı;9010;2023-02-20
+1371;Emine Balcı;Presleme;Hat 2;Pres Operatörü;9011;2019-11-26
+1372;Sinan Karaca;Kalite;Hat 1;Denetçi;9012;2026-02-19
+1373;Rabia Kurt;Kalite;Hat 2;Denetçi;9013;2024-05-26
+1374;Onur Çakır;Bakım;Hat 1;Elektrikçi;9014;2023-03-10
+1375;Pınar Sezer;Bakım;Hat 2;Elektrikçi;9015;2026-03-31
+1376;Kemal Sarı;Lojistik;Hat 1;Operatör;9016;2024-01-07
+1377;Gökhan Doğan;Lojistik;Hat 2;Operatör;9017;2022-03-04
+1378;Okan Korkmaz;Depo;Hat 1;Forklift;9018;2019-08-08
+1379;Zeynep Çetin;Kaynak;Hat 1;Robot Operatörü;9001;2025-10-04
+1380;Uğur Çetin;Kaynak;Hat 2;Kaynakçı;9002;2021-10-18
+1381;Uğur Aydın;Kaynak;Hat 3;Takım Lideri;9003;2015-02-20
+1382;Yusuf Yılmaz;Montaj;Hat 1;Forklift;9004;2020-04-22
+1383;Dilek Arslan;Montaj;Hat 2;Forklift;9005;2022-07-30
+1384;Büşra Duman;Montaj;Hat 3;Montajcı;9006;2021-03-11
+1385;Betül Polat;Montaj;Hat 4;Takım Lideri;9007;2025-10-11
+1386;Onur Balcı;Boya;Hat 1;Boyacı;9008;2022-12-11
+1387;Gamze Şahin;Boya;Hat 2;Operatör;9009;2024-10-19
+1388;Hatice Yavuz;Presleme;Hat 1;Pres Operatörü;9010;2016-09-11
+1389;Yusuf Aydın;Presleme;Hat 2;Operatör;9011;2019-08-04
+1390;Levent Coşkun;Kalite;Hat 1;Denetçi;9012;2026-04-07
+1391;Rabia Öztürk;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2022-03-29
+1392;Ahmet Avcı;Bakım;Hat 1;Bakımcı;9014;2019-05-20
+1393;Halil Koç;Bakım;Hat 2;Mekanikçi;9015;2021-12-04
+1394;Gökhan Bal;Lojistik;Hat 1;Operatör;9016;2020-06-03
+1395;Bülent Doğan;Lojistik;Hat 2;Forklift;9017;2016-11-28
+1396;Ferhat Aktaş;Depo;Hat 1;Forklift;9018;2019-10-15
+1397;Yavuz Toprak;Kaynak;Hat 1;Takım Lideri;9001;2020-02-04
+1398;Burak Şahin;Kaynak;Hat 2;Robot Operatörü;9002;2018-03-11
+1399;Ömer Yıldırım;Kaynak;Hat 3;Kaynakçı;9003;2025-02-24
+1400;Ömer Aydın;Montaj;Hat 1;Forklift;9004;2016-02-09
+1401;Yasemin Acar;Montaj;Hat 2;Operatör;9005;2025-03-24
+1402;Kadir Başaran;Montaj;Hat 3;Forklift;9006;2017-05-17
+1403;Halil Ekinci;Montaj;Hat 4;Montajcı;9007;2022-07-22
+1404;Derya Erdoğan;Boya;Hat 1;Operatör;9008;2021-02-17
+1405;Seda Uysal;Boya;Hat 2;Kabin Operatörü;9009;2017-11-28
+1406;Osman Yavuz;Presleme;Hat 1;Operatör;9010;2015-08-17
+1407;Hatice Acar;Presleme;Hat 2;Kalıpçı;9011;2020-09-24
+1408;Ebru Kılıç;Kalite;Hat 1;Denetçi;9012;2023-02-21
+1409;Hüseyin Koç;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2015-07-04
+1410;Kübra Kurt;Bakım;Hat 1;Elektrikçi;9014;2024-08-26
+1411;Uğur Arslan;Bakım;Hat 2;Bakımcı;9015;2023-04-14
+1412;Sevgi Aktaş;Lojistik;Hat 1;Sevkiyat;9016;2025-07-21
+1413;Recep Küçük;Lojistik;Hat 2;Forklift;9017;2022-11-06
+1414;Ebru Şahin;Depo;Hat 1;Depocu;9018;2024-05-27
+1415;Uğur Yılmaz;Kaynak;Hat 1;Robot Operatörü;9001;2025-10-30
+1416;Halil Turan;Kaynak;Hat 2;Takım Lideri;9002;2025-03-13
+1417;Levent Aydın;Kaynak;Hat 3;Operatör;9003;2023-11-09
+1418;Halil Avcı;Montaj;Hat 1;Takım Lideri;9004;2017-04-17
+1419;Sibel Aslan;Montaj;Hat 2;Operatör;9005;2017-09-25
+1420;Hasan Büyük;Montaj;Hat 3;Operatör;9006;2020-11-02
+1421;Tolga Yıldız;Montaj;Hat 4;Forklift;9007;2016-10-02
+1422;Mehmet Avcı;Boya;Hat 1;Boyacı;9008;2015-12-13
+1423;Ferhat Turan;Boya;Hat 2;Boyacı;9009;2023-12-27
+1424;Murat Özkan;Presleme;Hat 1;Operatör;9010;2016-09-13
+1425;Hüseyin Kurt;Presleme;Hat 2;Operatör;9011;2026-02-09
+1426;Nazlı Kurt;Kalite;Hat 1;Kalite Kontrol;9012;2016-03-09
+1427;İbrahim Acar;Kalite;Hat 2;Kalite Kontrol;9013;2017-04-07
+1428;Hülya Şener;Bakım;Hat 1;Elektrikçi;9014;2025-06-29
+1429;Derya Çetin;Bakım;Hat 2;Mekanikçi;9015;2020-10-15
+1430;Ergün Korkmaz;Lojistik;Hat 1;Operatör;9016;2016-07-29
+1431;Selim Şimşek;Lojistik;Hat 2;Sevkiyat;9017;2018-07-22
+1432;Fatma Sarı;Depo;Hat 1;Forklift;9018;2024-09-28
+1433;Recep Erdoğan;Kaynak;Hat 1;Robot Operatörü;9001;2025-06-25
+1434;Gökhan Şimşek;Kaynak;Hat 2;Operatör;9002;2015-11-10
+1435;Yusuf Çetin;Kaynak;Hat 3;Kaynakçı;9003;2017-07-17
+1436;Ebru Erdoğan;Montaj;Hat 1;Montajcı;9004;2016-08-01
+1437;Ferhat Arslan;Montaj;Hat 2;Operatör;9005;2021-02-08
+1438;Hülya Çakır;Montaj;Hat 3;Forklift;9006;2020-02-05
+1439;Görkem Uysal;Montaj;Hat 4;Takım Lideri;9007;2015-07-23
+1440;Taner Gündoğdu;Boya;Hat 1;Operatör;9008;2017-10-15
+1441;Havva Çakır;Boya;Hat 2;Boyacı;9009;2020-10-08
+1442;Taner Küçük;Presleme;Hat 1;Operatör;9010;2025-10-26
+1443;Havva Öztürk;Presleme;Hat 2;Operatör;9011;2020-01-30
+1444;Zeynep Bal;Kalite;Hat 1;Kalite Kontrol;9012;2022-06-01
+1445;Ceren Sarı;Kalite;Hat 2;Kalite Kontrol;9013;2015-12-09
+1446;Emre Bozkurt;Bakım;Hat 1;Mekanikçi;9014;2019-01-24
+1447;Esra Çetin;Bakım;Hat 2;Bakımcı;9015;2022-01-26
+1448;Ceren Polat;Lojistik;Hat 1;Forklift;9016;2022-05-07
+1449;Melike Aktaş;Lojistik;Hat 2;Forklift;9017;2016-10-19
+1450;Şerife Aslan;Depo;Hat 1;Sayım Görevlisi;9018;2022-08-01
+1451;Taner Toprak;Kaynak;Hat 1;Kaynakçı;9001;2026-02-14
+1452;Hasan Arslan;Kaynak;Hat 2;Operatör;9002;2022-12-12
+1453;Ömer Küçük;Kaynak;Hat 3;Kaynakçı;9003;2026-05-29
+1454;Mehmet Aktaş;Montaj;Hat 1;Forklift;9004;2021-06-01
+1455;Songül Çelik;Montaj;Hat 2;Forklift;9005;2020-07-14
+1456;Yasemin Güler;Montaj;Hat 3;Operatör;9006;2025-01-26
+1457;Volkan Aydın;Montaj;Hat 4;Montajcı;9007;2020-11-26
+1458;Esra Çakır;Boya;Hat 1;Kabin Operatörü;9008;2025-08-24
+1459;Rabia Aktaş;Boya;Hat 2;Kabin Operatörü;9009;2017-12-24
+1460;Kübra Yalçın;Presleme;Hat 1;Kalıpçı;9010;2025-03-07
+1461;Songül Uçar;Presleme;Hat 2;Pres Operatörü;9011;2026-04-02
+1462;Sultan Erdem;Kalite;Hat 1;Denetçi;9012;2021-10-05
+1463;Uğur Kılıç;Kalite;Hat 2;Denetçi;9013;2021-02-11
+1464;Erhan Yalçın;Bakım;Hat 1;Mekanikçi;9014;2021-01-21
+1465;Cihan Genç;Bakım;Hat 2;Elektrikçi;9015;2018-06-22
+1466;Okan Karataş;Lojistik;Hat 1;Operatör;9016;2024-07-14
+1467;Ayşe Sezer;Lojistik;Hat 2;Forklift;9017;2017-08-17
+1468;Hasan Kaya;Depo;Hat 1;Depocu;9018;2023-10-15
+1469;Ahmet Şener;Kaynak;Hat 1;Takım Lideri;9001;2023-10-04
+1470;Elif Yalçın;Kaynak;Hat 2;Operatör;9002;2017-11-12
+1471;Hüseyin Aydın;Kaynak;Hat 3;Robot Operatörü;9003;2022-03-15
+1472;Fatma Güler;Montaj;Hat 1;Forklift;9004;2025-08-31
+1473;Yavuz Taş;Montaj;Hat 2;Forklift;9005;2020-01-26
+1474;Volkan Doğan;Montaj;Hat 3;Operatör;9006;2021-08-28
+1475;Selim Özdemir;Montaj;Hat 4;Operatör;9007;2025-06-23
+1476;Melike Doğan;Boya;Hat 1;Boyacı;9008;2019-11-01
+1477;Ayşe Toprak;Boya;Hat 2;Kabin Operatörü;9009;2018-03-19
+1478;Bülent Öztürk;Presleme;Hat 1;Kalıpçı;9010;2020-09-08
+1479;Hüseyin Genç;Presleme;Hat 2;Pres Operatörü;9011;2026-07-13
+1480;Ömer Kılıç;Kalite;Hat 1;Kalite Kontrol;9012;2016-12-16
+1481;Serkan Ünal;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2020-04-14
+1482;Rabia Toprak;Bakım;Hat 1;Mekanikçi;9014;2017-12-19
+1483;Seda Doğan;Bakım;Hat 2;Mekanikçi;9015;2026-02-14
+1484;Ramazan Karataş;Lojistik;Hat 1;Operatör;9016;2016-12-09
+1485;Nihal Bulut;Lojistik;Hat 2;Forklift;9017;2020-09-19
+1486;Tuğba Güneş;Depo;Hat 1;Forklift;9018;2018-10-22
+1487;Nesrin Gündoğdu;Kaynak;Hat 1;Operatör;9001;2025-09-21
+1488;Meryem Koç;Kaynak;Hat 2;Takım Lideri;9002;2026-02-03
+1489;Tolga Koç;Kaynak;Hat 3;Kaynakçı;9003;2015-02-25
+1490;Sibel Güneş;Montaj;Hat 1;Operatör;9004;2023-09-03
+1491;Onur Bozkurt;Montaj;Hat 2;Takım Lideri;9005;2015-10-11
+1492;Uğur Öztürk;Montaj;Hat 3;Forklift;9006;2022-11-23
+1493;Yasemin Turan;Montaj;Hat 4;Montajcı;9007;2017-06-29
+1494;Mustafa Küçük;Boya;Hat 1;Boyacı;9008;2025-07-26
+1495;Elif Ekinci;Boya;Hat 2;Operatör;9009;2023-07-19
+1496;Turgay Avcı;Presleme;Hat 1;Kalıpçı;9010;2022-03-23
+1497;Tuğba Uysal;Presleme;Hat 2;Kalıpçı;9011;2015-12-16
+1498;Mehmet Yavuz;Kalite;Hat 1;Kalite Kontrol;9012;2016-10-16
+1499;Ergün Karaca;Kalite;Hat 2;Denetçi;9013;2021-03-14
+1500;Melis Genç;Bakım;Hat 1;Elektrikçi;9014;2025-05-13
+1501;Onur Polat;Bakım;Hat 2;Mekanikçi;9015;2025-04-28
+1502;Merve Aslan;Lojistik;Hat 1;Sevkiyat;9016;2023-03-05
+1503;Nesrin Yalçın;Lojistik;Hat 2;Operatör;9017;2016-04-12
+1504;Yusuf Çakır;Depo;Hat 1;Sayım Görevlisi;9018;2015-09-25
+1505;Ahmet Acar;Kaynak;Hat 1;Kaynakçı;9001;2022-02-02
+1506;Okan Karaca;Kaynak;Hat 2;Kaynakçı;9002;2016-07-02
+1507;Tuğba Toprak;Kaynak;Hat 3;Takım Lideri;9003;2017-06-08
+1508;Turgay Turan;Montaj;Hat 1;Takım Lideri;9004;2021-02-21
+1509;Halil Tosun;Montaj;Hat 2;Operatör;9005;2015-03-29
+1510;Kübra Demir;Montaj;Hat 3;Operatör;9006;2023-11-22
+1511;Murat Balcı;Montaj;Hat 4;Takım Lideri;9007;2017-07-09
+1512;Ömer Çakır;Boya;Hat 1;Kabin Operatörü;9008;2022-07-23
+1513;Melis Taş;Boya;Hat 2;Boyacı;9009;2026-03-31
+1514;Pınar Kılıç;Presleme;Hat 1;Pres Operatörü;9010;2024-10-01
+1515;Dilek Özdemir;Presleme;Hat 2;Pres Operatörü;9011;2017-08-04
+1516;Ferhat Polat;Kalite;Hat 1;Kalite Kontrol;9012;2024-09-06
+1517;Barış Ekinci;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2024-10-26
+1518;Melis Kılıç;Bakım;Hat 1;Elektrikçi;9014;2024-05-03
+1519;Kübra Sarı;Bakım;Hat 2;Bakımcı;9015;2025-12-20
+1520;Sultan Demir;Lojistik;Hat 1;Sevkiyat;9016;2018-09-25
+1521;Melike Başaran;Lojistik;Hat 2;Operatör;9017;2016-04-29
+1522;Rabia Yıldız;Depo;Hat 1;Depocu;9018;2022-03-24
+1523;Okan Demir;Kaynak;Hat 1;Takım Lideri;9001;2016-01-20
+1524;Hüseyin Işık;Kaynak;Hat 2;Kaynakçı;9002;2015-04-29
+1525;Halil Bozkurt;Kaynak;Hat 3;Robot Operatörü;9003;2015-08-10
+1526;Ferhat Korkmaz;Montaj;Hat 1;Montajcı;9004;2026-07-23
+1527;Sultan Şahin;Montaj;Hat 2;Takım Lideri;9005;2015-10-30
+1528;Melike Korkmaz;Montaj;Hat 3;Takım Lideri;9006;2019-09-10
+1529;Selim Acar;Montaj;Hat 4;Operatör;9007;2022-08-16
+1530;Ali Taş;Boya;Hat 1;Kabin Operatörü;9008;2016-09-03
+1531;Emre Karaca;Boya;Hat 2;Kabin Operatörü;9009;2025-07-29
+1532;Meryem Aktaş;Presleme;Hat 1;Kalıpçı;9010;2015-06-18
+1533;Turgay Kara;Presleme;Hat 2;Kalıpçı;9011;2026-04-13
+1534;Yavuz Sarı;Kalite;Hat 1;Kalite Kontrol;9012;2020-07-28
+1535;Pınar Uysal;Kalite;Hat 2;Denetçi;9013;2018-09-10
+1536;Recep Uysal;Bakım;Hat 1;Mekanikçi;9014;2024-03-20
+1537;Hasan Yıldız;Bakım;Hat 2;Elektrikçi;9015;2022-03-10
+1538;Ali Güler;Lojistik;Hat 1;Sevkiyat;9016;2016-12-24
+1539;Hatice Çakır;Lojistik;Hat 2;Sevkiyat;9017;2025-07-17
+1540;Aygül Balcı;Depo;Hat 1;Depocu;9018;2015-02-22
+1541;Tolga Kara;Kaynak;Hat 1;Kaynakçı;9001;2015-08-12
+1542;Aslı Güneş;Kaynak;Hat 2;Kaynakçı;9002;2025-03-23
+1543;Halil Aydın;Kaynak;Hat 3;Takım Lideri;9003;2016-09-05
+1544;Ömer Güneş;Montaj;Hat 1;Operatör;9004;2019-12-22
+1545;Osman Genç;Montaj;Hat 2;Montajcı;9005;2023-03-29
+1546;Hasan Balcı;Montaj;Hat 3;Operatör;9006;2023-10-18
+1547;Recep Ekinci;Montaj;Hat 4;Montajcı;9007;2018-07-10
+1548;Halil Polat;Boya;Hat 1;Operatör;9008;2017-10-30
+1549;Okan Ünal;Boya;Hat 2;Operatör;9009;2017-03-10
+1550;Gamze Kılıç;Presleme;Hat 1;Pres Operatörü;9010;2022-03-08
+1551;Seda Aslan;Presleme;Hat 2;Operatör;9011;2025-06-16
+1552;Zeynep Bozkurt;Kalite;Hat 1;Ölçüm Teknisyeni;9012;2025-10-04
+1553;Burak Korkmaz;Kalite;Hat 2;Kalite Kontrol;9013;2020-06-19
+1554;Esra Küçük;Bakım;Hat 1;Bakımcı;9014;2026-01-25
+1555;Dilek Kurt;Bakım;Hat 2;Bakımcı;9015;2023-05-16
+1556;Ferhat Erdem;Lojistik;Hat 1;Sevkiyat;9016;2024-05-28
+1557;Emine Korkmaz;Lojistik;Hat 2;Forklift;9017;2019-12-23
+1558;Emre Tosun;Depo;Hat 1;Forklift;9018;2019-01-24
+1559;Uğur Sarı;Kaynak;Hat 1;Robot Operatörü;9001;2019-09-06
+1560;Görkem Yılmaz;Kaynak;Hat 2;Operatör;9002;2016-02-16
+1561;Zehra Özdemir;Kaynak;Hat 3;Takım Lideri;9003;2021-02-18
+1562;Meryem Erdoğan;Montaj;Hat 1;Montajcı;9004;2026-03-23
+1563;Barış Uysal;Montaj;Hat 2;Takım Lideri;9005;2019-05-23
+1564;Emine Koç;Montaj;Hat 3;Forklift;9006;2021-09-03
+1565;Betül Acar;Montaj;Hat 4;Operatör;9007;2023-12-06
+1566;Nurten Yıldırım;Boya;Hat 1;Kabin Operatörü;9008;2016-08-13
+1567;Sinan Sezer;Boya;Hat 2;Kabin Operatörü;9009;2020-07-31
+1568;Kübra Taş;Presleme;Hat 1;Kalıpçı;9010;2024-01-05
+1569;Serkan Şener;Presleme;Hat 2;Kalıpçı;9011;2022-11-28
+1570;Gökhan Kara;Kalite;Hat 1;Denetçi;9012;2021-01-17
+1571;Büşra Karaca;Kalite;Hat 2;Denetçi;9013;2019-05-05
+1572;Nazlı Yalçın;Bakım;Hat 1;Mekanikçi;9014;2016-09-28
+1573;İbrahim Kılıç;Bakım;Hat 2;Mekanikçi;9015;2019-12-22
+1574;Büşra Ünal;Lojistik;Hat 1;Forklift;9016;2025-03-13
+1575;Fatma Acar;Lojistik;Hat 2;Operatör;9017;2017-03-02
+1576;Hasan Bal;Depo;Hat 1;Forklift;9018;2019-03-13
+1577;Burak Kara;Kaynak;Hat 1;Robot Operatörü;9001;2017-05-28
+1578;Emine Aydın;Kaynak;Hat 2;Operatör;9002;2021-12-18
+1579;Osman Özdemir;Kaynak;Hat 3;Kaynakçı;9003;2022-09-28
+1580;Ceren Uysal;Montaj;Hat 1;Operatör;9004;2017-01-05
+1581;Serkan Doğan;Montaj;Hat 2;Montajcı;9005;2022-06-30
+1582;Aslı Küçük;Montaj;Hat 3;Takım Lideri;9006;2022-04-23
+1583;Songül Toprak;Montaj;Hat 4;Montajcı;9007;2022-11-29
+1584;Görkem Koç;Boya;Hat 1;Operatör;9008;2025-09-10
+1585;Sultan Aslan;Boya;Hat 2;Kabin Operatörü;9009;2015-10-22
+1586;Uğur Ünal;Presleme;Hat 1;Pres Operatörü;9010;2022-05-02
+1587;Hülya Yıldız;Presleme;Hat 2;Pres Operatörü;9011;2021-11-11
+1588;Havva Doğan;Kalite;Hat 1;Ölçüm Teknisyeni;9012;2016-01-06
+1589;Mustafa Turan;Kalite;Hat 2;Denetçi;9013;2020-12-02
+1590;Ahmet Kaya;Bakım;Hat 1;Bakımcı;9014;2015-04-27
+1591;Bülent Ateş;Bakım;Hat 2;Bakımcı;9015;2022-10-06
+1592;Nazlı Sezer;Lojistik;Hat 1;Sevkiyat;9016;2019-07-20
+1593;Taner Uysal;Lojistik;Hat 2;Forklift;9017;2021-10-14
+1594;Gökhan Avcı;Depo;Hat 1;Depocu;9018;2023-04-02
+1595;Derya Işık;Kaynak;Hat 1;Kaynakçı;9001;2022-01-22
+1596;Fatma Doğan;Kaynak;Hat 2;Robot Operatörü;9002;2021-05-30
+1597;Pınar Çakır;Kaynak;Hat 3;Operatör;9003;2026-06-23
+1598;İbrahim Aktaş;Montaj;Hat 1;Montajcı;9004;2025-06-13
+1599;Murat Erdoğan;Montaj;Hat 2;Operatör;9005;2020-04-29
+1600;Yasemin Doğan;Montaj;Hat 3;Takım Lideri;9006;2018-04-27
+1601;Bülent Toprak;Montaj;Hat 4;Forklift;9007;2024-06-15
+1602;Gökhan Sezer;Boya;Hat 1;Boyacı;9008;2016-02-07
+1603;Volkan Arslan;Boya;Hat 2;Boyacı;9009;2024-11-28
+1604;Ramazan Kaya;Presleme;Hat 1;Kalıpçı;9010;2015-06-25
+1605;İbrahim Avcı;Presleme;Hat 2;Kalıpçı;9011;2019-05-22
+1606;Recep Aksoy;Kalite;Hat 1;Ölçüm Teknisyeni;9012;2025-07-11
+1607;Hatice Güneş;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2022-10-08
+1608;Yusuf Coşkun;Bakım;Hat 1;Mekanikçi;9014;2020-07-29
+1609;Hasan Özkan;Bakım;Hat 2;Mekanikçi;9015;2022-10-26
+1610;Songül Başaran;Lojistik;Hat 1;Operatör;9016;2025-02-04
+1611;Nurten Işık;Lojistik;Hat 2;Forklift;9017;2024-04-27
+1612;Onur Uçar;Depo;Hat 1;Sayım Görevlisi;9018;2020-03-03
+1613;Büşra Sarı;Kaynak;Hat 1;Robot Operatörü;9001;2017-09-14
+1614;Gökhan Korkmaz;Kaynak;Hat 2;Takım Lideri;9002;2024-02-18
+1615;Kadir Yılmaz;Kaynak;Hat 3;Takım Lideri;9003;2017-07-25
+1616;Bülent Duman;Montaj;Hat 1;Takım Lideri;9004;2017-03-24
+1617;Murat Çelik;Montaj;Hat 2;Takım Lideri;9005;2018-09-14
+1618;Nesrin Polat;Montaj;Hat 3;Montajcı;9006;2026-07-08
+1619;Selim Kara;Montaj;Hat 4;Operatör;9007;2023-07-23
+1620;Gamze Güneş;Boya;Hat 1;Kabin Operatörü;9008;2022-07-02
+1621;Hüseyin Şener;Boya;Hat 2;Boyacı;9009;2026-04-05
+1622;Pınar Toprak;Presleme;Hat 1;Pres Operatörü;9010;2024-09-25
+1623;Ahmet Güler;Presleme;Hat 2;Kalıpçı;9011;2021-10-08
+1624;Taner Korkmaz;Kalite;Hat 1;Kalite Kontrol;9012;2020-03-14
+1625;Rabia Demir;Kalite;Hat 2;Kalite Kontrol;9013;2019-01-04
+1626;Dilek Doğan;Bakım;Hat 1;Elektrikçi;9014;2024-09-15
+1627;Uğur Aktaş;Bakım;Hat 2;Elektrikçi;9015;2015-09-25
+1628;Serkan Işık;Lojistik;Hat 1;Operatör;9016;2023-10-08
+1629;Ramazan Aslan;Lojistik;Hat 2;Sevkiyat;9017;2019-07-28
+1630;Ahmet Uçar;Depo;Hat 1;Depocu;9018;2023-05-22
+1631;Mehmet Sezer;Kaynak;Hat 1;Takım Lideri;9001;2016-12-15
+1632;Erhan Kılıç;Kaynak;Hat 2;Kaynakçı;9002;2025-01-27
+1633;Büşra Tekin;Kaynak;Hat 3;Kaynakçı;9003;2024-06-29
+1634;Sevgi Aksoy;Montaj;Hat 1;Takım Lideri;9004;2015-06-16
+1635;Halil Küçük;Montaj;Hat 2;Forklift;9005;2026-03-21
+1636;Osman Arslan;Montaj;Hat 3;Operatör;9006;2020-10-05
+1637;Emine Öztürk;Montaj;Hat 4;Montajcı;9007;2019-11-02
+1638;Nazlı Ekinci;Boya;Hat 1;Boyacı;9008;2021-10-28
+1639;Serkan Uysal;Boya;Hat 2;Operatör;9009;2021-05-11
+1640;Şule Öztürk;Presleme;Hat 1;Pres Operatörü;9010;2021-11-08
+1641;Kadir Avcı;Presleme;Hat 2;Operatör;9011;2026-04-07
+1642;Ferhat Ateş;Kalite;Hat 1;Denetçi;9012;2018-04-25
+1643;Volkan Tekin;Kalite;Hat 2;Kalite Kontrol;9013;2015-09-21
+1644;Havva Kurt;Bakım;Hat 1;Mekanikçi;9014;2019-10-20
+1645;Melis Bal;Bakım;Hat 2;Bakımcı;9015;2023-06-04
+1646;Songül Kara;Lojistik;Hat 1;Operatör;9016;2025-06-20
+1647;Ayşe Tekin;Lojistik;Hat 2;Sevkiyat;9017;2023-11-08
+1648;Betül Çetin;Depo;Hat 1;Forklift;9018;2025-07-24
+1649;Murat Koç;Kaynak;Hat 1;Kaynakçı;9001;2016-11-29
+1650;Ergün Taş;Kaynak;Hat 2;Takım Lideri;9002;2016-01-30
+1651;Kemal Güneş;Kaynak;Hat 3;Takım Lideri;9003;2020-07-14
+1652;Tuğba Kaya;Montaj;Hat 1;Forklift;9004;2023-09-14
+1653;Özlem Ekinci;Montaj;Hat 2;Operatör;9005;2020-02-28
+1654;Sibel Sezer;Montaj;Hat 3;Takım Lideri;9006;2018-08-20
+1655;Ahmet Balcı;Montaj;Hat 4;Montajcı;9007;2023-04-01
+1656;Ömer Işık;Boya;Hat 1;Operatör;9008;2022-03-14
+1657;Okan Öztürk;Boya;Hat 2;Operatör;9009;2020-01-19
+1658;Emine Kara;Presleme;Hat 1;Pres Operatörü;9010;2023-07-07
+1659;Recep Uçar;Presleme;Hat 2;Pres Operatörü;9011;2018-07-22
+1660;Derya Arslan;Kalite;Hat 1;Ölçüm Teknisyeni;9012;2017-10-29
+1661;Uğur Ateş;Kalite;Hat 2;Kalite Kontrol;9013;2019-07-29
+1662;Aygül Korkmaz;Bakım;Hat 1;Mekanikçi;9014;2025-01-22
+1663;Selim Genç;Bakım;Hat 2;Bakımcı;9015;2020-07-29
+1664;Yusuf Sezer;Lojistik;Hat 1;Forklift;9016;2018-12-16
+1665;Ferhat Duman;Lojistik;Hat 2;Sevkiyat;9017;2022-07-27
+1666;Hüseyin Başaran;Depo;Hat 1;Forklift;9018;2023-06-10
+1667;Yavuz Koç;Kaynak;Hat 1;Kaynakçı;9001;2026-01-27
+1668;Kemal Ünal;Kaynak;Hat 2;Operatör;9002;2026-03-28
+1669;Hüseyin Toprak;Kaynak;Hat 3;Takım Lideri;9003;2023-01-21
+1670;Emre Öztürk;Montaj;Hat 1;Takım Lideri;9004;2020-05-27
+1671;Uğur Güler;Montaj;Hat 2;Forklift;9005;2020-05-22
+1672;Esra Karataş;Montaj;Hat 3;Forklift;9006;2018-02-01
+1673;Hüseyin Tekin;Montaj;Hat 4;Takım Lideri;9007;2017-06-25
+1674;Elif Öztürk;Boya;Hat 1;Boyacı;9008;2018-11-14
+1675;Okan Duman;Boya;Hat 2;Kabin Operatörü;9009;2025-05-13
+1676;Esra Başaran;Presleme;Hat 1;Kalıpçı;9010;2018-11-10
+1677;Selim Yavuz;Presleme;Hat 2;Operatör;9011;2022-08-15
+1678;Recep Başaran;Kalite;Hat 1;Denetçi;9012;2017-08-22
+1679;Nesrin Bulut;Kalite;Hat 2;Kalite Kontrol;9013;2021-06-30
+1680;Ömer Çetin;Bakım;Hat 1;Mekanikçi;9014;2019-12-22
+1681;Pınar Genç;Bakım;Hat 2;Mekanikçi;9015;2022-09-30
+1682;Cem Özdemir;Lojistik;Hat 1;Forklift;9016;2016-04-21
+1683;Ali Polat;Lojistik;Hat 2;Operatör;9017;2018-12-06
+1684;Emre Bal;Depo;Hat 1;Forklift;9018;2020-10-22
+1685;Havva Başaran;Kaynak;Hat 1;Operatör;9001;2017-11-20
+1686;Murat Yavuz;Kaynak;Hat 2;Kaynakçı;9002;2021-10-12
+1687;Mehmet Korkmaz;Kaynak;Hat 3;Robot Operatörü;9003;2020-10-22
+1688;Yusuf Kurt;Montaj;Hat 1;Takım Lideri;9004;2021-12-21
+1689;Esra Bal;Montaj;Hat 2;Forklift;9005;2024-04-14
+1690;Dilek Duman;Montaj;Hat 3;Takım Lideri;9006;2017-04-29
+1691;Sultan Polat;Montaj;Hat 4;Operatör;9007;2025-11-29
+1692;Melis Şimşek;Boya;Hat 1;Operatör;9008;2018-11-10
+1693;Erhan Avcı;Boya;Hat 2;Operatör;9009;2016-10-01
+1694;Songül Coşkun;Presleme;Hat 1;Kalıpçı;9010;2023-01-07
+1695;Rabia Koç;Presleme;Hat 2;Kalıpçı;9011;2026-02-21
+1696;Ergün Şahin;Kalite;Hat 1;Denetçi;9012;2018-09-09
+1697;Derya Öztürk;Kalite;Hat 2;Kalite Kontrol;9013;2024-11-04
+1698;Emine Aktaş;Bakım;Hat 1;Elektrikçi;9014;2017-07-06
+1699;Dilek Ateş;Bakım;Hat 2;Mekanikçi;9015;2021-10-25
+1700;Zeynep Güler;Lojistik;Hat 1;Forklift;9016;2019-03-28
+1701;Ayşe Kurt;Lojistik;Hat 2;Forklift;9017;2019-06-09
+1702;Volkan Acar;Depo;Hat 1;Sayım Görevlisi;9018;2022-11-01
+1703;Levent Karaca;Kaynak;Hat 1;Robot Operatörü;9001;2020-05-25
+1704;Fatma Erdoğan;Kaynak;Hat 2;Takım Lideri;9002;2019-06-09
+1705;Aygül Aktaş;Kaynak;Hat 3;Robot Operatörü;9003;2024-06-14
+1706;Hülya Doğan;Montaj;Hat 1;Montajcı;9004;2018-11-14
+1707;Hüseyin Kara;Montaj;Hat 2;Montajcı;9005;2026-03-09
+1708;Meryem Duman;Montaj;Hat 3;Montajcı;9006;2023-11-04
+1709;Dilek Tosun;Montaj;Hat 4;Operatör;9007;2017-07-25
+1710;Emine Erdem;Boya;Hat 1;Operatör;9008;2025-02-18
+1711;Pınar Ünal;Boya;Hat 2;Kabin Operatörü;9009;2020-01-21
+1712;Melis Toprak;Presleme;Hat 1;Kalıpçı;9010;2016-05-29
+1713;Murat Kılıç;Presleme;Hat 2;Pres Operatörü;9011;2025-11-27
+1714;Şule Sarı;Kalite;Hat 1;Ölçüm Teknisyeni;9012;2016-03-09
+1715;Aslı Erdem;Kalite;Hat 2;Denetçi;9013;2025-05-31
+1716;Emre Kurt;Bakım;Hat 1;Bakımcı;9014;2022-07-16
+1717;Pınar Gündoğdu;Bakım;Hat 2;Mekanikçi;9015;2025-05-11
+1718;Ramazan Demir;Lojistik;Hat 1;Sevkiyat;9016;2017-11-21
+1719;Melike Ekinci;Lojistik;Hat 2;Operatör;9017;2020-05-29
+1720;Sultan Aydın;Depo;Hat 1;Sayım Görevlisi;9018;2023-05-03
+1721;Derya Erdem;Kaynak;Hat 1;Kaynakçı;9001;2020-10-31
+1722;Nihal Ateş;Kaynak;Hat 2;Takım Lideri;9002;2020-07-29
+1723;Sevgi Kaya;Kaynak;Hat 3;Takım Lideri;9003;2021-01-29
+1724;Meryem Ünal;Montaj;Hat 1;Montajcı;9004;2017-12-31
+1725;Sevgi Ünal;Montaj;Hat 2;Forklift;9005;2024-08-02
+1726;Ebru Aktaş;Montaj;Hat 3;Operatör;9006;2019-10-08
+1727;Nihal Tosun;Montaj;Hat 4;Takım Lideri;9007;2020-11-01
+1728;Nihal Yavuz;Boya;Hat 1;Operatör;9008;2016-07-13
+1729;Taner Yavuz;Boya;Hat 2;Operatör;9009;2015-10-16
+1730;Betül Duman;Presleme;Hat 1;Kalıpçı;9010;2025-07-20
+1731;Ergün Kara;Presleme;Hat 2;Pres Operatörü;9011;2021-08-24
+1732;Selim Uçar;Kalite;Hat 1;Denetçi;9012;2016-01-06
+1733;Ramazan Şimşek;Kalite;Hat 2;Kalite Kontrol;9013;2026-05-27
+1734;Hatice Korkmaz;Bakım;Hat 1;Mekanikçi;9014;2020-11-22
+1735;Ali Karaca;Bakım;Hat 2;Elektrikçi;9015;2019-08-13
+1736;Kemal Demir;Lojistik;Hat 1;Sevkiyat;9016;2016-03-26
+1737;Sevgi Taş;Lojistik;Hat 2;Sevkiyat;9017;2023-04-21
+1738;Bülent Kurt;Depo;Hat 1;Depocu;9018;2025-01-28
+1739;Elif Şimşek;Kaynak;Hat 1;Kaynakçı;9001;2017-08-08
+1740;Sinan Özdemir;Kaynak;Hat 2;Kaynakçı;9002;2017-06-30
+1741;Ceren Karataş;Kaynak;Hat 3;Takım Lideri;9003;2018-02-02
+1742;Ayşe Yavuz;Montaj;Hat 1;Montajcı;9004;2023-11-05
+1743;Betül Şener;Montaj;Hat 2;Takım Lideri;9005;2018-12-06
+1744;Ali Aydın;Montaj;Hat 3;Montajcı;9006;2015-11-13
+1745;Gamze Başaran;Montaj;Hat 4;Takım Lideri;9007;2020-04-17
+1746;Pınar Tekin;Boya;Hat 1;Operatör;9008;2021-12-12
+1747;Nazlı Şimşek;Boya;Hat 2;Boyacı;9009;2016-09-29
+1748;Osman Ünal;Presleme;Hat 1;Pres Operatörü;9010;2026-03-15
+1749;Yusuf Bozkurt;Presleme;Hat 2;Kalıpçı;9011;2022-07-07
+1750;Ebru Karataş;Kalite;Hat 1;Denetçi;9012;2017-12-25
+1751;Ferhat Tekin;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2019-12-23
+1752;Esra Erdem;Bakım;Hat 1;Elektrikçi;9014;2015-10-14
+1753;Nihal Özkan;Bakım;Hat 2;Mekanikçi;9015;2019-01-01
+1754;Aslı Balcı;Lojistik;Hat 1;Operatör;9016;2025-11-15
+1755;Yasemin Karataş;Lojistik;Hat 2;Forklift;9017;2024-08-08
+1756;Nurten Yalçın;Depo;Hat 1;Depocu;9018;2025-12-22
+1757;Sibel Acar;Kaynak;Hat 1;Operatör;9001;2018-01-17
+1758;Derya Yıldız;Kaynak;Hat 2;Takım Lideri;9002;2019-04-18
+1759;Rabia Başaran;Kaynak;Hat 3;Kaynakçı;9003;2017-07-24
+1760;Ayşe Işık;Montaj;Hat 1;Montajcı;9004;2019-05-21
+1761;Görkem Aksoy;Montaj;Hat 2;Montajcı;9005;2020-11-25
+1762;Kübra Uysal;Montaj;Hat 3;Montajcı;9006;2026-06-10
+1763;Ramazan Duman;Montaj;Hat 4;Forklift;9007;2015-02-07
+1764;Sinan Çetin;Boya;Hat 1;Operatör;9008;2016-06-15
+1765;Yusuf Şahin;Boya;Hat 2;Boyacı;9009;2016-11-19
+1766;Sevgi Coşkun;Presleme;Hat 1;Operatör;9010;2022-01-06
+1767;Selim Güneş;Presleme;Hat 2;Operatör;9011;2020-01-01
+1768;Ramazan Özdemir;Kalite;Hat 1;Denetçi;9012;2024-02-22
+1769;Nurten Aksoy;Kalite;Hat 2;Kalite Kontrol;9013;2023-05-04
+1770;Tolga Genç;Bakım;Hat 1;Elektrikçi;9014;2017-06-15
+1771;Sultan Kaya;Bakım;Hat 2;Bakımcı;9015;2024-02-20
+1772;Nesrin Ateş;Lojistik;Hat 1;Forklift;9016;2021-11-11
+1773;Songül Aslan;Lojistik;Hat 2;Forklift;9017;2024-01-27
+1774;Okan Kurt;Depo;Hat 1;Forklift;9018;2019-03-04
+1775;Salih Arslan;Kaynak;Hat 1;Robot Operatörü;9001;2019-09-29
+1776;Ömer Acar;Kaynak;Hat 2;Kaynakçı;9002;2026-06-15
+1777;Emine Karaca;Kaynak;Hat 3;Takım Lideri;9003;2021-07-29
+1778;Aygül Kaya;Montaj;Hat 1;Montajcı;9004;2020-09-05
+1779;Erhan Sarı;Montaj;Hat 2;Operatör;9005;2024-08-22
+1780;Erhan Bozkurt;Montaj;Hat 3;Montajcı;9006;2015-07-13
+1781;Nurten Sarı;Montaj;Hat 4;Montajcı;9007;2020-02-12
+1782;Sibel Polat;Boya;Hat 1;Operatör;9008;2023-10-12
+1783;Ömer Balcı;Boya;Hat 2;Operatör;9009;2021-12-10
+1784;Selim Sarı;Presleme;Hat 1;Operatör;9010;2026-06-21
+1785;Ayşe Yıldırım;Presleme;Hat 2;Operatör;9011;2026-05-03
+1786;Gökhan Koç;Kalite;Hat 1;Denetçi;9012;2015-07-29
+1787;Salih Toprak;Kalite;Hat 2;Kalite Kontrol;9013;2016-08-23
+1788;Ömer Sezer;Bakım;Hat 1;Mekanikçi;9014;2019-02-21
+1789;Yusuf Kara;Bakım;Hat 2;Elektrikçi;9015;2017-06-20
+1790;Havva Uçar;Lojistik;Hat 1;Operatör;9016;2016-11-19
+1791;Okan Güler;Lojistik;Hat 2;Operatör;9017;2020-10-12
+1792;Selim Koç;Depo;Hat 1;Sayım Görevlisi;9018;2018-12-23
+1793;Fatma Bozkurt;Kaynak;Hat 1;Takım Lideri;9001;2021-08-16
+1794;Yasemin Polat;Kaynak;Hat 2;Takım Lideri;9002;2025-12-13
+1795;Serkan Erdoğan;Kaynak;Hat 3;Robot Operatörü;9003;2020-06-22
+1796;Özlem Başaran;Montaj;Hat 1;Takım Lideri;9004;2017-03-19
+1797;Nazlı Şener;Montaj;Hat 2;Takım Lideri;9005;2017-10-25
+1798;Serkan Avcı;Montaj;Hat 3;Operatör;9006;2022-04-14
+1799;Erhan Başaran;Montaj;Hat 4;Forklift;9007;2015-08-08
+1800;Merve Bal;Boya;Hat 1;Operatör;9008;2021-12-08
+1801;Onur Aslan;Boya;Hat 2;Operatör;9009;2020-04-07
+1802;Yavuz Özdemir;Presleme;Hat 1;Pres Operatörü;9010;2022-09-05
+1803;Songül Bal;Presleme;Hat 2;Operatör;9011;2023-11-07
+1804;Dilek Balcı;Kalite;Hat 1;Denetçi;9012;2015-08-10
+1805;Zeynep Aydın;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2020-07-27
+1806;Yavuz Yılmaz;Bakım;Hat 1;Elektrikçi;9014;2023-04-23
+1807;Ferhat Güler;Bakım;Hat 2;Elektrikçi;9015;2015-02-27
+1808;Yavuz Korkmaz;Lojistik;Hat 1;Sevkiyat;9016;2026-05-20
+1809;Serkan Güler;Lojistik;Hat 2;Sevkiyat;9017;2015-06-25
+1810;Bülent Karataş;Depo;Hat 1;Sayım Görevlisi;9018;2024-12-26
+1811;Hasan Işık;Kaynak;Hat 1;Operatör;9001;2026-05-29
+1812;Turgay Kaya;Kaynak;Hat 2;Takım Lideri;9002;2022-02-24
+1813;Kübra Çetin;Kaynak;Hat 3;Robot Operatörü;9003;2017-04-22
+1814;Sibel Şener;Montaj;Hat 1;Takım Lideri;9004;2023-12-12
+1815;Tolga Aktaş;Montaj;Hat 2;Operatör;9005;2024-04-29
+1816;Recep Ünal;Montaj;Hat 3;Takım Lideri;9006;2018-02-09
+1817;Serkan Şimşek;Montaj;Hat 4;Montajcı;9007;2025-01-13
+1818;Emre Işık;Boya;Hat 1;Boyacı;9008;2016-03-01
+1819;Taner Büyük;Boya;Hat 2;Kabin Operatörü;9009;2021-03-27
+1820;Fatma Aydın;Presleme;Hat 1;Operatör;9010;2017-12-11
+1821;Halil Şahin;Presleme;Hat 2;Pres Operatörü;9011;2019-09-11
+1822;Songül Şahin;Kalite;Hat 1;Denetçi;9012;2022-12-07
+1823;Görkem Bozkurt;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2023-04-12
+1824;Emine Yılmaz;Bakım;Hat 1;Mekanikçi;9014;2026-01-06
+1825;Hasan Öztürk;Bakım;Hat 2;Bakımcı;9015;2025-05-11
+1826;Cihan Yıldırım;Lojistik;Hat 1;Operatör;9016;2021-12-11
+1827;Kübra Çakır;Lojistik;Hat 2;Sevkiyat;9017;2016-08-22
+1828;Zeynep Özdemir;Depo;Hat 1;Forklift;9018;2025-05-04
+1829;Ramazan Turan;Kaynak;Hat 1;Operatör;9001;2022-11-15
+1830;Emre Ünal;Kaynak;Hat 2;Operatör;9002;2022-11-13
+1831;Derya Özdemir;Kaynak;Hat 3;Robot Operatörü;9003;2025-08-14
+1832;Cihan Tekin;Montaj;Hat 1;Operatör;9004;2015-08-18
+1833;Ramazan Çakır;Montaj;Hat 2;Forklift;9005;2026-05-17
+1834;Derya Karataş;Montaj;Hat 3;Takım Lideri;9006;2018-03-26
+1835;Nazlı Tosun;Montaj;Hat 4;Operatör;9007;2017-01-12
+1836;Cihan Kılıç;Boya;Hat 1;Operatör;9008;2015-04-28
+1837;Kemal Aslan;Boya;Hat 2;Operatör;9009;2017-05-23
+1838;Hasan Yıldırım;Presleme;Hat 1;Pres Operatörü;9010;2019-11-08
+1839;Bülent Balcı;Presleme;Hat 2;Pres Operatörü;9011;2024-10-22
+1840;Halil Toprak;Kalite;Hat 1;Kalite Kontrol;9012;2015-03-08
+1841;Turgay Özkan;Kalite;Hat 2;Kalite Kontrol;9013;2026-01-30
+1842;Görkem Sarı;Bakım;Hat 1;Bakımcı;9014;2018-10-05
+1843;Görkem Erdoğan;Bakım;Hat 2;Mekanikçi;9015;2024-08-09
+1844;Nihal Koç;Lojistik;Hat 1;Sevkiyat;9016;2023-04-17
+1845;Özlem Bozkurt;Lojistik;Hat 2;Forklift;9017;2025-04-27
+1846;Sibel Tosun;Depo;Hat 1;Forklift;9018;2020-05-25
+1847;Songül Kurt;Kaynak;Hat 1;Takım Lideri;9001;2015-07-26
+1848;Osman Sezer;Kaynak;Hat 2;Takım Lideri;9002;2019-02-13
+1849;Emine Yıldız;Kaynak;Hat 3;Takım Lideri;9003;2022-12-18
+1850;Onur Turan;Montaj;Hat 1;Operatör;9004;2019-12-27
+1851;Volkan Bal;Montaj;Hat 2;Forklift;9005;2019-06-05
+1852;Hüseyin Avcı;Montaj;Hat 3;Takım Lideri;9006;2017-03-08
+1853;Cem Ekinci;Montaj;Hat 4;Montajcı;9007;2026-02-23
+1854;Kemal Balcı;Boya;Hat 1;Operatör;9008;2025-08-10
+1855;Sevgi Öztürk;Boya;Hat 2;Operatör;9009;2023-06-11
+1856;Levent Korkmaz;Presleme;Hat 1;Kalıpçı;9010;2021-04-08
+1857;Bülent Kaya;Presleme;Hat 2;Kalıpçı;9011;2023-10-08
+1858;Nurten Koç;Kalite;Hat 1;Kalite Kontrol;9012;2016-05-16
+1859;Volkan Çelik;Kalite;Hat 2;Denetçi;9013;2018-07-19
+1860;Kübra Bozkurt;Bakım;Hat 1;Mekanikçi;9014;2020-01-20
+1861;Mehmet Acar;Bakım;Hat 2;Elektrikçi;9015;2015-12-10
+1862;Ayşe Arslan;Lojistik;Hat 1;Operatör;9016;2023-09-17
+1863;Ergün Doğan;Lojistik;Hat 2;Operatör;9017;2021-07-31
+1864;Derya Turan;Depo;Hat 1;Forklift;9018;2016-12-25
+1865;Hüseyin Bulut;Kaynak;Hat 1;Kaynakçı;9001;2018-04-28
+1866;İbrahim Toprak;Kaynak;Hat 2;Kaynakçı;9002;2023-08-04
+1867;Gamze Aksoy;Kaynak;Hat 3;Kaynakçı;9003;2017-10-22
+1868;Barış Ateş;Montaj;Hat 1;Operatör;9004;2023-03-14
+1869;Hasan Genç;Montaj;Hat 2;Operatör;9005;2017-12-31
+1870;Serkan Güneş;Montaj;Hat 3;Montajcı;9006;2017-08-18
+1871;Sultan Arslan;Montaj;Hat 4;Operatör;9007;2020-09-26
+1872;Mehmet Uysal;Boya;Hat 1;Kabin Operatörü;9008;2025-10-19
+1873;Ramazan Başaran;Boya;Hat 2;Operatör;9009;2017-07-22
+1874;Derya Kurt;Presleme;Hat 1;Operatör;9010;2018-05-22
+1875;Derya Ekinci;Presleme;Hat 2;Pres Operatörü;9011;2017-03-06
+1876;Fatma Kaya;Kalite;Hat 1;Ölçüm Teknisyeni;9012;2018-12-12
+1877;Yavuz Tosun;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2024-08-13
+1878;Aslı Taş;Bakım;Hat 1;Bakımcı;9014;2024-06-16
+1879;İbrahim Şener;Bakım;Hat 2;Mekanikçi;9015;2020-05-06
+1880;Nazlı Korkmaz;Lojistik;Hat 1;Operatör;9016;2022-11-19
+1881;Sibel Kara;Lojistik;Hat 2;Operatör;9017;2015-09-29
+1882;Ali Uysal;Depo;Hat 1;Sayım Görevlisi;9018;2017-01-18
+1883;Murat Aksoy;Kaynak;Hat 1;Operatör;9001;2015-04-18
+1884;Havva Şimşek;Kaynak;Hat 2;Robot Operatörü;9002;2020-09-29
+1885;Ayşe Güler;Kaynak;Hat 3;Robot Operatörü;9003;2023-06-15
+1886;Özlem Bal;Montaj;Hat 1;Montajcı;9004;2022-12-07
+1887;Salih Aksoy;Montaj;Hat 2;Operatör;9005;2019-07-01
+1888;Salih Aslan;Montaj;Hat 3;Takım Lideri;9006;2019-01-12
+1889;Emine Yıldırım;Montaj;Hat 4;Operatör;9007;2022-03-28
+1890;Sinan Koç;Boya;Hat 1;Kabin Operatörü;9008;2018-10-21
+1891;Tuğba Özdemir;Boya;Hat 2;Kabin Operatörü;9009;2020-05-03
+1892;Hülya Çetin;Presleme;Hat 1;Pres Operatörü;9010;2019-09-15
+1893;Taner Aksoy;Presleme;Hat 2;Operatör;9011;2018-01-26
+1894;Melike Güneş;Kalite;Hat 1;Kalite Kontrol;9012;2018-08-02
+1895;Nesrin Ekinci;Kalite;Hat 2;Denetçi;9013;2017-06-19
+1896;Kadir Güler;Bakım;Hat 1;Mekanikçi;9014;2018-05-25
+1897;Osman Kara;Bakım;Hat 2;Bakımcı;9015;2025-11-14
+1898;Barış Çetin;Lojistik;Hat 1;Operatör;9016;2021-03-10
+1899;Emre Arslan;Lojistik;Hat 2;Sevkiyat;9017;2018-02-18
+1900;Merve Ekinci;Depo;Hat 1;Forklift;9018;2025-07-15
+1901;Barış Yalçın;Kaynak;Hat 1;Kaynakçı;9001;2026-02-08
+1902;Aygül Aydın;Kaynak;Hat 2;Operatör;9002;2026-07-28
+1903;Ramazan Yavuz;Kaynak;Hat 3;Kaynakçı;9003;2017-07-29
+1904;İbrahim Şimşek;Montaj;Hat 1;Operatör;9004;2019-04-17
+1905;Gökhan Karaca;Montaj;Hat 2;Operatör;9005;2025-05-21
+1906;Yavuz Coşkun;Montaj;Hat 3;Forklift;9006;2025-04-24
+1907;Mehmet Gündoğdu;Montaj;Hat 4;Forklift;9007;2015-09-12
+1908;Ferhat Kılıç;Boya;Hat 1;Boyacı;9008;2024-10-09
+1909;Kemal Başaran;Boya;Hat 2;Kabin Operatörü;9009;2023-08-18
+1910;Uğur Yıldırım;Presleme;Hat 1;Kalıpçı;9010;2024-01-07
+1911;Mehmet Turan;Presleme;Hat 2;Pres Operatörü;9011;2024-06-01
+1912;Zeynep Genç;Kalite;Hat 1;Ölçüm Teknisyeni;9012;2026-05-20
+1913;Sultan Güler;Kalite;Hat 2;Ölçüm Teknisyeni;9013;2019-01-16
+1914;Nurten Kaya;Bakım;Hat 1;Elektrikçi;9014;2015-04-21
+1915;Meryem Uysal;Bakım;Hat 2;Bakımcı;9015;2026-08-05
+1916;Onur Acar;Lojistik;Hat 1;Sevkiyat;9016;2015-09-18
+1917;Betül Karataş;Lojistik;Hat 2;Sevkiyat;9017;2017-11-21
+1918;Merve Demir;Depo;Hat 1;Depocu;9018;2016-04-19
+1919;Hüseyin Öztürk;Kaynak;Hat 1;Robot Operatörü;9001;2024-06-01
+1920;Murat Büyük;Kaynak;Hat 2;Kaynakçı;9002;2015-05-26
+1921;Yusuf Öztürk;Kaynak;Hat 3;Robot Operatörü;9003;2018-09-04
+1922;Hüseyin Taş;Montaj;Hat 1;Operatör;9004;2017-01-18
+1923;Görkem Sezer;Montaj;Hat 2;Takım Lideri;9005;2017-09-17
+1924;Sultan Çakır;Montaj;Hat 3;Forklift;9006;2022-01-13
+1925;Özlem Gündoğdu;Montaj;Hat 4;Takım Lideri;9007;2020-10-11
+1926;İbrahim Polat;Boya;Hat 1;Kabin Operatörü;9008;2020-06-24
+1927;Rabia Genç;Boya;Hat 2;Kabin Operatörü;9009;2026-07-08
+1928;Meryem Şimşek;Presleme;Hat 1;Pres Operatörü;9010;2015-12-12
+1929;Melike Tekin;Presleme;Hat 2;Kalıpçı;9011;2019-04-22
+1930;Ergün Sezer;Kalite;Hat 1;Kalite Kontrol;9012;2019-11-14
+1931;Ömer Ekinci;Kalite;Hat 2;Kalite Kontrol;9013;2019-08-31
+1932;Betül Aksoy;Bakım;Hat 1;Bakımcı;9014;2017-12-11
+1933;Turgay Uysal;Bakım;Hat 2;Elektrikçi;9015;2021-02-04
+1934;Melike Erdoğan;Lojistik;Hat 1;Sevkiyat;9016;2026-07-09
+1935;Sevgi Aslan;Lojistik;Hat 2;Forklift;9017;2021-11-06
+1936;Yusuf Küçük;Depo;Hat 1;Sayım Görevlisi;9018;2023-10-21
+1937;Derya Koç;Kaynak;Hat 1;Operatör;9001;2017-01-06
+1938;Hatice Ateş;Kaynak;Hat 2;Operatör;9002;2021-01-18
+1939;Barış Sarı;Kaynak;Hat 3;Takım Lideri;9003;2024-10-23
+1940;Meryem Genç;Montaj;Hat 1;Montajcı;9004;2025-09-20
+1941;Gökhan Bozkurt;Montaj;Hat 2;Takım Lideri;9005;2021-01-23
+1942;Rabia Aslan;Montaj;Hat 3;Montajcı;9006;2025-06-09
+1943;Kübra Öztürk;Montaj;Hat 4;Operatör;9007;2016-06-30
+1944;Taner Özdemir;Boya;Hat 1;Boyacı;9008;2019-05-20
+1945;Tolga Bal;Boya;Hat 2;Boyacı;9009;2020-03-02
+1946;Elif Coşkun;Presleme;Hat 1;Pres Operatörü;9010;2024-03-24
+1947;Kadir Sezer;Presleme;Hat 2;Operatör;9011;2026-07-20
+1948;Zeynep Büyük;Kalite;Hat 1;Kalite Kontrol;9012;2017-01-28
+1949;Emine Çakır;Kalite;Hat 2;Denetçi;9013;2025-08-12
+1950;Şerife Avcı;Bakım;Hat 1;Elektrikçi;9014;2017-06-09
+1951;Ramazan Güneş;Bakım;Hat 2;Bakımcı;9015;2018-03-16
+1952;Levent Özdemir;Lojistik;Hat 1;Sevkiyat;9016;2024-04-21
+1953;Şule Güneş;Lojistik;Hat 2;Operatör;9017;2025-11-02
+1954;Zeynep Doğan;Depo;Hat 1;Forklift;9018;2023-06-10
+1955;Melike Özdemir;Kaynak;Hat 1;Kaynakçı;9001;2020-10-05
+1956;Cem Turan;Kaynak;Hat 2;Robot Operatörü;9002;2021-05-03
+1957;Levent Taş;Kaynak;Hat 3;Kaynakçı;9003;2017-01-27
+1958;Betül Karaca;Montaj;Hat 1;Operatör;9004;2024-12-08
+1959;Nesrin Korkmaz;Montaj;Hat 2;Forklift;9005;2018-09-16
+1960;Cem Kaya;Montaj;Hat 3;Forklift;9006;2015-05-18
+1961;Bülent Gündoğdu;Montaj;Hat 4;Operatör;9007;2026-05-12
+1962;Hüseyin Uysal;Boya;Hat 1;Kabin Operatörü;9008;2025-10-30
+1963;Cem Aksoy;Boya;Hat 2;Kabin Operatörü;9009;2026-01-29
+1964;Hülya Aslan;Presleme;Hat 1;Pres Operatörü;9010;2019-10-31
+1965;Sibel Bozkurt;Presleme;Hat 2;Pres Operatörü;9011;2019-07-16
+1966;Emre Bulut;Kalite;Hat 1;Kalite Kontrol;9012;2021-08-15
+1967;Halil Kara;Kalite;Hat 2;Kalite Kontrol;9013;2022-12-15
+1968;Meryem Arslan;Bakım;Hat 1;Bakımcı;9014;2023-05-01
+1969;Özlem Özdemir;Bakım;Hat 2;Mekanikçi;9015;2020-01-22
+1970;Büşra Bulut;Lojistik;Hat 1;Forklift;9016;2025-12-18
+1971;Nihal Yıldız;Lojistik;Hat 2;Forklift;9017;2023-01-08
+1972;Görkem Karataş;Depo;Hat 1;Sayım Görevlisi;9018;2018-12-23
+1973;Osman Acar;Kaynak;Hat 1;Operatör;9001;2017-05-17
+1974;Görkem Demir;Kaynak;Hat 2;Operatör;9002;2019-11-04

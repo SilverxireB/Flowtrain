@@ -9,6 +9,7 @@
     "lint": "next lint",
     "test": "node tests/kos.mjs",
     "logo": "node scripts/logo-uret.mjs",
+    "demo": "node scripts/demo-veri.mjs",
     "pdf-isci": "node scripts/pdf-isci.mjs",
     "postinstall": "npm run pdf-isci",
     "e2e": "node tests/uctan-uca.mjs",
