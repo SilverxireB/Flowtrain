@@ -16,7 +16,7 @@
  *   node scripts/demo-veri.mjs --sil      # yalnız demo içeriği kaldır
  */
 import Database from "better-sqlite3";
-import { copyFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const KOK = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -311,13 +311,30 @@ d.transaction(() => {
 /* ── personel listesi ─────────────────────────────────────────────────────── */
 
 const personelHedef = join(VERI, "personel.csv");
-let personelNot = "zaten var, dokunulmadı";
+const buyukListe = join(ORNEK, "personel-1000.csv");
+const kucukListe = join(ORNEK, "personel.csv");
+let personelNot;
+
+/* GERÇEK LİSTENİN ÜSTÜNE YAZMAYIZ. Ama `npm run kur` 6 kişilik örneği
+   kopyalamış olabilir; demo verisi 1000 kişilik listeyi ister ve o örnek
+   dosyaya "gerçek liste" muamelesi yapmak demoyu boş bırakır.
+
+   Ayrım ölçütü: dosya, depodaki örneğin BİREBİR AYNISI mı? Öyleyse kimse
+   dokunmamış demektir, değiştirilebilir. Tek bir satır bile değişmişse
+   elle düzenlenmiştir ve elimizi süremeyiz. */
+function ayniIcerik(a, b) {
+  if (!existsSync(a) || !existsSync(b)) return false;
+  return readFileSync(a).equals(readFileSync(b));
+}
+
 if (!existsSync(personelHedef)) {
-  const kaynak = existsSync(join(ORNEK, "personel-1000.csv"))
-    ? join(ORNEK, "personel-1000.csv")
-    : join(ORNEK, "personel.csv");
-  copyFileSync(kaynak, personelHedef);
-  personelNot = `${kaynak.split(/[\\/]/).pop()} kopyalandı`;
+  copyFileSync(existsSync(buyukListe) ? buyukListe : kucukListe, personelHedef);
+  personelNot = "kopyalandı (1000 kişi)";
+} else if (ayniIcerik(personelHedef, kucukListe) && existsSync(buyukListe)) {
+  copyFileSync(buyukListe, personelHedef);
+  personelNot = "6 kişilik örnek 1000 kişilik demo listesiyle değiştirildi";
+} else {
+  personelNot = "zaten var, dokunulmadı";
 }
 
 console.log("✓ demo verisi kuruldu\n");

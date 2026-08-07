@@ -62,8 +62,18 @@ if (existsSync(join(KOK, "node_modules", "next"))) {
 } else {
   bilgi("Bağımlılıklar kuruluyor (birkaç dakika sürebilir)…");
   yaz();
-  npmCalistir("install");
+  /* `--ignore-scripts` ŞART, süs değil.
+     `better-sqlite3`ün kendi install betiği yok ama `binding.gyp` dosyası var;
+     npm bunu görünce varsayılan olarak `node-gyp rebuild` başlatıyor ve C++
+     derleyicisi olmayan makinede "Could not find any Visual Studio installation"
+     ile ölüyor. Oysa derlemeye HİÇ gerek yok: paket Node-API tabanlı hazır
+     ikiliyi kendi içinde taşıyor (prebuilds/). Derleyicisi olan makinede de
+     aynı ikili kullanılıyor, yani bu bayrak her yerde doğru.
+
+     Bedeli: atlanan `postinstall` adımını (PDF işçisi) elle çağırmak. */
+  npmCalistir("install", "--ignore-scripts");
   yaz();
+  npmCalistir("run", "pdf-isci");
   basari("Bağımlılıklar kuruldu");
 }
 
