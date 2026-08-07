@@ -39,7 +39,32 @@ büyük punto, az seçenek. Onaylar `ConfirmDialog` ile (native `confirm` yok).
 - `Oturum.senkron` alanı kaydın dış hedefe gidip gitmediğini tutar; başarısız
   gönderim `hata` olarak bekler ve yeniden denenir — **kayıt sessizce düşmez.**
 
-## Durum
+## Yüzeyler
 
-İskelet aşaması. Yüzeyler `src/app/page.tsx`te listeli, sırayla açılıyor.
-Sıradaki: Aşama 1 — eğitim editörü + sınav + kiosk akışı + CSV adaptörü.
+| Yol | Ne | Kim girer |
+|---|---|---|
+| `/` | Hub — role göre açılan kartlar | girişli |
+| `/kurulum` `/giris` | ilk yönetici · kokpit girişi | — |
+| `/egitimler(/[id])` | liste · editör (PDF kapısı, kartlar, sorular, ▶ Dene) | hazırlayan |
+| `/atama` | kural motoru (bölüm/hat/görev/işe giriş/tekrar) | hazırlayan |
+| `/ekibim` | amir tableti — eksikler, gözetimli oturum | amir |
+| `/pano` | tamamlanma, bölüm kırılımı, anomali, CSV | hazırlayan |
+| `/ayarlar` | kurulumun gerçeği, hesaplar, denetim izi | yönetici |
+| `/kiosk` | **hesapsız** — sicil/kart + PIN | herkes |
+
+## Sınavlar
+
+- `npm test` — saf mantık (kurallar · sinav · anomali · csv), 86 doğrulama.
+- `npm run e2e` — GERÇEK tarayıcı + GERÇEK sunucu, tüm zincir, 37 doğrulama.
+  Geçici veri klasörü kurar, kurulumun verisine dokunmaz.
+
+**İkisi de gerekli, biri diğerinin yerini tutmaz.** Birim sınavlar
+küçültülmemiş kod koşar: SWC'nin `ayiriciBul`ı bozduğu hatayı (parametre
+yakalayan yardımcı satır içine alınırken serbest değişken kalması) yalnız
+uçtan uca sınav yakaladı. Bu yüzden **parametre yakalayıp birden çok kez
+çağrılan yardımcı yazmayın** — modül seviyesine alın.
+
+## Kalanlar
+
+OPM adaptörü (v1.5) · self-host kurulum paketi/Docker · SMS dürtme modülü (v2).
+MVP dışı bırakılanlar `docs/KAPSAM.md`te listeli.

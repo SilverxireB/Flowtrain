@@ -76,7 +76,7 @@ export default async function Ekibim() {
 }
 
 function Kutu({ sayi, etiket, vurgu }: { sayi: number; etiket: string; vurgu?: "brand" | "orta" }) {
-  const renk = vurgu === "brand" ? "text-brand" : vurgu === "orta" ? "text-orta" : "text-ink";
+  const renk = vurgu === "brand" ? "text-brand" : vurgu === "orta" ? "text-orta-dark" : "text-ink";
   return (
     <div className="card p-4 text-center">
       <p className={`text-3xl font-extrabold ${renk}`}>{sayi}</p>

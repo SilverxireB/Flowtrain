@@ -87,7 +87,10 @@ function Coklu({
   if (secenekler.length === 0) return null;
   return (
     <div>
-      <input type="hidden" name={ad} value={secili.join(",")} />
+      {/* JSON: virgülle birleştirmek, "Kaynak, Montaj" gibi virgül İÇEREN bir
+          bölüm adı seçildiğinde kuralı iki uydurma değere bölüyor ve kural
+          kimseyi kapsamıyordu — hiçbir hata da vermeden. */}
+      <input type="hidden" name={ad} value={JSON.stringify(secili)} />
       <span className="mb-1.5 block text-sm font-semibold">
         {etiket} <span className="font-normal text-muted">— boş bırakılırsa süzmez</span>
       </span>

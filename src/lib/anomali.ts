@@ -18,15 +18,31 @@ export function beklenenSure(sayfalar: Pick<Sayfa, "asgariSure">[]): number {
   return sayfalar.reduce((t, s) => t + (s.asgariSure || 0), 0);
 }
 
-/** Oturumun içerikte geçirdiği toplam süre (saniye). */
-export function gecenSure(oturum: Pick<Oturum, "sayfaSureleri">): number {
+/**
+ * Oturumun süresi (saniye).
+ *
+ * SUNUCU SAATİNDEN ÖLÇÜLÜR, istemciden gelen `sayfaSureleri` toplamından
+ * DEĞİL. Sebebi doğrudan bu dosyanın var oluş sebebiyle çelişiyordu: sahteciliği
+ * ölçen sayıyı, sahteciliği yapan tarafın göndermesi. `baslangic` ve `bitis`
+ * damgalarını sunucu yazar; kimse "6 dakika sürdü" diye yalan söyleyemez.
+ *
+ * `sayfaSureleri` yine tutulur — hangi sayfada ne kadar kalındığı içerik
+ * geri bildirimi için değerli — ama anomali kararına girmez.
+ */
+export function gecenSure(oturum: Pick<Oturum, "sayfaSureleri" | "baslangic" | "bitis">): number {
+  if (oturum.baslangic && oturum.bitis) {
+    const fark = (new Date(oturum.bitis).getTime() - new Date(oturum.baslangic).getTime()) / 1000;
+    if (fark >= 0) return Math.round(fark);
+  }
   return Object.values(oturum.sayfaSureleri ?? {}).reduce((t, s) => t + s, 0);
 }
 
 /** Beklenenin bu oranının altı "hızlı" sayılır (yarısı). */
 export const HIZLI_ORAN = 0.5;
 
-export function hizliMi(oturum: Pick<Oturum, "sayfaSureleri">, beklenen: number): boolean {
+type OturumOlcusu = Pick<Oturum, "sayfaSureleri" | "baslangic" | "bitis">;
+
+export function hizliMi(oturum: OturumOlcusu, beklenen: number): boolean {
   if (beklenen <= 0) return false;
   return gecenSure(oturum) < beklenen * HIZLI_ORAN;
 }
@@ -49,16 +65,21 @@ export interface GozetenOzeti {
  * altında hiçbir amir işaretlenmez (yanlış suçlama ürünü çöpe attırır).
  */
 export function gozetenOzetleri(
-  oturumlar: Pick<Oturum, "gozeten" | "sayfaSureleri" | "bitis">[],
+  oturumlar: (OturumOlcusu & Pick<Oturum, "gozeten" | "cihaz">)[],
   beklenen: number,
   asgariOturum = 3,
 ): GozetenOzeti[] {
-  const grup = new Map<string, Pick<Oturum, "gozeten" | "sayfaSureleri" | "bitis">[]>();
+  const grup = new Map<string, OturumOlcusu[]>();
   for (const o of oturumlar) {
-    if (!o.gozeten || !o.bitis) continue;
-    const liste = grup.get(o.gozeten) ?? [];
+    if (!o.bitis) continue;
+    // Gözeteni olmayan (kiosk) oturumlar da ölçülür, "Kiosk" başlığı altında.
+    // Eskiden atlanıyorlardı — yani sahteciliğin EN KOLAY yolu (kiosk'ta
+    // başkasının sicilini girmek) panoda hiç görünmüyordu; tek telafi edici
+    // kontrol, korunması gereken deliği kapsamıyordu.
+    const anahtar = o.gozeten ?? `(gözetimsiz · ${o.cihaz ?? "kiosk"})`;
+    const liste = grup.get(anahtar) ?? [];
     liste.push(o);
-    grup.set(o.gozeten, liste);
+    grup.set(anahtar, liste);
   }
 
   return [...grup.entries()]

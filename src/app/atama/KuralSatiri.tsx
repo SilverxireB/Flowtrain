@@ -40,7 +40,7 @@ export default function KuralSatiri({
               <Icon name="users" size={14} /> {kisiSayisi} kişi
             </span>
             {!yayinda ? (
-              <span className="chip border-orta/40 bg-orta/10 text-xs text-orta">
+              <span className="chip border-orta/40 bg-orta/10 text-xs text-orta-dark">
                 <Icon name="warning" size={14} /> Eğitim taslakta — kimseye düşmüyor
               </span>
             ) : null}

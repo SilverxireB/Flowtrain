@@ -2,7 +2,12 @@ import "server-only";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ayarOku, ayarYaz, hesapDogrula, hesapSayisi, type Hesap, type Rol } from "./depo";
+import { ayarOku, ayarYaz, hesapDogrula, hesaplariListele, hesapSayisi } from "./depo";
+import { yetkili, type Hesap, type Rol } from "./yetki";
+
+function hesabiBul(kullanici: string): Hesap | null {
+  return hesaplariListele().find((h) => h.kullanici === kullanici) ?? null;
+}
 
 /**
  * KOKPİT KİMLİĞİ — hazırlayan / onaylayan / amir / yönetici.
@@ -50,7 +55,14 @@ function ac(deger: string | undefined): Hesap | null {
   try {
     const v = JSON.parse(Buffer.from(govde, "base64url").toString("utf8"));
     if (Date.now() - v.t > SURE_SN * 1000) return null;
-    return { kullanici: v.k, ad: v.a, rol: v.r as Rol, sicil: v.s ?? undefined };
+
+    /* ROL ÇEREZDEN DEĞİL, DEPODAN OKUNUR.
+       Çerezdeki rolü doğrudan kullanmak, silinen ya da rolü düşürülen bir
+       hesabın 12 saat daha yetkili kalması demekti: ayrılan personel Ayarlar'dan
+       silinse bile eğitim düzenlemeye devam ederdi. SQLite yerel, maliyeti yok. */
+    const guncel = hesabiBul(v.k);
+    if (!guncel) return null;
+    return guncel;
   } catch {
     return null;
   }
@@ -84,17 +96,7 @@ export function kurulumGerekli(): boolean {
   return hesapSayisi() === 0;
 }
 
-const ROL_SIRASI: Record<Rol, number> = { amir: 1, hazirlayan: 2, onaylayan: 3, yonetici: 4 };
-
-/** Yönetici her kapıdan geçer; onaylayan hazırlayanın yaptığını da yapar. */
-export function yetkili(hesap: Hesap | null, enAz: Rol): boolean {
-  if (!hesap) return false;
-  if (hesap.rol === "yonetici") return true;
-  // Amir ayrı bir daldır: hazırlama yetkisi vermez, yalnız kendi ekibini görür.
-  if (enAz === "amir") return true;
-  if (hesap.rol === "amir") return false;
-  return ROL_SIRASI[hesap.rol] >= ROL_SIRASI[enAz];
-}
+export { yetkili, guvenliYol } from "./yetki";
 
 /**
  * Sayfa kapısı. Oturumsuz kullanıcı GELDİĞİ YERE dönebilsin diye hedef
@@ -109,12 +111,3 @@ export function kapi(enAz: Rol, buYol: string): Hesap {
   return hesap;
 }
 
-/**
- * `next` YALNIZ tek eğik çizgiyle başlayan iç yollar olabilir.
- * `//baska-site` protokole göreli bir ADRESTİR ve açık yönlendirme kapısı açar.
- */
-export function guvenliYol(next: string | undefined, varsayilan = "/"): string {
-  if (!next) return varsayilan;
-  if (!next.startsWith("/") || next.startsWith("//")) return varsayilan;
-  return next;
-}

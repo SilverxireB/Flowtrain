@@ -97,12 +97,16 @@ CREATE TABLE IF NOT EXISTS soruIstatistik (
   yanlis INTEGER NOT NULL DEFAULT 0
 );
 
-/* İşçi PIN'i — imza yerine geçer. Düz metin TUTULMAZ. */
+/* İşçi PIN'i — imza yerine geçer. Düz metin TUTULMAZ.
+   hataliDeneme/kilitBitis: dört haneli bir sır kaba kuvvete 10.000 denemede
+   düşer. Tek gerçek savunma denemeyi PAHALI kılmaktır. */
 CREATE TABLE IF NOT EXISTS pin (
   sicil TEXT PRIMARY KEY,
   ozet TEXT NOT NULL,
   tuz TEXT NOT NULL,
-  olusturma TEXT NOT NULL
+  olusturma TEXT NOT NULL,
+  hataliDeneme INTEGER NOT NULL DEFAULT 0,
+  kilitBitis TEXT
 );
 
 CREATE TABLE IF NOT EXISTS hesap (
@@ -135,8 +139,28 @@ export function db(): Database.Database {
   if (!existsSync(join(VERI_KLASORU, "medya"))) mkdirSync(join(VERI_KLASORU, "medya"), { recursive: true });
   const d = new Database(join(VERI_KLASORU, "flowtrain.db"));
   d.exec(SEMA);
+  gocleriUygula(d);
   _db = d;
   return d;
+}
+
+/**
+ * `CREATE TABLE IF NOT EXISTS` var olan tabloya YENİ SÜTUN eklemez — kurulum
+ * güncellendiğinde eski veritabanı sessizce eksik sütunla kalır ve ilk sorguda
+ * patlar. Eklemeler burada, "zaten var" hatasını yutarak uygulanır.
+ */
+function gocleriUygula(d: Database.Database): void {
+  const ekle = [
+    "ALTER TABLE pin ADD COLUMN hataliDeneme INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE pin ADD COLUMN kilitBitis TEXT",
+  ];
+  for (const sorgu of ekle) {
+    try {
+      d.exec(sorgu);
+    } catch {
+      /* sütun zaten var */
+    }
+  }
 }
 
 /** Sınavlarda bellek içi depo kurmak için (diske hiç dokunmaz). */

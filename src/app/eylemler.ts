@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cikisYap, girisYap, guvenliYol, kapi, kurulumGerekli } from "@/lib/kimlik";
 import * as depo from "@/lib/depo";
+import { kaydiGonder, personelKaynagi } from "@/lib/adaptorlar";
+import { SABLONLAR } from "@/lib/sablonlar";
 import type { KartTipi, Soru, SoruTipi } from "@/lib/tipler";
 
 /* ── kimlik ───────────────────────────────────────────────────────────────── */
@@ -79,7 +81,6 @@ export async function hesapSilEylem(kullanici: string): Promise<void> {
  */
 export async function senkronTekrarEylem(): Promise<void> {
   const ben = kapi("yonetici", "/ayarlar");
-  const { kaydiGonder } = await import("@/lib/adaptorlar");
   let basarili = 0;
   for (const o of depo.bekleyenSenkronlar()) {
     const oldu = await kaydiGonder(o);
@@ -94,10 +95,24 @@ export async function senkronTekrarEylem(): Promise<void> {
 /** Personel dosyası değiştiğinde önbelleği düşürür. */
 export async function personeliTazeleEylem(): Promise<void> {
   kapi("yonetici", "/ayarlar");
-  const { onbellegiTemizle } = await import("@/lib/adaptorlar/csvPersonel");
-  onbellegiTemizle();
+  // Adaptör sınırı: CSV modülü DOĞRUDAN çağrılmaz. OPM adaptörü etkinken
+  // doğrudan çağrı, yanlış adaptörün önbelleğini temizleyip sessizce hiçbir
+  // şey yapmazdı.
+  personelKaynagi().tazele?.();
   revalidatePath("/ayarlar");
   revalidatePath("/atama");
+}
+
+/**
+ * PIN sıfırlar — kişi bir sonraki tamamlamada yenisini belirler.
+ * Bu yol OLMAK ZORUNDA: PIN unutulduğunda ya da bir başkası tarafından
+ * belirlendiğinde, kişinin kendi imzasına geri dönmesinin başka yolu yok.
+ */
+export async function pinSifirlaEylem(sicil: string): Promise<void> {
+  const ben = kapi("yonetici", "/ayarlar");
+  depo.pinSifirla(sicil);
+  depo.izBirak(ben.kullanici, `PIN sıfırladı: ${sicil}`);
+  revalidatePath("/ayarlar");
 }
 
 /* ── eğitim ───────────────────────────────────────────────────────────────── */
@@ -110,9 +125,47 @@ export async function egitimOlusturEylem(form: FormData): Promise<void> {
   redirect(`/egitimler/${e.id}`);
 }
 
+/**
+ * Şablondan eğitim açar — boş sayfa yerine doldurulacak kalıp.
+ * Şablon İÇERİK taşımaz, yalnız kart yapısını ve soruları kurar.
+ */
+export async function sablondanAcEylem(sablonId: string): Promise<void> {
+  const ben = kapi("hazirlayan", "/egitimler");
+  const sablon = SABLONLAR.find((s) => s.id === sablonId);
+  if (!sablon) return;
+
+  const e = depo.egitimOlustur(sablon.ad, ben.kullanici);
+  for (const k of sablon.kartlar) depo.sayfaEkle(e.id, k);
+  for (const q of sablon.sorular) {
+    depo.soruEkle(e.id, {
+      tip: q.secenekler.length === 2 && q.secenekler[0] === "Doğru" ? "dogruYanlis" : "coktanSecmeli",
+      metin: q.metin,
+      secenekler: q.secenekler,
+      dogru: q.dogru,
+    });
+  }
+  depo.izBirak(ben.kullanici, `şablondan eğitim açtı: ${sablon.ad}`);
+  redirect(`/egitimler/${e.id}`);
+}
+
+/**
+ * Hazırlayanın değiştirebileceği alanlar — BEYAZ LİSTE.
+ *
+ * `durum`, `onaylayan` ve `surum` BİLEREK dışarıda: depo katmanı bunları
+ * yazabiliyor, dolayısıyla süzülmemiş bir yama ile `hazirlayan` rolündeki biri
+ * kendi eğitimini onaysız yayına alabiliyor ve `onaylayan` alanına istediği
+ * kişinin adını yazabiliyordu. Dört göz kuralının tek gerçek yeri burası —
+ * düğmeyi gizlemek sunucuda karşılığı olmayan bir önlemdir.
+ */
+const HAZIRLAYAN_ALANLARI = ["ad", "aciklama", "gecmeNotu", "denemeHakki", "soruSayisi", "karisik", "tekrarAy"] as const;
+
 export async function egitimGuncelleEylem(id: string, yama: Record<string, unknown>): Promise<void> {
   const ben = kapi("hazirlayan", `/egitimler/${id}`);
-  depo.egitimGuncelle(id, yama);
+  const suzulmus: Record<string, unknown> = {};
+  for (const alan of HAZIRLAYAN_ALANLARI) {
+    if (yama[alan] !== undefined) suzulmus[alan] = yama[alan];
+  }
+  depo.egitimGuncelle(id, suzulmus);
   depo.izBirak(ben.kullanici, `eğitim güncelledi: ${id}`);
   revalidatePath(`/egitimler/${id}`);
 }
@@ -233,11 +286,15 @@ export async function soruSilEylem(egitimId: string, id: string): Promise<void> 
 
 export async function kuralEkleEylem(form: FormData): Promise<void> {
   const ben = kapi("hazirlayan", "/atama");
-  const dizi = (ad: string) =>
-    String(form.get(ad) ?? "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+  // Değerler JSON dizisi olarak gelir (virgül içeren bölüm adları bölünmesin).
+  const dizi = (ad: string): string[] => {
+    try {
+      const c = JSON.parse(String(form.get(ad) ?? "[]"));
+      return Array.isArray(c) ? c.map(String).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  };
   const gun = String(form.get("iseGirisIcindeGun") ?? "").trim();
 
   depo.kuralEkle({

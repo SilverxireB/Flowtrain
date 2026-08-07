@@ -72,6 +72,7 @@ export const csvPersonel: PersonelKaynagi = {
   async ekip(amirSicil) {
     return csvKisileriOku().filter((k) => k.amirSicil === amirSicil);
   },
+  tazele: onbellegiTemizle,
 };
 
 export function personelDosyaYolu(): string {

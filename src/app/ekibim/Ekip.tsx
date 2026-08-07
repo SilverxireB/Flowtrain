@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 import EgitimOyun, { type OyunSonucu } from "@/components/oyun/EgitimOyun";
-import { oturumBaslat, oturumTamamla, siciliAra, type OyunVerisi } from "@/app/kiosk/eylemler";
+import { oturumBaslat, oturumTamamla, type OyunVerisi } from "@/app/kiosk/eylemler";
 import { DURUM_ETIKET, acikMi, type AtamaDurumu } from "@/lib/kurallar";
 import { eslesir } from "@/lib/arama";
 
@@ -29,7 +29,7 @@ export default function Ekip({ satirlar }: { satirlar: Satir[] }) {
   const router = useRouter();
   const [sorgu, setSorgu] = useState("");
   const [yalnizAcik, setYalnizAcik] = useState(true);
-  const [veri, setVeri] = useState<(OyunVerisi & { kisiAdi: string; pinKurulacak: boolean }) | null>(null);
+  const [veri, setVeri] = useState<(OyunVerisi & { kisiAdi: string }) | null>(null);
   const [hata, setHata] = useState<string | null>(null);
   const kilit = useRef(false);
 
@@ -54,12 +54,11 @@ export default function Ekip({ satirlar }: { satirlar: Satir[] }) {
     kilit.current = true;
     setHata(null);
 
-    const durum = await siciliAra(sicil);
     const c = await oturumBaslat(sicil, egitimId);
     kilit.current = false;
 
     if (c.hata) return setHata(c.hata);
-    setVeri({ ...c.veri!, kisiAdi: ad, pinKurulacak: durum.durum?.pinKurulacak ?? false });
+    setVeri({ ...c.veri!, kisiAdi: ad });
   }
 
   if (veri) {
@@ -72,10 +71,9 @@ export default function Ekip({ satirlar }: { satirlar: Satir[] }) {
           oturumId={veri.oturumId}
           kisiAdi={veri.kisiAdi}
           pinKurulacak={veri.pinKurulacak}
-          onBitir={async (s: OyunSonucu) => {
-            const c = await oturumTamamla(veri.oturumId, s);
-            if (c.hata) return { hata: c.hata };
-          }}
+          iseGirisSorulacak={veri.iseGirisSorulacak}
+          sinavHazir
+          onBitir={async (s: OyunSonucu) => oturumTamamla(veri.oturumId, s)}
           onCik={() => {
             setVeri(null);
             router.refresh();
@@ -102,7 +100,7 @@ export default function Ekip({ satirlar }: { satirlar: Satir[] }) {
             type="checkbox"
             checked={yalnizAcik}
             onChange={(e) => setYalnizAcik(e.target.checked)}
-            className="h-5 w-5 accent-[#4f46e5]"
+            className="h-5 w-5 accent-accent"
           />
           Yalnız eksikler
         </label>
@@ -141,7 +139,7 @@ export default function Ekip({ satirlar }: { satirlar: Satir[] }) {
                         <Icon name="play" size={16} /> Başlat
                       </button>
                     ) : (
-                      <span className="chip shrink-0 text-xs text-iyi">
+                      <span className="chip shrink-0 text-xs text-iyi-dark">
                         <Icon name="check" size={14} /> Tamam
                       </span>
                     )}
@@ -157,8 +155,8 @@ export default function Ekip({ satirlar }: { satirlar: Satir[] }) {
 }
 
 const RENK: Record<AtamaDurumu, string> = {
-  tamam: "text-iyi",
-  suresiDoluyor: "text-orta",
+  tamam: "text-iyi-dark",
+  suresiDoluyor: "text-orta-dark",
   suresiDoldu: "text-brand",
   eksik: "text-muted",
   gecikti: "text-brand",

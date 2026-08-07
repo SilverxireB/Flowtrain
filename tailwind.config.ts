@@ -28,9 +28,13 @@ const config: Config = {
           dark: "#4338ca",
           soft: "#e0e7ff",
         },
-        // Skor/durum semantiği (Pulse ile aynı eşikler): iyi ≥70, orta ≥40.
-        iyi: "#16a34a",
-        orta: "#d97706",
+        /* Skor/durum semantiği (Pulse ile aynı eşikler): iyi ≥70, orta ≥40.
+           DEFAULT dolgular ve çubuklar için; `dark` METİN için — #16a34a beyaz
+           üstünde 3.30:1, #d97706 3.19:1 kalıyor ve WCAG AA'nın 4.5:1 eşiğini
+           geçmiyor. Fabrika aydınlatmasında ve kiosk'ta bir metreden bu tonlar
+           okunmuyordu. Koyu karşılıkları 5:1'in üstünde. */
+        iyi: { DEFAULT: "#16a34a", dark: "#15803d" },
+        orta: { DEFAULT: "#d97706", dark: "#b45309" },
         lacivert: "#001e64",
       },
       borderRadius: {

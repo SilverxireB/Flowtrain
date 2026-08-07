@@ -1,6 +1,7 @@
 import "server-only";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { db, kimlik, simdi } from "./db";
+import * as pinIslem from "./pin";
 import type { Egitim, Kural, Oturum, Sayfa, Soru } from "./tipler";
 import { ASGARI_SURE_VARSAYILAN, SINAV_VARSAYILAN } from "./tipler";
 
@@ -349,6 +350,18 @@ export function oturumBitir(
   })();
 }
 
+/**
+ * Oturumu geçme/kalma üretmeden kapatır.
+ * PIN kilidi gibi durumlarda çağrılır: kapanmayan oturum, aynı kimliğin
+ * sınırsız kez yeniden denenmesine izin verirdi.
+ */
+export function oturumIptal(id: string, sebep: string): void {
+  db()
+    .prepare("UPDATE oturum SET bitis=?, sonuc='iptal', senkron='gonderildi' WHERE id=? AND bitis IS NULL")
+    .run(simdi(), id);
+  izBirak("kiosk", `oturum iptal (${sebep}): ${id}`);
+}
+
 export function senkronIsaretle(id: string, durum: Oturum["senkron"]): void {
   db().prepare("UPDATE oturum SET senkron=? WHERE id=?").run(durum, id);
 }
@@ -360,62 +373,55 @@ export function bekleyenSenkronlar(): Oturum[] {
     .map((r) => oturumdan(r as Satir));
 }
 
-/* ── PIN (işçi imzası) ────────────────────────────────────────────────────── */
+/* ── PIN (işçi imzası) ─────────────────────────────────────────────────────
+   Mantık `pin.ts`te ve SINAVLI: bu dosya `server-only` taşıdığı için buradaki
+   kod sınav yazılamayan bir yerdi. Aşağısı yalnız veritabanını bağlar. */
 
+export { PIN_DENEME_SINIRI, PIN_KILIT_DK, type PinSonucu } from "./pin";
+
+/** Hesap şifreleri de aynı reçeteyle özetlenir (kişiye özel tuz + scrypt). */
 function ozetle(deger: string, tuz: string): string {
   return scryptSync(deger, tuz, 32).toString("hex");
 }
 
-/**
- * PIN'i düz metin TUTMA. Dört haneli bir sırrın kaba kuvvete dayanması zaten
- * mümkün değil — burada amaç sızıntıda listeyi olduğu gibi vermemek ve aynı
- * PIN'i kullanan iki kişinin özetinin eşleşmemesi (kişiye özel tuz).
- */
 export function pinKur(sicil: string, pin: string): void {
-  const tuz = randomBytes(16).toString("hex");
-  db()
-    .prepare("INSERT INTO pin (sicil,ozet,tuz,olusturma) VALUES (?,?,?,?) ON CONFLICT(sicil) DO UPDATE SET ozet=excluded.ozet, tuz=excluded.tuz")
-    .run(sicil, ozetle(pin, tuz), tuz, simdi());
+  pinIslem.pinKur(db(), sicil, pin, simdi());
 }
 
 export function pinVarMi(sicil: string): boolean {
-  return !!db().prepare("SELECT 1 FROM pin WHERE sicil=?").get(sicil);
+  return pinIslem.pinVarMi(db(), sicil);
 }
 
-export function pinDogrula(sicil: string, pin: string): boolean {
-  const r = db().prepare("SELECT ozet,tuz FROM pin WHERE sicil=?").get(sicil) as { ozet: string; tuz: string } | undefined;
-  if (!r) return false;
-  const a = Buffer.from(r.ozet, "hex");
-  const b = Buffer.from(ozetle(pin, r.tuz), "hex");
-  return a.length === b.length && timingSafeEqual(a, b);
+export function pinDogrula(sicil: string, pin: string): pinIslem.PinSonucu {
+  return pinIslem.pinDogrula(db(), sicil, pin, simdi());
 }
 
-/* ── hesap (kokpit kullanıcıları) ─────────────────────────────────────────── */
-
-export type Rol = "yonetici" | "hazirlayan" | "onaylayan" | "amir";
-
-export interface Hesap {
-  kullanici: string;
-  ad: string;
-  rol: Rol;
-  /** Amir hesabı bir personel siciliyle eşleşir — ekip listesi ondan çıkar. */
-  sicil?: string;
+export function pinSifirla(sicil: string): void {
+  pinIslem.pinSifirla(db(), sicil);
 }
 
-export function hesaplariListele(): Hesap[] {
-  return db().prepare("SELECT kullanici,ad,rol,sicil FROM hesap ORDER BY ad").all() as Hesap[];
+export function pinDurumlari(): { sicil: string; olusturma: string; kilitli: boolean }[] {
+  return pinIslem.pinDurumlari(db(), simdi());
 }
 
-export function hesapOlustur(h: Hesap & { sifre: string }): void {
+/* ── hesap (kokpit kullanıcıları) ───────────────────────────────────────── */
+
+export type { Rol, Hesap } from "./yetki";
+
+export function hesaplariListele(): import("./yetki").Hesap[] {
+  return db().prepare("SELECT kullanici,ad,rol,sicil FROM hesap ORDER BY ad").all() as import("./yetki").Hesap[];
+}
+
+export function hesapOlustur(h: import("./yetki").Hesap & { sifre: string }): void {
   const tuz = randomBytes(16).toString("hex");
   db()
     .prepare("INSERT INTO hesap (kullanici,ad,rol,ozet,tuz,sicil,olusturma) VALUES (?,?,?,?,?,?,?)")
     .run(h.kullanici, h.ad, h.rol, ozetle(h.sifre, tuz), tuz, h.sicil ?? null, simdi());
 }
 
-export function hesapDogrula(kullanici: string, sifre: string): Hesap | null {
+export function hesapDogrula(kullanici: string, sifre: string): import("./yetki").Hesap | null {
   const r = db().prepare("SELECT * FROM hesap WHERE kullanici=?").get(kullanici) as
-    | (Hesap & { ozet: string; tuz: string })
+    | (import("./yetki").Hesap & { ozet: string; tuz: string })
     | undefined;
   if (!r) return null;
   const a = Buffer.from(r.ozet, "hex");

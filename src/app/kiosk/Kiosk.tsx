@@ -88,9 +88,8 @@ export default function Kiosk() {
   }
 
   async function bitir(sonuc: OyunSonucu) {
-    if (!veri) return;
-    const c = await oturumTamamla(veri.oturumId, sonuc);
-    if (c.hata) return { hata: c.hata };
+    if (!veri) return { hata: "Oturum kayboldu." };
+    return oturumTamamla(veri.oturumId, sonuc);
   }
 
   if (ekran === "oyun" && veri && durum) {
@@ -101,7 +100,9 @@ export default function Kiosk() {
         sorular={veri.sorular}
         oturumId={veri.oturumId}
         kisiAdi={durum.kisi.ad}
-        pinKurulacak={durum.pinKurulacak}
+        pinKurulacak={veri.pinKurulacak}
+        iseGirisSorulacak={veri.iseGirisSorulacak}
+        sinavHazir
         onBitir={bitir}
         onCik={basaDon}
       />
@@ -128,9 +129,16 @@ export default function Kiosk() {
                 aria-label="Sicil numarası"
                 placeholder="Sicil no"
                 className="input-base text-center text-4xl font-bold tracking-widest"
-                // Odağı bırakma: kart okuyucu tuş vuruşlarını odaklı alana
-                // gönderir; odak kaçarsa okutma "çalışmıyor" görünür.
-                onBlur={() => setTimeout(() => girdi.current?.focus(), 50)}
+                /* Odağı geri çek — AMA yalnız odak sayfanın dışına kaçtığında.
+                   Kart okuyucu tuş vuruşlarını odaklı alana gönderir, odak
+                   kaçarsa okutma "çalışmıyor" görünür. Koşulsuz geri çekmek
+                   ise klavyeyle "Devam" düğmesine ulaşmayı İMKÂNSIZ kılıyordu
+                   (Tab'a basan kişi tek düğmeye hiç varamıyordu). */
+                onBlur={(e) => {
+                  const hedef = e.relatedTarget as HTMLElement | null;
+                  if (hedef) return;
+                  setTimeout(() => girdi.current?.focus(), 50);
+                }}
               />
               <button type="submit" disabled={mesgul || !sicil.trim()} className="kiosk-btn-primary mt-6">
                 {mesgul ? "Bakılıyor…" : "Devam"} <Icon name="chevronRight" size={24} />
@@ -158,7 +166,7 @@ export default function Kiosk() {
 
             {durum.bekleyenler.length === 0 ? (
               <div className="card p-8 text-center">
-                <span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-iyi/10 text-iyi">
+                <span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-iyi/10 text-iyi-dark">
                   <Icon name="check" size={40} />
                 </span>
                 <h2 className="mt-5 text-2xl font-extrabold">Bekleyen eğitiminiz yok</h2>
@@ -182,8 +190,11 @@ export default function Kiosk() {
                         {b.sonTarih ? ` · son tarih ${b.sonTarih}` : ""}
                       </span>
                     </span>
-                    <span className="btn-primary pointer-events-none shrink-0 text-base">
-                      Başla <Icon name="play" size={18} />
+                    {/* Kokpit sınıfı DEĞİL: satırın tamamı zaten 72px'lik
+                        dokunma hedefi; buradaki öğe yalnız görsel ipucudur ve
+                        düğme gibi görünüp küçük kalmamalı. */}
+                    <span className="flex shrink-0 items-center gap-2 text-lg font-bold text-accent">
+                      Başla <Icon name="play" size={22} />
                     </span>
                   </button>
                 ))}

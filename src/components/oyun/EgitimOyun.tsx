@@ -24,13 +24,15 @@ import type { Egitim, Sayfa, Soru } from "@/lib/tipler";
 
 type Asama = "icerik" | "sinav" | "imza" | "sonuc";
 
+/** Sınav sorusu — GERÇEK oturumda cevap anahtarı gelmez, provada gelir. */
+export type SoruGorunum = Omit<Soru, "dogru"> & { dogru?: number[] };
+
 export interface OyunSonucu {
-  puan: number;
-  gecti: boolean;
   sayfaSureleri: Record<string, number>;
-  sorulanSoruIdleri: string[];
-  yanlisSoruIdleri: string[];
+  /** soruId → işaretlenen şıklar. Puanı SUNUCU hesaplar. */
+  cevaplar: Record<string, number[]>;
   pin: string;
+  iseGiris?: string;
 }
 
 export default function EgitimOyun({
@@ -41,18 +43,24 @@ export default function EgitimOyun({
   prova = false,
   kisiAdi,
   pinKurulacak = false,
+  iseGirisSorulacak = false,
+  sinavHazir = false,
   onBitir,
   onCik,
 }: {
   egitim: Egitim;
   sayfalar: Sayfa[];
-  sorular: Soru[];
+  sorular: SoruGorunum[];
   oturumId: string;
   prova?: boolean;
   kisiAdi?: string;
   /** İlk kez giren kişi PIN'ini burada belirler. */
   pinKurulacak?: boolean;
-  onBitir?: (sonuc: OyunSonucu) => Promise<{ hata?: string } | void>;
+  /** İlk PIN'de işe giriş tarihi de sorulur (kimliği kaba biçimde doğrular). */
+  iseGirisSorulacak?: boolean;
+  /** `sorular` zaten sunucuda seçilip karıştırıldıysa istemci yeniden kurmaz. */
+  sinavHazir?: boolean;
+  onBitir?: (sonuc: OyunSonucu) => Promise<{ hata?: string; puan?: number; gecti?: boolean } | void>;
   onCik?: () => void;
 }) {
   const [asama, setAsama] = useState<Asama>("icerik");
@@ -64,13 +72,17 @@ export default function EgitimOyun({
   const [soruIndeks, setSoruIndeks] = useState(0);
   const [pin, setPin] = useState("");
   const [pin2, setPin2] = useState("");
+  const [iseGiris, setIseGiris] = useState("");
   const [hata, setHata] = useState<string | null>(null);
   const [sonuc, setSonuc] = useState<{ puan: number; gecti: boolean } | null>(null);
   const kilit = useRef(false);
 
-  const sinavSorulari = useMemo(
-    () => sinaviKur(sorular, egitim.soruSayisi, egitim.karisik, tohumla(oturumId)),
-    [sorular, egitim.soruSayisi, egitim.karisik, oturumId],
+  /* Gerçek oturumda sınav SUNUCUDA kurulur (tohum = oturum kimliği) ve buraya
+     hazır gelir. Provada havuzun tamamı geldiği için burada kurulur. */
+  const sinavSorulari = useMemo<SoruGorunum[]>(
+    () =>
+      sinavHazir ? sorular : sinaviKur(sorular as Soru[], egitim.soruSayisi, egitim.karisik, tohumla(oturumId)),
+    [sinavHazir, sorular, egitim.soruSayisi, egitim.karisik, oturumId],
   );
 
   const sayfa = sayfalar[indeks];
@@ -131,7 +143,9 @@ export default function EgitimOyun({
     if (secili.length === 0) return;
     if (soruIndeks < sinavSorulari.length - 1) setSoruIndeks((i) => i + 1);
     else if (prova) {
-      const p = puanla(sinavSorulari, cevaplar);
+      // Provada cevap anahtarı elimizde (hazırlayan zaten yetkili) — puanı
+      // burada hesaplamak sunucuya hiç dokunmadan sonucu göstermeyi sağlar.
+      const p = puanla(sinavSorulari as Soru[], cevaplar);
       setSonuc({ puan: p.puan, gecti: p.puan >= egitim.gecmeNotu });
       setAsama("sonuc");
     } else setAsama("imza");
@@ -145,21 +159,21 @@ export default function EgitimOyun({
 
     if (!/^\d{4}$/.test(pin)) return setHata("PIN 4 rakam olmalı.");
     if (pinKurulacak && pin !== pin2) return setHata("İki PIN aynı değil.");
+    if (iseGirisSorulacak && !iseGiris.trim()) return setHata("İşe giriş tarihinizi girin.");
 
     kilit.current = true;
-    const p = puanla(sinavSorulari, cevaplar);
+    // Puan BURADA hesaplanmaz: gerçek oturumda cevap anahtarı istemcide yok
+    // ve sonuç kurumun eğitim kaydına yazılıyor — sunucu karar verir.
     const cevap = await onBitir?.({
-      puan: p.puan,
-      gecti: p.puan >= egitim.gecmeNotu,
       sayfaSureleri: sureler,
-      sorulanSoruIdleri: sinavSorulari.map((s) => s.id),
-      yanlisSoruIdleri: p.yanlisSoruIdleri,
+      cevaplar,
       pin,
+      iseGiris: iseGirisSorulacak ? iseGiris : undefined,
     });
     kilit.current = false;
 
-    if (cevap && "hata" in cevap && cevap.hata) return setHata(cevap.hata);
-    setSonuc({ puan: p.puan, gecti: p.puan >= egitim.gecmeNotu });
+    if (!cevap || cevap.hata) return setHata(cevap?.hata ?? "Kayıt tamamlanamadı, tekrar deneyin.");
+    setSonuc({ puan: cevap.puan ?? 0, gecti: !!cevap.gecti });
     setAsama("sonuc");
   }
 
@@ -264,6 +278,25 @@ export default function EgitimOyun({
           <div className="mt-8 max-w-xs space-y-4">
             <PinAlani deger={pin} ayarla={setPin} etiket="PIN (4 rakam)" />
             {pinKurulacak ? <PinAlani deger={pin2} ayarla={setPin2} etiket="PIN tekrar" /> : null}
+            {iseGirisSorulacak ? (
+              <label className="block">
+                <span className="mb-2 block font-semibold">İşe giriş tarihiniz</span>
+                <input
+                  value={iseGiris}
+                  onChange={(e) => setIseGiris(e.target.value)}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="GG.AA.YYYY"
+                  className="input-base text-center text-xl font-semibold"
+                />
+                {/* Tek seferlik kimlik kontrolü: PIN'i ilk kez belirlerken,
+                    başkasının sicilini girip onun imzasını ele geçirmeyi
+                    zorlaştırır. Sonraki girişlerde sorulmaz. */}
+                <span className="mt-1 block text-sm text-muted">
+                  İlk PIN&apos;i belirlerken bir kez sorulur.
+                </span>
+              </label>
+            ) : null}
           </div>
 
           {hata ? (
@@ -282,14 +315,22 @@ export default function EgitimOyun({
         <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
           <span
             className={`grid h-24 w-24 place-items-center rounded-full ${
-              sonuc.gecti ? "bg-iyi/10 text-iyi" : "bg-brand-soft text-brand"
+              sonuc.gecti ? "bg-iyi/10 text-iyi-dark" : "bg-brand-soft text-brand"
             }`}
           >
             <Icon name={sonuc.gecti ? "check" : "close"} size={48} />
           </span>
-          <h2 className="mt-6 text-3xl font-extrabold">{sonuc.gecti ? "Tebrikler, geçtiniz" : "Geçemediniz"}</h2>
+          <h2 className="mt-6 text-3xl font-extrabold">
+            {sinavSorulari.length === 0 ? "Tamamlandı" : sonuc.gecti ? "Tebrikler, geçtiniz" : "Geçemediniz"}
+          </h2>
           <p className="mt-2 text-xl text-muted">
-            Puanınız <strong className="text-ink">{sonuc.puan}</strong> · geçme notu {egitim.gecmeNotu}
+            {sinavSorulari.length === 0 ? (
+              "Eğitimi izlediniz ve imzaladınız."
+            ) : (
+              <>
+                Puanınız <strong className="text-ink">{sonuc.puan}</strong> · geçme notu {egitim.gecmeNotu}
+              </>
+            )}
           </p>
           {!sonuc.gecti ? (
             <p className="mt-4 max-w-sm text-muted">
@@ -348,15 +389,25 @@ function PinAlani({ deger, ayarla, etiket }: { deger: string; ayarla: (v: string
  */
 function VideoBekci({ sayfaId, onBitti }: { sayfaId: string; onBitti: () => void }) {
   useEffect(() => {
-    const v = document.querySelector<HTMLVideoElement>("video");
+    // Sayfadaki İLK video değil, İÇERİK videosu: `querySelector("video")`
+    // bugün çalışıyordu çünkü tek video vardı; ikinci bir <video> eklendiğinde
+    // sessizce yanlış öğeyi izlemeye başlardı.
+    const v = document.querySelector<HTMLVideoElement>("video[data-icerik-videosu]");
     if (!v) return;
+
     let enUzak = 0;
     const izle = () => {
-      enUzak = Math.max(enUzak, v.currentTime);
+      // İlerleme YALNIZ doğal oynatmayla birikir: `currentTime`i olduğu gibi
+      // almak, kaydırıcıyı sürükleyen kişinin ilerlemeyi kendi eliyle
+      // yazmasına izin veriyordu.
+      if (!v.seeking && v.currentTime > enUzak && v.currentTime - enUzak < 1.5) enUzak = v.currentTime;
       if (v.duration && enUzak >= v.duration - 1.5) onBitti();
     };
     const atlamaEngeli = () => {
-      if (v.currentTime > enUzak + 1.5) v.currentTime = enUzak;
+      // İleriye doğru HİÇBİR atlamaya tolerans yok. Eskiden 1.5 sn pay vardı;
+      // kaydırıcıyı yavaş sürükleyen kişi her adımda payın altında kalıp
+      // videoyu hiç oynatmadan sonuna yürüyebiliyordu.
+      if (v.currentTime > enUzak + 0.4) v.currentTime = enUzak;
     };
     v.addEventListener("timeupdate", izle);
     v.addEventListener("seeking", atlamaEngeli);

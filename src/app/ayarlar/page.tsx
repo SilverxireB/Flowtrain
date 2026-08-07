@@ -3,6 +3,7 @@ import Baslik from "@/components/Baslik";
 import Icon from "@/components/Icon";
 import HesapYonetimi from "./HesapYonetimi";
 import Dugmeler from "./Dugmeler";
+import Pinler from "./Pinler";
 import { kapi } from "@/lib/kimlik";
 import * as depo from "@/lib/depo";
 import { VERI_KLASORU } from "@/lib/db";
@@ -33,7 +34,15 @@ export default async function Ayarlar() {
         <section>
           <h2 className="eyebrow mb-3">Kurulumun gerçeği</h2>
           <div className="card divide-y divide-line">
-            <Satir etiket="Veri klasörü (yedek yeri)" deger={VERI_KLASORU} mono />
+            <Satir
+              etiket="Veri klasörü (yedek yeri)"
+              deger={VERI_KLASORU}
+              mono
+              /* WAL: SQLite yazımları bir süre `-wal` dosyasında bekler.
+                 Sunucu çalışırken yalnız `.db` kopyalanırsa son kayıtlar
+                 yedekte OLMAZ ve bunu kimse fark etmez. */
+              not="Yedek alırken klasörün TAMAMINI kopyalayın (-wal ve -shm dosyaları dahil); en güvenlisi servisi kısa süre durdurmaktır."
+            />
             <Satir etiket="Personel kaynağı" deger={personelKaynagi().ad} />
             <Satir
               etiket="Personel dosyası"
@@ -85,6 +94,17 @@ export default async function Ayarlar() {
         </section>
 
         <section>
+          <h2 className="eyebrow mb-3">PIN kayıtları</h2>
+          <Pinler
+            kayitlar={depo.pinDurumlari()}
+            adlar={Object.fromEntries(kisiler.map((k) => [k.sicil, k.ad]))}
+          />
+          <p className="mt-3 text-xs text-muted">
+            PIN kişinin imzasıdır. {depo.PIN_DENEME_SINIRI} hatalı denemeden sonra {depo.PIN_KILIT_DK} dakika kilitlenir.
+          </p>
+        </section>
+
+        <section>
           <h2 className="eyebrow mb-3">Denetim izi</h2>
           <ul className="card divide-y divide-line text-sm">
             {depo.izleriGetir(40).map((i) => (
@@ -119,7 +139,7 @@ function Satir({
     <div className="px-4 py-3">
       <p className="text-sm font-semibold">{etiket}</p>
       <p className={`mt-0.5 break-all ${mono ? "font-mono text-xs" : "text-sm"} text-muted`}>{deger}</p>
-      {not ? <p className={`mt-1 text-xs ${uyari ? "font-semibold text-orta" : "text-muted"}`}>{not}</p> : null}
+      {not ? <p className={`mt-1 text-xs ${uyari ? "font-semibold text-orta-dark" : "text-muted"}`}>{not}</p> : null}
     </div>
   );
 }

@@ -18,6 +18,8 @@ export interface PersonelKaynagi {
   bul(sicil: string): Promise<Kisi | null>
   /** Bir amire bağlı kişiler — amir tabletinin ekip listesi buradan çıkar. */
   ekip(amirSicil: string): Promise<Kisi[]>
+  /** Varsa önbelleği düşürür ("kaynak değişti, yeniden oku"). */
+  tazele?(): void
 }
 
 export interface KayitHedefi {

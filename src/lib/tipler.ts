@@ -37,7 +37,8 @@ export const SORU_ETIKET: Record<SoruTipi, string> = {
 
 export type EgitimDurumu = 'taslak' | 'yayin'
 
-export type Sonuc = 'gecti' | 'kaldi'
+/** `iptal`: yarıda kesilmiş oturum (ör. PIN kilidi) — geçme/kalma sayılmaz. */
+export type Sonuc = 'gecti' | 'kaldi' | 'iptal'
 
 /** Sınav varsayılanları — hazırlayan hiçbirine dokunmadan yayınlayabilmeli. */
 export const SINAV_VARSAYILAN = {

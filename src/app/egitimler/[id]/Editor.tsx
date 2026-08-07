@@ -228,7 +228,7 @@ export default function Editor({
           <h2 className="eyebrow mb-3">Sorular · {sorular.length} soru havuzda</h2>
 
           {sorular.length > 0 && sorular.length < egitim.soruSayisi ? (
-            <p className="mb-3 rounded-xl border border-orta/30 bg-orta/5 px-4 py-3 text-sm font-semibold text-orta">
+            <p className="mb-3 rounded-xl border border-orta/30 bg-orta/5 px-4 py-3 text-sm font-semibold text-orta-dark">
               Havuzda {sorular.length} soru var, sınavda {egitim.soruSayisi} soru sorulacak. Havuz sınavdan küçükse
               herkese aynı sorular gelir — karıştırmanın anlamı kalmaz.
             </p>
@@ -298,7 +298,7 @@ export default function Editor({
                   type="checkbox"
                   defaultChecked={egitim.karisik}
                   onChange={(e) => calistir(() => egitimGuncelleEylem(egitim.id, { karisik: e.target.checked }))}
-                  className="h-5 w-5 accent-[#4f46e5]"
+                  className="h-5 w-5 accent-accent"
                 />
                 <span className="text-sm">
                   <strong>Soruları karıştır.</strong>{" "}

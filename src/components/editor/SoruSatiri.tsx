@@ -65,7 +65,7 @@ export default function SoruSatiri({
         </span>
         <span className="chip text-xs">{SORU_ETIKET[soru.tip]}</span>
         {zor ? (
-          <span className="chip border-orta/40 bg-orta/10 text-xs text-orta" title="Bu soruyu çoğunluk yanlış yapıyor">
+          <span className="chip border-orta/40 bg-orta/10 text-xs text-orta-dark" title="Bu soruyu çoğunluk yanlış yapıyor">
             <Icon name="warning" size={14} /> Anlatım yetersiz olabilir
           </span>
         ) : null}
@@ -120,8 +120,8 @@ export default function SoruSatiri({
       </ul>
 
       {!sabitSecenek ? (
-        <button onClick={secenekEkle} className="mt-3 text-sm font-semibold text-accent hover:underline">
-          + Şık ekle
+        <button onClick={secenekEkle} className="btn-ghost mt-3 text-sm">
+          <Icon name="plus" size={16} /> Şık ekle
         </button>
       ) : null}
     </div>

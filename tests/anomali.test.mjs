@@ -13,14 +13,36 @@ const sayfalar = [{ asgariSure: 8 }, { asgariSure: 12 }, { asgariSure: 10 }, { a
 esit(beklenenSure(sayfalar), 30, "beklenen süre sayfaların asgari sürelerinin toplamı");
 esit(beklenenSure([]), 0, "sayfasız eğitimin beklentisi yok");
 
+/** Süre artık SUNUCU damgalarından ölçülüyor; damga verilmezse sayfa
+    sürelerine düşer (eski kayıtlar için geri uyumluluk). */
 const otr = (sureler, gozeten = "amir1", bitis = "2026-08-06T10:00:00Z") => ({
   sayfaSureleri: sureler,
   gozeten,
+  cihaz: "amir-tableti",
   bitis,
 });
 
-esit(gecenSure(otr({ a: 10, b: 20 })), 30, "geçen süre toplanır");
+/** Sunucu damgalı oturum: sn cinsinden istenen süreyi üretir. */
+const damgali = (saniye, gozeten = "amir1", cihaz = "amir-tableti") => ({
+  sayfaSureleri: { a: 9999 },
+  // `null` = gözeten yok. `undefined` geçmek varsayılan parametreyi devreye
+  // sokup sınavı sessizce geçersiz kılıyordu (bu tuzağa ikinci düşüş).
+  gozeten: gozeten === null ? undefined : gozeten,
+  cihaz,
+  baslangic: "2026-08-06T10:00:00.000Z",
+  bitis: new Date(new Date("2026-08-06T10:00:00.000Z").getTime() + saniye * 1000).toISOString(),
+});
+
+esit(gecenSure(otr({ a: 10, b: 20 })), 30, "damga yoksa sayfa süreleri toplanır");
 esit(gecenSure({ sayfaSureleri: {} }), 0, "boş oturumun süresi 0");
+
+/* SUNUCU DAMGASI KAZANIR: sahteciliği ölçen sayıyı, sahteciliği yapan tarafın
+   göndermesi ürünün tek telafi edici kontrolünü işe yaramaz kılıyordu. */
+esit(gecenSure(damgali(120)), 120, "süre baslangic/bitis damgalarından ölçülür");
+kontrol(
+  gecenSure(damgali(120)) !== 9999,
+  "istemciden gelen sayfa süreleri damgayı EZEMEZ",
+);
 
 kontrol(hizliMi(otr({ a: 5, b: 5 }), 30), "beklenenin yarısından azı hızlı");
 kontrol(!hizliMi(otr({ a: 15, b: 15 }), 30), "beklenen kadar süre hızlı değil");
@@ -30,8 +52,8 @@ kontrol(!hizliMi(otr({ a: 1 }), 0), "beklenti yoksa hiçbir şey hızlı sayılm
 kontrol(!hizliMi(otr({ a: 15 }), 30), "tam yarı sınırı hızlı sayılmaz");
 
 // ── gözeten özeti ───────────────────────────────────────────────────────────
-const hizliOturumlar = Array.from({ length: 6 }, () => otr({ a: 2, b: 3 }, "amir-supheli"));
-const durustOturumlar = Array.from({ length: 6 }, () => otr({ a: 15, b: 20 }, "amir-durust"));
+const hizliOturumlar = Array.from({ length: 6 }, () => damgali(5, "amir-supheli"));
+const durustOturumlar = Array.from({ length: 6 }, () => damgali(35, "amir-durust"));
 const ozet = gozetenOzetleri([...hizliOturumlar, ...durustOturumlar], 30);
 
 esit(ozet.length, 2, "iki gözeten özetlenir");
@@ -40,18 +62,20 @@ kontrol(!ozet.find((o) => o.gozeten === "amir-durust").supheli, "normal süre ha
 esit(ozet.find((o) => o.gozeten === "amir-durust").ortalamaSure, 35, "ortalama süre hesaplanır");
 
 // ASGARİ ADET: tek/iki hızlı oturum desen değildir. İnsan hızlı okumuş olabilir.
-const azVeri = gozetenOzetleri([otr({ a: 1 }, "amir-az"), otr({ a: 1 }, "amir-az")], 30);
+const azVeri = gozetenOzetleri([damgali(1, "amir-az"), damgali(1, "amir-az")], 30);
 kontrol(!azVeri[0].supheli, "3'ten az oturumda kimse şüpheli işaretlenmez");
 
-// Gözetensiz (kiosk) oturumlar bu tabloya HİÇ girmez — kiosk'ta gözeten yok,
-// olmayan bir kişiyi suçlayamayız. (Nesne elle kuruluyor: `otr`un varsayılan
-// parametreleri `undefined` geçince devreye girip sınavı geçersiz kılıyordu.)
-esit(
-  gozetenOzetleri([{ sayfaSureleri: { a: 1 }, bitis: "2026-08-06T10:00:00Z" }], 30).length,
-  0,
-  "gözetensiz oturum özete girmez",
-);
-// Bitmemiş oturum da girmez: yarıda bırakılan bir oturum "hızlı" değildir.
+/* GÖZETENSİZ (KİOSK) OTURUMLAR DA ÖLÇÜLÜR.
+   Eskiden atlanıyorlardı — yani sahteciliğin EN KOLAY yolu (kiosk'ta
+   başkasının sicilini girmek) panoda hiç görünmüyordu: tek telafi edici
+   kontrol, korunması gereken deliği kapsamıyordu. */
+const kiosklar = Array.from({ length: 4 }, () => damgali(3, null, "kiosk"));
+const kioskOzet = gozetenOzetleri(kiosklar, 30);
+esit(kioskOzet.length, 1, "gözetensiz oturumlar tek başlık altında toplanır");
+kontrol(kioskOzet[0].gozeten.includes("gözetimsiz"), "başlık gözetimsiz olduğunu söyler");
+kontrol(kioskOzet[0].supheli, "kiosk'taki hızlı desen de işaretlenir");
+
+// Bitmemiş oturum girmez: yarıda bırakılan bir oturum "hızlı" değildir.
 esit(gozetenOzetleri([{ sayfaSureleri: { a: 1 }, gozeten: "amir1" }], 30).length, 0, "bitmemiş oturum özete girmez");
 
 esit(

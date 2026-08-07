@@ -1,10 +1,12 @@
 import Baslik from "@/components/Baslik";
 import Icon from "@/components/Icon";
+import Disari from "./Disari";
 import { kapi } from "@/lib/kimlik";
 import * as depo from "@/lib/depo";
 import { tumAtamalar } from "@/lib/atamaServis";
 import { acikMi, DURUM_ETIKET, type AtamaDurumu } from "@/lib/kurallar";
 import { anomaliMetni, beklenenSure, gozetenOzetleri } from "@/lib/anomali";
+import { bugun } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +49,29 @@ export default async function Pano() {
 
   const bekleyenSenkron = depo.bekleyenSenkronlar().length;
 
+  /* PDF özeti sunucuda hazırlanır: istemciye 400 satırlık ham liste yerine
+     yalnız rapora girecek olan gider. */
+  const pdfOzeti = {
+    toplam,
+    tamam,
+    oran,
+    durumlar: (Object.keys(DURUM_ETIKET) as AtamaDurumu[])
+      .filter((d) => durumSayisi[d])
+      .map((d) => ({ etiket: DURUM_ETIKET[d], sayi: durumSayisi[d] })),
+    bolumler: [...bolumler.entries()]
+      .sort((a, b) => b[1].acik - a[1].acik)
+      .map(([ad, b]) => ({ ad, toplam: b.toplam, acik: b.acik })),
+    gecikenler: satirlar
+      .filter((s) => s.durum === "gecikti" || s.durum === "suresiDoldu" || s.durum === "kaldi")
+      .slice(0, 200)
+      .map((s) => ({
+        ad: s.kisi?.ad ?? "",
+        sicil: s.sicil,
+        egitim: s.egitim.ad,
+        sonTarih: s.sonTarih ?? s.gecerlilikBitis ?? "",
+      })),
+  };
+
   return (
     <main className="bg-wash min-h-screen">
       <Baslik
@@ -55,11 +80,7 @@ export default async function Pano() {
         baslik="Pano"
         not={`${toplam} atama`}
         rehberBolum="takip"
-        sag={
-          <a href="/api/disa-aktar" className="btn-ghost text-sm" download>
-            <Icon name="download" size={16} /> CSV
-          </a>
-        }
+        sag={<Disari ozet={pdfOzeti} tarih={bugun()} />}
       />
 
       <div className="mx-auto max-w-4xl space-y-8 px-5 py-8">
@@ -141,7 +162,7 @@ export default async function Pano() {
                   <p className="font-semibold">
                     {a.gozeten} · <span className="font-normal">{a.egitimAdi}</span>
                   </p>
-                  <p className="mt-1 text-sm text-orta">{anomaliMetni(a)}</p>
+                  <p className="mt-1 text-sm text-orta-dark">{anomaliMetni(a)}</p>
                 </li>
               ))}
             </ul>

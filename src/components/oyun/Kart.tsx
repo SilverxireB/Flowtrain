@@ -77,6 +77,7 @@ export default function Kart({ sayfa }: { sayfa: Sayfa }) {
         {sayfa.videoId ? (
           <video
             key={sayfa.videoId}
+            data-icerik-videosu
             className="mt-6 w-full rounded-2xl bg-black"
             src={`/api/medya/${sayfa.videoId}`}
             controls
@@ -131,7 +132,7 @@ function Sutun({
   const iyi = renk === "iyi";
   return (
     <div className={`rounded-2xl border-2 p-5 ${iyi ? "border-iyi/40 bg-iyi/5" : "border-brand/40 bg-brand-soft"}`}>
-      <p className={`flex items-center gap-2 font-bold ${iyi ? "text-iyi" : "text-brand-dark"}`}>
+      <p className={`flex items-center gap-2 font-bold ${iyi ? "text-iyi-dark" : "text-brand-dark"}`}>
         <Icon name={ikon} size={20} /> {baslik}
       </p>
       <p className="mt-3 whitespace-pre-line text-lg leading-relaxed">{metin ?? "—"}</p>

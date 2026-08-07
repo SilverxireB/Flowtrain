@@ -147,13 +147,17 @@ export default function SayfaSatiri({
               min={0}
               defaultValue={sayfa.asgariSure}
               onBlur={(e) => Number(e.target.value) !== sayfa.asgariSure && onGuncelle({ asgariSure: Number(e.target.value) })}
-              className="w-16 rounded-lg border border-line px-2 py-1 text-center"
+              className="input-base w-20 px-2 py-1 text-center"
             />
             sn ekranda kalsın
           </label>
         </div>
 
-        {hata ? <p className="text-sm font-semibold text-brand">{hata}</p> : null}
+        {hata ? (
+          <p role="alert" className="rounded-xl border border-brand/30 bg-brand-soft px-4 py-2.5 text-sm font-semibold text-brand-dark">
+            {hata}
+          </p>
+        ) : null}
       </div>
     </div>
   );

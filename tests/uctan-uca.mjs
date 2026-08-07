@@ -127,7 +127,7 @@ try {
   /* Asgari süreyi kısalt — sınav varsayılan 8 sn'yi beklemesin.
      İLK sayfa bilerek 4 sn: 1 sn olsaydı sayfa yüklenene kadar süre çoktan
      dolar ve "kilitli mi" ölçümü hiçbir şey kanıtlamazdı. */
-  const sureAlanlari = await s.locator('input[type="number"][class*="w-16"]').all();
+  const sureAlanlari = await s.locator('input[type="number"][class*="w-20"]').all();
   for (let i = 0; i < sureAlanlari.length; i++) {
     await sureAlanlari[i].fill(i === 0 ? "4" : "1");
     await sureAlanlari[i].blur();
@@ -146,7 +146,6 @@ try {
   /* Sınavdaki soru sayısını havuzla eşitle (varsayılan 5, havuzda 1 var). */
   await s.click('button[aria-expanded]');
   await s.waitForTimeout(500);
-  const soruSayisi = s.locator('input[type="number"]').filter({ hasNot: s.locator("[class*=w-16]") });
   await s.getByLabel("Sınavdaki soru sayısı").fill("1");
   await s.getByLabel("Sınavdaki soru sayısı").blur();
   await s.waitForTimeout(800);
@@ -237,10 +236,66 @@ try {
   await k.waitForTimeout(800);
   kontrol(await k.getByText("İki PIN aynı değil.").isVisible(), "uyuşmayan PIN reddedilir");
 
+  /* İLK PIN'DE İŞE GİRİŞ TARİHİ: başkasının sicilini girip onun imzasını
+     belirlemeyi zorlaştıran tek seferlik kontrol. */
   await pinAlanlari.nth(1).fill("1234");
+  kontrol(await k.getByText("İşe giriş tarihiniz").isVisible(), "ilk PIN'de işe giriş tarihi sorulur");
+  await pinAlanlari.nth(2).fill("01.01.2000");
+  await k.click('button:has-text("Onayla ve bitir")');
+  await k.waitForTimeout(1500);
+  kontrol(await k.getByText(/İşe giriş tarihi eşleşmedi/).isVisible(), "yanlış işe giriş tarihi reddedilir");
+
+  // Personel dosyasında 2026-08-01 yazıyor; kullanıcı GG.AA.YYYY giriyor —
+  // biçim farkı yüzünden kimse dışarıda kalmamalı.
+  await pinAlanlari.nth(2).fill("01.08.2026");
   await k.click('button:has-text("Onayla ve bitir")');
   await k.waitForTimeout(3000);
   kontrol(await k.getByText("Tebrikler, geçtiniz").isVisible(), "sınav geçildi ve sonuç gösterildi");
+
+  /* 9b. VAR OLAN PIN: yanlış girilirse kayıt kapanmamalı. */
+  await s.goto(`${ADRES}/egitimler`, { waitUntil: "networkidle" });
+  await s.fill('input[name="ad"]', "İkinci Eğitim");
+  await s.click('button:has-text("Oluştur")');
+  await s.waitForURL(/\/egitimler\/egt_/, { timeout: 15000 });
+  await s.click('button:has-text("Kural kartı")');
+  await s.waitForTimeout(900);
+  const ikBaslik = s.locator('input[placeholder="Başlık"]').first();
+  await ikBaslik.fill("Kısa kart");
+  await ikBaslik.blur();
+  await s.waitForTimeout(700);
+  const ikSure = s.locator('input[type="number"][class*="w-20"]').first();
+  await ikSure.fill("1");
+  await ikSure.blur();
+  await s.waitForTimeout(700);
+  await s.click('button:has-text("Yayınla")');
+  await s.waitForTimeout(2000);
+
+  await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
+  await s.selectOption('select[name="egitimId"]', { label: "İkinci Eğitim" });
+  await s.getByRole("button", { name: "Kaynak", exact: true }).click();
+  await s.click('button:has-text("Kuralı ekle")');
+  await s.waitForTimeout(2000);
+
+  await k.click('button:has-text("Bitir")');
+  await k.waitForTimeout(500);
+  await k.fill('input[aria-label="Sicil numarası"]', "1001");
+  await k.click('button:has-text("Devam")');
+  await k.waitForTimeout(1500);
+  await k.click('button:has-text("Başla")');
+  await k.waitForTimeout(3500);
+  await k.locator("button.kiosk-btn-primary").first().click();
+  await k.waitForTimeout(1200);
+  kontrol(!(await k.getByText("Kendinize bir PIN belirleyin").isVisible()), "PIN'i olan kişiye yeniden kurdurulmaz");
+  await k.locator('input[inputmode="numeric"]').first().fill("0000");
+  await k.click('button:has-text("Onayla ve bitir")');
+  await k.waitForTimeout(1500);
+  kontrol(await k.getByText("PIN hatalı.").isVisible(), "yanlış PIN reddedilir, oturum kapanmaz");
+  await k.locator('input[inputmode="numeric"]').first().fill("1234");
+  await k.click('button:has-text("Onayla ve bitir")');
+  await k.waitForTimeout(3000);
+  // Sınavsız eğitim = "okudum, onaylıyorum": içeriği görüp imzalayan kişi
+  // tamamlamış sayılır, yoksa tamamlanması imkânsız bir eğitim olurdu.
+  kontrol(await k.getByText("Tamamlandı").isVisible(), "sınavsız eğitim imzayla tamamlanır");
 
   /* 10. Kayıt gerçekten düştü mü — dosya + pano */
   const kayitDosyasi = join(veri, "kayitlar.csv");
@@ -279,10 +334,43 @@ try {
   kontrol(y.url().includes("/giris"), "oturumsuz kullanıcı kokpit sayfasından girişe atılır");
   kontrol(y.url().includes("next=%2Fpano"), "giriş kapısı hedefi taşır (next=/pano)");
 
+  /* 13b. ROL KAPISI: hazırlayan amir yüzeyine giremez. */
+  await s.goto(`${ADRES}/ayarlar`, { waitUntil: "networkidle" });
+  await s.fill('input[name="ad"]', "Hazırlayan Kişi");
+  await s.fill('input[name="kullanici"]', "hazir");
+  await s.fill('input[name="sifre"]', "sifre123");
+  await s.selectOption('select[name="rol"]', "hazirlayan");
+  await s.click('button:has-text("Hesap ekle")');
+  await s.waitForTimeout(2000);
+  kontrol(await s.getByText("Hazırlayan Kişi").isVisible(), "yeni hesap açıldı");
+
+  const hazirBaglam = await tarayici.newContext();
+  const hz = await hazirBaglam.newPage();
+  await hz.goto(`${ADRES}/giris`, { waitUntil: "networkidle" });
+  await hz.fill('input[name="kullanici"]', "hazir");
+  await hz.fill('input[name="sifre"]', "sifre123");
+  await hz.click('button[type="submit"]');
+  await hz.waitForURL(`${ADRES}/`, { timeout: 15000 });
+  kontrol(!(await hz.getByText("Ekibim").isVisible()), "hazırlayan hub'da amir kartını görmez");
+  await hz.goto(`${ADRES}/ekibim`, { waitUntil: "networkidle" });
+  kontrol(hz.url().includes("yetki=yok"), "hazırlayan amir sayfasından geri çevrilir");
+  await hz.goto(`${ADRES}/ayarlar`, { waitUntil: "networkidle" });
+  kontrol(hz.url().includes("yetki=yok"), "hazırlayan yönetici sayfasından geri çevrilir");
+
+  /* 13c. Silinen hesap ANINDA yetkisini kaybeder (çerez 12 saat geçerli olsa da). */
+  await s.goto(`${ADRES}/ayarlar`, { waitUntil: "networkidle" });
+  await s.locator('button[aria-label="Hesabı sil"]').last().click();
+  await s.waitForTimeout(400);
+  await s.getByRole("button", { name: "Devam" }).click();
+  await s.waitForTimeout(2000);
+  await hz.goto(`${ADRES}/egitimler`, { waitUntil: "networkidle" });
+  kontrol(hz.url().includes("/giris"), "silinen hesap anında girişe atılır (rol çerezden okunmuyor)");
+
   /* 14. Ayarlar — kurulumun gerçeği */
   await s.goto(`${ADRES}/ayarlar`, { waitUntil: "networkidle" });
   kontrol(await s.getByText("4 kişi").first().isVisible(), "ayarlarda personel dosyası durumu görünüyor");
   kontrol(await s.getByText(/%75/).isVisible(), "amir sütunu doluluk oranı hesaplanıyor (4 kişinin 3'ünde amir var)");
+  kontrol(await s.getByText("Ali Yılmaz").isVisible(), "PIN kayıtları listesinde kişi adıyla görünüyor");
 
   await tarayici.close();
   bitir();
