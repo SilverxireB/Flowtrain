@@ -15,9 +15,21 @@ import { spawn } from "node:child_process";
 import { mkdtempSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { chromium } from "playwright";
+/* Playwright ürünün BAĞIMLILIĞI DEĞİL: paketin kurulumu yüzlerce megabayt
+   tarayıcı indiriyor ve uygulamayı çalıştırmak için gerekmiyor. Sınavı koşmak
+   isteyen ayrıca kurar. */
+let chromium;
+try {
+  ({ chromium } = await import("playwright"));
+} catch {
+  console.error("Bu sınav Playwright ister:  npm install --no-save playwright");
+  process.exit(1);
+}
 
-const KROM = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+/* Bu ortamda Chromium hazır kurulu; başka makinede Playwright kendi
+   indirdiğini kullansın diye yol YOKSA boş geçilir. */
+const KROM_YOLU = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+const KROM = existsSync(KROM_YOLU) ? KROM_YOLU : undefined;
 const PORT = 3111;
 const ADRES = `http://127.0.0.1:${PORT}`;
 
@@ -73,7 +85,7 @@ function bitir(kod) {
 /* ── akış ─────────────────────────────────────────────────────────────────── */
 try {
   await sunucuyuBekle();
-  const tarayici = await chromium.launch({ executablePath: KROM });
+  const tarayici = await chromium.launch(KROM ? { executablePath: KROM } : {});
   const kokpit = await tarayici.newContext({ viewport: { width: 1280, height: 900 } });
   const s = await kokpit.newPage();
   s.on("pageerror", (e) => console.log(`  ⚠ sayfa hatası: ${e.message.slice(0, 120)}`));
