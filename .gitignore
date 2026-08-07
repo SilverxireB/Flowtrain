@@ -5,9 +5,13 @@ build/
 *.tsbuildinfo
 next-env.d.ts
 
-# Kurulumun kendi verisi — repoya asla girmez (yedek = bu klasör)
-data/
-veri/
+# GEÇİCİ: dummy veriyle çalışıyoruz, veri repoya giriyor ki makineler arası taşınsın.
+# CANLIYA ALIRKEN aşağıdaki iki satırın başındaki # kaldırılacak — gerçek personel
+# verisi repoya ASLA girmemeli.
+# data/
+# veri/
+data/flowtrain.db-shm
+data/flowtrain.db-wal
 
 .env
 .env.local

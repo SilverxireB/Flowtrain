@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@types/better-sqlite3": "^9.6.0",
-    "better-sqlite3": "^13.0.3",
+    "better-sqlite3": "^12.11.1",
     "jspdf": "^4.2.1",
     "next": "14.2.15",
     "pdfjs-dist": "^6.2.108",
