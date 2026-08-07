@@ -9,10 +9,12 @@ import type { Rol } from "@/lib/depo";
 
 export const dynamic = "force-dynamic";
 
-const YUZEYLER: { yol: string; ad: string; not: string; ikon: IconName; enAz: Rol }[] = [
+/** `enAz: null` = giriş yeter (ziyaretçi masası her rolde açılır). */
+const YUZEYLER: { yol: string; ad: string; not: string; ikon: IconName; enAz: Rol | null }[] = [
   { yol: "/egitimler", ad: "Eğitimler", not: "Hazırla, sınavını kur, yayınla", ikon: "book", enAz: "hazirlayan" },
   { yol: "/atama", ad: "Atama kuralları", not: "Kim, ne zamana kadar", ikon: "target", enAz: "hazirlayan" },
   { yol: "/ekibim", ad: "Ekibim", not: "Eksikleri gör, yanında tamamlat", ikon: "users", enAz: "amir" },
+  { yol: "/ziyaretci", ad: "Ziyaretçiler", not: "Kaydet, bilgilendir, içeri al", ikon: "userPlus", enAz: null },
   { yol: "/pano", ad: "Pano", not: "Tamamlama, gecikenler, anomali", ikon: "chart", enAz: "hazirlayan" },
   { yol: "/ayarlar", ad: "Ayarlar", not: "Hesaplar, adaptörler, denetim izi", ikon: "settings", enAz: "yonetici" },
 ];
@@ -22,11 +24,11 @@ export default function Hub({ searchParams }: { searchParams: { yetki?: string }
   const hesap = aktifHesap();
   if (!hesap) redirect("/giris");
 
-  const acik = YUZEYLER.filter((y) => yetkili(hesap, y.enAz));
+  const acik = YUZEYLER.filter((y) => y.enAz === null || yetkili(hesap, y.enAz));
 
   return (
     <main className="bg-wash min-h-screen">
-      <div className="mx-auto max-w-3xl px-5 py-10 sm:py-14">
+      <div className="sayfa-kap py-10 sm:py-14">
         <div className="flex items-start justify-between gap-4">
           <div>
             <Logo size="lg" />
@@ -53,7 +55,9 @@ export default function Hub({ searchParams }: { searchParams: { yetki?: string }
           </p>
         ) : null}
 
-        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+        {/* Geniş ekranda üç kolon: iki kolonda kartlar gereksiz uzuyor ve
+            sağda kocaman boşluk kalıyordu. */}
+        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {acik.map((y) => (
             <Link key={y.yol} href={y.yol} className="card flex items-start gap-3 p-5 transition hover:border-accent">
               <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">

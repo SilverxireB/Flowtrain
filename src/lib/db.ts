@@ -135,6 +135,55 @@ CREATE TABLE IF NOT EXISTS ayar (
   anahtar TEXT PRIMARY KEY,
   deger TEXT NOT NULL
 );
+
+/* ── ZİYARETÇİ DEFTERİ ─────────────────────────────────────────────────────
+   Ziyaretçi personel DEĞİLDİR: sicili, amiri, PIN'i, atama kuralı yoktur ve
+   panoya düşmez. Bu yüzden oturum tablosuna karışmaz, kendi defterinde
+   yaşar — yoksa fabrikanın tamamlanma oranı her ay yüzlerce misafirle
+   sulanırdı.
+
+   DİKKAT: burası bir şablon dize; yorumlarda ters tırnak KULLANILMAZ, dizeyi
+   kapatır ve dosya derlenmez. */
+
+/* Kayıt ekranındaki sorular. Şık → eğitim eşlemesi KODDA DEĞİL BURADA:
+   her fabrika kendi sorusunu yazsın, kurulum için yazılımcı gerekmesin. */
+CREATE TABLE IF NOT EXISTS ziyaretciSoru (
+  id TEXT PRIMARY KEY,
+  sira INTEGER NOT NULL,
+  metin TEXT NOT NULL,
+  tip TEXT NOT NULL DEFAULT 'evetHayir',
+  secenekler TEXT NOT NULL DEFAULT '["Evet","Hayır"]',
+  eslesme TEXT NOT NULL DEFAULT '{}',
+  aktif INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS ziyaretci (
+  id TEXT PRIMARY KEY,
+  ad TEXT NOT NULL,
+  firma TEXT,
+  ziyaretEttigi TEXT,
+  cevaplar TEXT NOT NULL DEFAULT '{}',
+  egitimIdleri TEXT NOT NULL DEFAULT '[]',
+  kayitZamani TEXT NOT NULL,
+  tamamlanma TEXT,
+  kaydeden TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_ziyaretci_zaman ON ziyaretci(kayitZamani);
+
+/* egitimId sütununda KASITLI OLARAK yabancı anahtar yok: eğitim sonradan
+   silinse bile "bu kişiye şu gün şu bilgilendirme verildi" kaydı ayakta
+   kalmalı. Denetimde işe yarayan şey kaydın kendisi, bağlantısı değil. */
+CREATE TABLE IF NOT EXISTS ziyaretciOturum (
+  id TEXT PRIMARY KEY,
+  ziyaretciId TEXT NOT NULL REFERENCES ziyaretci(id) ON DELETE CASCADE,
+  egitimId TEXT NOT NULL,
+  egitimAdi TEXT NOT NULL DEFAULT '',
+  egitimSurum INTEGER NOT NULL,
+  baslangic TEXT NOT NULL,
+  bitis TEXT,
+  sayfaSureleri TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS ix_ziyaretciOturum_z ON ziyaretciOturum(ziyaretciId);
 `;
 
 export function db(): Database.Database {

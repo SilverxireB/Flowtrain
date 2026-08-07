@@ -45,6 +45,9 @@ export default function EgitimOyun({
   pinKurulacak = false,
   iseGirisSorulacak = false,
   sinavHazir = false,
+  imzaKipi = "pin",
+  bitirEtiketi,
+  cikEtiketi,
   onBitir,
   onCik,
 }: {
@@ -54,6 +57,20 @@ export default function EgitimOyun({
   oturumId: string;
   prova?: boolean;
   kisiAdi?: string;
+  /**
+   * İMZA KİPİ — üçüncü kip, ayrı bileşen değil.
+   *
+   * `pin`: çalışan. PIN imza yerine geçer, kayıt kurumun eğitim dosyasına gider.
+   * `onay`: ziyaretçi. PIN'i yok, bir daha gelmeyecek; imza yerine adının
+   * yazdığı bir onay ekranı geçer. Bunun için ayrı bir oynatıcı yazsaydık iki
+   * oynatıcı zamanla ayrışır ve ziyaretçi, hazırlayanın gördüğünden başka bir
+   * şey izlerdi — bileşenin en başındaki "tek bileşen, iki kip" kuralı bu.
+   */
+  imzaKipi?: "pin" | "onay";
+  /** Onay düğmesinin yazısı. */
+  bitirEtiketi?: string;
+  /** Sonuç ekranındaki çıkış düğmesinin yazısı (ziyaretçide "sıradaki"). */
+  cikEtiketi?: string;
   /** İlk kez giren kişi PIN'ini burada belirler. */
   pinKurulacak?: boolean;
   /** İlk PIN'de işe giriş tarihi de sorulur (kimliği kaba biçimde doğrular). */
@@ -157,9 +174,12 @@ export default function EgitimOyun({
     if (kilit.current) return;
     setHata(null);
 
-    if (!/^\d{4}$/.test(pin)) return setHata("PIN 4 rakam olmalı.");
-    if (pinKurulacak && pin !== pin2) return setHata("İki PIN aynı değil.");
-    if (iseGirisSorulacak && !iseGiris.trim()) return setHata("İşe giriş tarihinizi girin.");
+    // Onay kipinde PIN alanı hiç çizilmez; doğrulamaları da atlanır.
+    if (imzaKipi === "pin") {
+      if (!/^\d{4}$/.test(pin)) return setHata("PIN 4 rakam olmalı.");
+      if (pinKurulacak && pin !== pin2) return setHata("İki PIN aynı değil.");
+      if (iseGirisSorulacak && !iseGiris.trim()) return setHata("İşe giriş tarihinizi girin.");
+    }
 
     kilit.current = true;
     // Puan BURADA hesaplanmaz: gerçek oturumda cevap anahtarı istemcide yok
@@ -217,7 +237,17 @@ export default function EgitimOyun({
                 </>
               ) : (
                 <>
-                  {sonSayfa ? "Sınava geç" : "İleri"} <Icon name="chevronRight" size={22} />
+                  {/* Son sayfada düğme SIRADAKİ AŞAMAYI söyler. Sabit "Sınava
+                      geç" yazdığında sınavsız bir bilgilendirmenin sonunda
+                      olmayan bir sınav vaat ediliyordu. */}
+                  {!sonSayfa
+                    ? "İleri"
+                    : sinavSorulari.length > 0
+                      ? "Sınava geç"
+                      : imzaKipi === "onay"
+                        ? "Onaya geç"
+                        : "İmzaya geç"}{" "}
+                  <Icon name="chevronRight" size={22} />
                 </>
               )}
             </button>
@@ -262,7 +292,32 @@ export default function EgitimOyun({
         </>
       ) : null}
 
-      {asama === "imza" ? (
+      {asama === "imza" && imzaKipi === "onay" ? (
+        <div className="flex-1 py-6">
+          <h2 className="text-2xl font-extrabold sm:text-3xl">Onay</h2>
+          {/* Ziyaretçinin imzası bu ekran. PIN yok, ama onayladığı cümle
+              ekranda yazılı duruyor ve adı kayda onunla birlikte geçiyor. */}
+          <p className="mt-4 text-lg leading-relaxed text-ink/90">
+            Ben{kisiAdi ? <strong className="text-ink"> {kisiAdi}</strong> : null}, bu bilgilendirmeyi baştan sona
+            izlediğimi ve anladığımı onaylıyorum.
+          </p>
+          <p className="mt-3 text-lg text-muted">
+            &quot;{bitirEtiketi ?? "Tamamla"}&quot; dediğinizde adınız ve saat kayda geçer.
+          </p>
+
+          {hata ? (
+            <p role="alert" className="mt-5 rounded-xl border border-brand/30 bg-brand-soft px-4 py-3 font-semibold text-brand-dark">
+              {hata}
+            </p>
+          ) : null}
+
+          <button onClick={imzala} className="kiosk-btn-primary mt-8">
+            <Icon name="check" size={22} /> {bitirEtiketi ?? "Tamamla"}
+          </button>
+        </div>
+      ) : null}
+
+      {asama === "imza" && imzaKipi === "pin" ? (
         <div className="flex-1 py-6">
           <h2 className="text-2xl font-extrabold sm:text-3xl">
             {pinKurulacak ? "Kendinize bir PIN belirleyin" : "PIN'inizi girin"}
@@ -325,21 +380,27 @@ export default function EgitimOyun({
           </h2>
           <p className="mt-2 text-xl text-muted">
             {sinavSorulari.length === 0 ? (
-              "Eğitimi izlediniz ve imzaladınız."
+              imzaKipi === "onay" ? (
+                "Bilgilendirmeyi izlediniz ve onayladınız."
+              ) : (
+                "Eğitimi izlediniz ve imzaladınız."
+              )
             ) : (
               <>
                 Puanınız <strong className="text-ink">{sonuc.puan}</strong> · geçme notu {egitim.gecmeNotu}
               </>
             )}
           </p>
-          {!sonuc.gecti ? (
+          {/* Ziyaretçinin deneme hakkı yoktur; "kaldınız, N hakkınız var"
+              cümlesi orada anlamsız (sınav da yok). */}
+          {!sonuc.gecti && imzaKipi === "pin" ? (
             <p className="mt-4 max-w-sm text-muted">
               Eğitimi tekrar izleyip yeniden deneyebilirsiniz. Deneme hakkınız: {egitim.denemeHakki}
             </p>
           ) : null}
           {onCik ? (
             <button onClick={onCik} className="kiosk-btn-primary mt-10 max-w-xs">
-              Bitir
+              {cikEtiketi ?? "Bitir"}
             </button>
           ) : null}
         </div>
@@ -422,6 +483,19 @@ function VideoBekci({ sayfaId, onBitti }: { sayfaId: string; onBitti: () => void
     v.addEventListener("timeupdate", izle);
     v.addEventListener("seeking", atlamaEngeli);
     v.addEventListener("ended", sonaGeldi);
+
+    /* OTOMATİK OYNATMA — kioskta "oynat"a basmayı beklemeyiz: eldivenli el,
+       bir metre uzaklık, sıradaki insan. Sayfa açılır açılmaz başlar.
+
+       SESSİZE ALMIYORUZ. Tarayıcılar sesli otomatik oynatmayı ancak kullanıcı
+       etkileşiminden sonra veriyor; kiosk'ta o etkileşim ZATEN var (sicil
+       yazıldı, "Başla"ya basıldı). Yine de engellenirse video DURUR ve kişi
+       kendi başlatır — sessiz başlatmak, anlatımı hiç duymadan "izledi" sayılan
+       bir kayıt üretirdi ve denetimde savunulacak tarafı olmazdı. */
+    v.play().catch(() => {
+      /* Tarayıcı izin vermedi. Kontroller açık, kişi kendi başlatır. */
+    });
+
     return () => {
       v.removeEventListener("timeupdate", izle);
       v.removeEventListener("seeking", atlamaEngeli);

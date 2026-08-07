@@ -50,11 +50,37 @@ büyük punto, az seçenek. Onaylar `ConfirmDialog` ile (native `confirm` yok).
 | `/ekibim` | amir tableti — eksikler, gözetimli oturum | amir |
 | `/pano` | tamamlanma, bölüm kırılımı, anomali, CSV | hazırlayan |
 | `/ayarlar` | kurulumun gerçeği, hesaplar, denetim izi | yönetici |
+| `/ziyaretci` | ziyaretçi kayıt masası + günün listesi | girişli (rol aranmaz) |
+| `/ziyaretci/sorular` | kayıt soruları, şık → bilgilendirme eşlemesi, varsayılanlar | girişli |
+| `/ziyaretci/oyna/[id]` | **hesapsız** — ziyaretçi tableti, bilgilendirmeler sırayla | ziyaretçi |
 | `/kiosk` | **hesapsız** — sicil/kart + PIN | herkes |
+
+**Genişlik tek yerde:** `.sayfa-kap` / `.sayfa-govde` (`globals.css`). Kokpit
+sayfası kendi `max-w`ini SEÇMEZ — başlık şeridi de aynı kaptan geçer, yoksa
+sayfalar arasında içerik sağa sola kayar. Kiosk, giriş ve oynatıcı bilerek
+dışarıda.
+
+## Ziyaretçi
+
+Ziyaretçi **personel değildir**: sicili, amiri, PIN'i, atama kuralı yoktur ve
+panoya düşmez. Kendi defterinde yaşar (`ziyaretci*` tabloları, `ziyaretciDepo.ts`).
+Personel listesine karıştırmak, fabrikanın tamamlanma oranını her ay yüzlerce
+misafirle sulandırırdı.
+
+- **Sınav yok.** Soru havuzu boş bırakılır; `oturumTamamla` bunu zaten "okudum,
+  onaylıyorum" kaydı sayar. Havuza tek soru eklemek akışı bozar.
+- **Deneme hakkı yok.** Tamamlanana kadar listede kalır, tablet tekrar açılır;
+  yarım oturum yeniden kullanılır (yenilenen sayfa yeni satır açmaz).
+- **İmza PIN değil ONAY.** `EgitimOyun` üçüncü kip olarak `imzaKipi="onay"`
+  taşır — ayrı bir oynatıcı YAZILMAZ, ikisi zamanla ayrışır.
+- **Soru → bilgilendirme eşlemesi VERİDİR**, kodda değil. Fabrika kendi
+  sorusunu yazar; kurulum için yazılımcı gerekmez. Varsayılanlar kayıt
+  masasında kaldırılamaz.
 
 ## Sınavlar
 
-- `npm test` — saf mantık (kurallar · sinav · anomali · csv), 86 doğrulama.
+- `npm test` — saf mantık (kurallar · sinav · anomali · csv · pin · sinir ·
+  yetki · ziyaretci), 8 dosya / 207 doğrulama.
 - `npm run e2e` — GERÇEK tarayıcı + GERÇEK sunucu, tüm zincir, 37 doğrulama.
   Geçici veri klasörü kurar, kurulumun verisine dokunmaz.
 
@@ -68,3 +94,6 @@ uçtan uca sınav yakaladı. Bu yüzden **parametre yakalayıp birden çok kez
 
 OPM adaptörü (v1.5) · self-host kurulum paketi/Docker · SMS dürtme modülü (v2).
 MVP dışı bırakılanlar `docs/KAPSAM.md`te listeli.
+
+Ziyaretçi tarafında kalanlar: ziyaretçi kayıtlarının CSV/PDF çıktısı ve saklama
+süresi (KVKK) ayarı. Bugün kayıtlar veritabanında duruyor ama dışa aktarılmıyor.

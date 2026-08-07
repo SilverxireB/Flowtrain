@@ -111,3 +111,21 @@ export function kapi(enAz: Rol, buYol: string): Hesap {
   return hesap;
 }
 
+/**
+ * Rol aramayan kapı: GİRİŞ YETER.
+ *
+ * Ziyaretçi kayıt masası için. Dört rolün hiçbiri oraya oturmuyor — güvenlik
+ * ya da danışma görevlisine "yönetici" vermek fazla yetki, "amir" demek ise
+ * yalan (ekibi yok, amir tabletine girmesi anlamsız). Beşinci bir rol açmak da
+ * yetki tablosunu ziyaretçi yüzünden büyütürdü.
+ *
+ * Kaydı KİMİN açtığı yine de tutulur (`ziyaretci.kaydeden`): kapı geniş ama
+ * iz kapalı değil.
+ */
+export function kapiGirisli(buYol: string): Hesap {
+  if (kurulumGerekli()) redirect("/kurulum");
+  const hesap = aktifHesap();
+  if (!hesap) redirect(`/giris?next=${encodeURIComponent(buYol)}`);
+  return hesap;
+}
+

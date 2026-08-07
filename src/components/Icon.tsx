@@ -70,6 +70,7 @@ export type IconName =
   | "help"
   | "eye"
   | "users"
+  | "userPlus"
   | "trophy"
   | "gift"
   | "chart"
@@ -360,6 +361,15 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <circle cx="9.5" cy="8" r="3.7" />
       <path d="M2.8 20a6.7 6.7 0 0 1 13.4 0" />
       <path d="M16.5 5.2a3.5 3.5 0 0 1 0 6.4M18 14.6A6 6 0 0 1 21.2 20" />
+    </>
+  ),
+  /* Ziyaretçi: "kişi + ekle". `users` ekibi anlatıyor, ziyaretçi masası
+     kayıt açma işi — ikisi aynı ikonla gösterilince hub'da ayırt edilemiyor. */
+  userPlus: (
+    <>
+      <circle cx="10" cy="8" r="3.7" />
+      <path d="M3.3 20a6.7 6.7 0 0 1 13.4 0" />
+      <path d="M18.5 8.5v6M15.5 11.5h6" />
     </>
   ),
   trophy: (
