@@ -16,6 +16,7 @@ const YUZEYLER: { yol: string; ad: string; not: string; ikon: IconName; enAz: Ro
   { yol: "/ekibim", ad: "Ekibim", not: "Eksikleri gör, yanında tamamlat", ikon: "users", enAz: "amir" },
   { yol: "/ziyaretci", ad: "Ziyaretçiler", not: "Kaydet, bilgilendir, içeri al", ikon: "userPlus", enAz: null },
   { yol: "/pano", ad: "Pano", not: "Tamamlama, gecikenler, anomali", ikon: "chart", enAz: "hazirlayan" },
+  { yol: "/personel", ad: "Personel", not: "Kayıtlar, maliyet merkezi eşlemesi, OPM aktarımı", ikon: "list", enAz: "yonetici" },
   { yol: "/ayarlar", ad: "Ayarlar", not: "Hesaplar, adaptörler, denetim izi", ikon: "settings", enAz: "yonetici" },
 ];
 

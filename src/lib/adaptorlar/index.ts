@@ -1,5 +1,6 @@
 import type { KayitHedefi, PersonelKaynagi } from "../adaptor";
 import { csvPersonel } from "./csvPersonel";
+import { csvPersonelYonetim } from "./csvPersonelYonetim";
 import { dosyaKayit } from "./dosyaKayit";
 
 /**
@@ -11,7 +12,7 @@ import { dosyaKayit } from "./dosyaKayit";
  * sızmıştır.
  */
 export function personelKaynagi(): PersonelKaynagi {
-  return csvPersonel;
+  return { ...csvPersonel, yonetim: csvPersonelYonetim };
 }
 
 export function kayitHedefi(): KayitHedefi {

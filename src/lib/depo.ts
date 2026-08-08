@@ -2,7 +2,7 @@ import "server-only";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { db, kimlik, simdi } from "./db";
 import * as pinIslem from "./pin";
-import type { Egitim, Kural, Oturum, Sayfa, Soru } from "./tipler";
+import type { Egitim, Grup, Kural, Medya, Oturum, Sayfa, Soru } from "./tipler";
 import { ASGARI_SURE_VARSAYILAN, SINAV_VARSAYILAN } from "./tipler";
 
 /* ── satır ↔ nesne dönüşümleri ─────────────────────────────────────────────
@@ -26,8 +26,28 @@ function egitimden(r: Satir): Egitim {
     soruSayisi: r.soruSayisi as number,
     karisik: !!r.karisik,
     tekrarAy: (r.tekrarAy as number) ?? undefined,
+    kategori: (r.kategori as string) ?? "",
+    zorunlu: !!r.zorunlu,
+    sureDk: (r.sureDk as number) ?? undefined,
+    egitmen: (r.egitmen as string) ?? undefined,
     olusturma: r.olusturma as string,
     guncelleme: r.guncelleme as string,
+  };
+}
+
+function sayfadan(r: Satir): Sayfa {
+  return {
+    id: r.id as string,
+    egitimId: r.egitimId as string,
+    sira: r.sira as number,
+    tip: r.tip as Sayfa["tip"],
+    baslik: r.baslik as string,
+    metin: (r.metin as string) ?? undefined,
+    metinKarsi: (r.metinKarsi as string) ?? undefined,
+    gorselId: (r.gorselId as string) ?? undefined,
+    gorselIdler: JSON.parse((r.gorselIdler as string) ?? "[]"),
+    videoId: (r.videoId as string) ?? undefined,
+    asgariSure: r.asgariSure as number,
   };
 }
 
@@ -39,6 +59,8 @@ function sorudan(r: Satir): Soru {
     metin: r.metin as string,
     secenekler: JSON.parse(r.secenekler as string),
     dogru: JSON.parse(r.dogru as string),
+    gorselId: (r.gorselId as string) ?? undefined,
+    aciklama: (r.aciklama as string) ?? undefined,
   };
 }
 
@@ -46,6 +68,7 @@ function kuraldan(r: Satir): Kural {
   return {
     id: r.id as string,
     egitimId: r.egitimId as string,
+    grupId: (r.grupId as string) ?? undefined,
     kosul: JSON.parse(r.kosul as string),
     sonTarih: (r.sonTarih as string) ?? undefined,
     aktif: !!r.aktif,
@@ -67,6 +90,9 @@ function oturumdan(r: Satir): Oturum {
     puan: (r.puan as number) ?? undefined,
     sonuc: (r.sonuc as Oturum["sonuc"]) ?? undefined,
     senkron: r.senkron as Oturum["senkron"],
+    kaynak: ((r.kaynak as Oturum["kaynak"]) ?? "kiosk") as Oturum["kaynak"],
+    egitmen: (r.egitmen as string) ?? undefined,
+    notlar: (r.notlar as string) ?? undefined,
   };
 }
 
@@ -94,6 +120,8 @@ export function egitimOlustur(ad: string, hazirlayan: string): Egitim {
     durum: "taslak",
     hazirlayan,
     ...SINAV_VARSAYILAN,
+    kategori: "",
+    zorunlu: false,
     olusturma: t,
     guncelleme: t,
   };
@@ -114,18 +142,33 @@ const GUNCELLENEBILIR = [
   "soruSayisi",
   "karisik",
   "tekrarAy",
+  "kategori",
+  "zorunlu",
+  "sureDk",
+  "egitmen",
   "durum",
   "onaylayan",
   "surum",
 ] as const;
+
+/** SQLite'ta boolean yok; sınırda çevrilecek alanlar tek listede. */
+const MANTIKSAL = new Set(["karisik", "zorunlu"]);
 
 export function egitimGuncelle(id: string, yama: Partial<Egitim>): void {
   const alanlar = GUNCELLENEBILIR.filter((a) => yama[a] !== undefined);
   if (alanlar.length === 0) return;
   const set = alanlar.map((a) => `${a}=@${a}`).join(", ");
   const deger: Satir = { id, guncelleme: simdi() };
-  for (const a of alanlar) deger[a] = a === "karisik" ? (yama.karisik ? 1 : 0) : (yama[a] as unknown);
+  for (const a of alanlar) {
+    deger[a] = MANTIKSAL.has(a) ? (yama[a] ? 1 : 0) : ((yama[a] as unknown) ?? null);
+  }
   db().prepare(`UPDATE egitim SET ${set}, guncelleme=@guncelleme WHERE id=@id`).run(deger);
+}
+
+/** Katalog süzgeci için kullanılan kategoriler (boşlar elenir). */
+export function kategorileriGetir(): string[] {
+  return (db().prepare("SELECT DISTINCT kategori k FROM egitim WHERE kategori<>'' ORDER BY k").all() as { k: string }[])
+    .map((r) => r.k);
 }
 
 export function egitimSil(id: string): void {
@@ -147,12 +190,23 @@ export function egitimKopyala(id: string, hazirlayan: string): Egitim | null {
     soruSayisi: kaynak.soruSayisi,
     karisik: kaynak.karisik,
     tekrarAy: kaynak.tekrarAy,
+    kategori: kaynak.kategori,
+    zorunlu: kaynak.zorunlu,
+    sureDk: kaynak.sureDk,
+    egitmen: kaynak.egitmen,
   });
   for (const s of sayfalariGetir(id)) {
     sayfaEkle(yeni.id, { ...s, id: undefined as unknown as string });
   }
   for (const q of sorulariGetir(id)) {
-    soruEkle(yeni.id, { tip: q.tip, metin: q.metin, secenekler: q.secenekler, dogru: q.dogru });
+    soruEkle(yeni.id, {
+      tip: q.tip,
+      metin: q.metin,
+      secenekler: q.secenekler,
+      dogru: q.dogru,
+      gorselId: q.gorselId,
+      aciklama: q.aciklama,
+    });
   }
   return egitimGetir(yeni.id);
 }
@@ -163,7 +217,7 @@ export function sayfalariGetir(egitimId: string): Sayfa[] {
   return db()
     .prepare("SELECT * FROM sayfa WHERE egitimId=? ORDER BY sira")
     .all(egitimId)
-    .map((r) => r as unknown as Sayfa);
+    .map((r) => sayfadan(r as Satir));
 }
 
 export function sayfaEkle(egitimId: string, veri: Partial<Sayfa> & { tip: Sayfa["tip"] }): Sayfa {
@@ -177,32 +231,36 @@ export function sayfaEkle(egitimId: string, veri: Partial<Sayfa> & { tip: Sayfa[
     metin: veri.metin,
     metinKarsi: veri.metinKarsi,
     gorselId: veri.gorselId,
+    gorselIdler: veri.gorselIdler ?? [],
     videoId: veri.videoId,
     asgariSure: veri.asgariSure ?? ASGARI_SURE_VARSAYILAN[veri.tip],
   };
   db()
     .prepare(
-      `INSERT INTO sayfa (id,egitimId,sira,tip,baslik,metin,metinKarsi,gorselId,videoId,asgariSure)
-       VALUES (@id,@egitimId,@sira,@tip,@baslik,@metin,@metinKarsi,@gorselId,@videoId,@asgariSure)`,
+      `INSERT INTO sayfa (id,egitimId,sira,tip,baslik,metin,metinKarsi,gorselId,gorselIdler,videoId,asgariSure)
+       VALUES (@id,@egitimId,@sira,@tip,@baslik,@metin,@metinKarsi,@gorselId,@gorselIdler,@videoId,@asgariSure)`,
     )
     .run({
       ...sayfa,
       metin: sayfa.metin ?? null,
       metinKarsi: sayfa.metinKarsi ?? null,
       gorselId: sayfa.gorselId ?? null,
+      gorselIdler: JSON.stringify(sayfa.gorselIdler),
       videoId: sayfa.videoId ?? null,
     });
   return sayfa;
 }
 
 export function sayfaGuncelle(id: string, yama: Partial<Sayfa>): void {
-  const alanlar = (["sira", "tip", "baslik", "metin", "metinKarsi", "gorselId", "videoId", "asgariSure"] as const).filter(
-    (a) => yama[a] !== undefined,
-  );
+  const alanlar = (
+    ["sira", "tip", "baslik", "metin", "metinKarsi", "gorselId", "gorselIdler", "videoId", "asgariSure"] as const
+  ).filter((a) => yama[a] !== undefined);
   if (alanlar.length === 0) return;
   const set = alanlar.map((a) => `${a}=@${a}`).join(", ");
   const deger: Satir = { id };
-  for (const a of alanlar) deger[a] = yama[a] ?? null;
+  for (const a of alanlar) {
+    deger[a] = a === "gorselIdler" ? JSON.stringify(yama.gorselIdler ?? []) : (yama[a] ?? null);
+  }
   db().prepare(`UPDATE sayfa SET ${set} WHERE id=@id`).run(deger);
 }
 
@@ -240,8 +298,17 @@ export function sorulariKimlikle(idler: string[]): Soru[] {
 export function soruEkle(egitimId: string, veri: Omit<Soru, "id" | "egitimId">): Soru {
   const soru: Soru = { id: kimlik("sor"), egitimId, ...veri };
   db()
-    .prepare("INSERT INTO soru (id,egitimId,tip,metin,secenekler,dogru) VALUES (?,?,?,?,?,?)")
-    .run(soru.id, egitimId, soru.tip, soru.metin, JSON.stringify(soru.secenekler), JSON.stringify(soru.dogru));
+    .prepare("INSERT INTO soru (id,egitimId,tip,metin,secenekler,dogru,gorselId,aciklama) VALUES (?,?,?,?,?,?,?,?)")
+    .run(
+      soru.id,
+      egitimId,
+      soru.tip,
+      soru.metin,
+      JSON.stringify(soru.secenekler),
+      JSON.stringify(soru.dogru),
+      soru.gorselId ?? null,
+      soru.aciklama ?? null,
+    );
   return soru;
 }
 
@@ -250,8 +317,16 @@ export function soruGuncelle(id: string, yama: Partial<Soru>): void {
   if (!mevcut) return;
   const s = { ...sorudan(mevcut), ...yama };
   db()
-    .prepare("UPDATE soru SET tip=?, metin=?, secenekler=?, dogru=? WHERE id=?")
-    .run(s.tip, s.metin, JSON.stringify(s.secenekler), JSON.stringify(s.dogru), id);
+    .prepare("UPDATE soru SET tip=?, metin=?, secenekler=?, dogru=?, gorselId=?, aciklama=? WHERE id=?")
+    .run(
+      s.tip,
+      s.metin,
+      JSON.stringify(s.secenekler),
+      JSON.stringify(s.dogru),
+      s.gorselId ?? null,
+      s.aciklama ?? null,
+      id,
+    );
 }
 
 export function soruSil(id: string): void {
@@ -278,8 +353,8 @@ export function kurallariGetir(egitimId?: string): Kural[] {
 export function kuralEkle(veri: Omit<Kural, "id">): Kural {
   const k: Kural = { id: kimlik("krl"), ...veri };
   db()
-    .prepare("INSERT INTO kural (id,egitimId,kosul,sonTarih,aktif) VALUES (?,?,?,?,?)")
-    .run(k.id, k.egitimId, JSON.stringify(k.kosul), k.sonTarih ?? null, k.aktif ? 1 : 0);
+    .prepare("INSERT INTO kural (id,egitimId,grupId,kosul,sonTarih,aktif) VALUES (?,?,?,?,?,?)")
+    .run(k.id, k.egitimId, k.grupId ?? null, JSON.stringify(k.kosul), k.sonTarih ?? null, k.aktif ? 1 : 0);
   return k;
 }
 
@@ -288,8 +363,32 @@ export function kuralGuncelle(id: string, yama: Partial<Kural>): void {
   if (!mevcut) return;
   const k = { ...kuraldan(mevcut), ...yama };
   db()
-    .prepare("UPDATE kural SET kosul=?, sonTarih=?, aktif=? WHERE id=?")
-    .run(JSON.stringify(k.kosul), k.sonTarih ?? null, k.aktif ? 1 : 0, id);
+    .prepare("UPDATE kural SET egitimId=?, grupId=?, kosul=?, sonTarih=?, aktif=? WHERE id=?")
+    .run(k.egitimId, k.grupId ?? null, JSON.stringify(k.kosul), k.sonTarih ?? null, k.aktif ? 1 : 0, id);
+}
+
+/**
+ * Kural motoru YALNIZ eğitim bilir; paket kuralı burada üyelerine AÇILIR.
+ *
+ * Açma depoda yapılır çünkü paket üyeliği veridir; `kurallar.ts` saf mantık
+ * olarak kalmalı ve veritabanına bakmamalı. Paket boşsa kural hiçbir şey
+ * atamaz — "boş koşul herkesi kapsar" kuralıyla karıştırılmasın diye
+ * üyesiz paket kuralı ELENİR, yoksa boş bir paket tüm fabrikaya boş atama
+ * üretirdi.
+ */
+export function kurallariCozulmus(): Kural[] {
+  const gruplar = new Map(gruplariGetir().map((g) => [g.id, g.egitimIdleri]));
+  const cikti: Kural[] = [];
+  for (const k of kurallariGetir()) {
+    if (!k.grupId) {
+      if (k.egitimId) cikti.push(k);
+      continue;
+    }
+    for (const egitimId of gruplar.get(k.grupId) ?? []) {
+      cikti.push({ ...k, egitimId });
+    }
+  }
+  return cikti;
 }
 
 export function kuralSil(id: string): void {
@@ -328,9 +427,11 @@ export function oturumBaslat(veri: {
   gozeten?: string;
   cihaz: string;
   sorulanSoruIdleri: string[];
+  kaynak?: Oturum["kaynak"];
 }): Oturum {
   const o: Oturum = {
     id: kimlik("otr"),
+    kaynak: veri.gozeten ? "amir" : "kiosk",
     ...veri,
     baslangic: simdi(),
     sayfaSureleri: {},
@@ -338,8 +439,8 @@ export function oturumBaslat(veri: {
   };
   db()
     .prepare(
-      `INSERT INTO oturum (id,egitimId,egitimSurum,sicil,gozeten,cihaz,baslangic,sayfaSureleri,sorulanSoruIdleri,senkron)
-       VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO oturum (id,egitimId,egitimSurum,sicil,gozeten,cihaz,baslangic,sayfaSureleri,sorulanSoruIdleri,senkron,kaynak)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
     )
     .run(
       o.id,
@@ -352,6 +453,66 @@ export function oturumBaslat(veri: {
       "{}",
       JSON.stringify(o.sorulanSoruIdleri),
       "bekliyor",
+      o.kaynak,
+    );
+  return o;
+}
+
+/**
+ * SINIF EĞİTİMİ / DIŞ AKTARIM KAYDI — ekranda kart dönmeden yazılan tamamlama.
+ *
+ * Neden var: her eğitim kioskta verilmez. Eğitmen otuz kişiye sınıfta anlatır;
+ * kayıt yine de aynı defterde durmalı, yoksa panonun "tamamlanma" sayısı
+ * gerçeği göstermez. `kaynak` alanı bu kaydın ekranda dönmediğini AÇIKÇA
+ * söyler — denetimde kiosk kaydıyla karıştırılmaz.
+ */
+export function oturumKaydet(veri: {
+  egitimId: string;
+  egitimSurum: number;
+  sicil: string;
+  kaynak: Oturum["kaynak"];
+  bitis: string;
+  gozeten?: string;
+  egitmen?: string;
+  notlar?: string;
+  puan?: number;
+}): Oturum {
+  const o: Oturum = {
+    id: kimlik("otr"),
+    egitimId: veri.egitimId,
+    egitimSurum: veri.egitimSurum,
+    sicil: veri.sicil,
+    gozeten: veri.gozeten,
+    cihaz: veri.kaynak,
+    baslangic: veri.bitis,
+    bitis: veri.bitis,
+    sayfaSureleri: {},
+    sorulanSoruIdleri: [],
+    puan: veri.puan,
+    sonuc: "gecti",
+    senkron: "bekliyor",
+    kaynak: veri.kaynak,
+    egitmen: veri.egitmen,
+    notlar: veri.notlar,
+  };
+  db()
+    .prepare(
+      `INSERT INTO oturum (id,egitimId,egitimSurum,sicil,gozeten,cihaz,baslangic,bitis,sayfaSureleri,sorulanSoruIdleri,puan,sonuc,senkron,kaynak,egitmen,notlar)
+       VALUES (?,?,?,?,?,?,?,?,'{}','[]',?,'gecti','bekliyor',?,?,?)`,
+    )
+    .run(
+      o.id,
+      o.egitimId,
+      o.egitimSurum,
+      o.sicil,
+      o.gozeten ?? null,
+      o.cihaz,
+      o.baslangic,
+      o.bitis,
+      o.puan ?? null,
+      o.kaynak,
+      o.egitmen ?? null,
+      o.notlar ?? null,
     );
   return o;
 }
@@ -506,4 +667,108 @@ export function ayarYaz(anahtar: string, deger: string): void {
   db()
     .prepare("INSERT INTO ayar (anahtar,deger) VALUES (?,?) ON CONFLICT(anahtar) DO UPDATE SET deger=excluded.deger")
     .run(anahtar, deger);
+}
+
+/* ── eğitim paketi (grup) ─────────────────────────────────────────────────── */
+
+export function gruplariGetir(): Grup[] {
+  const gruplar = db().prepare("SELECT * FROM grup ORDER BY ad").all() as Satir[];
+  const uyeler = db().prepare("SELECT grupId, egitimId FROM grupUye ORDER BY sira").all() as {
+    grupId: string;
+    egitimId: string;
+  }[];
+  return gruplar.map((g) => ({
+    id: g.id as string,
+    ad: g.ad as string,
+    aciklama: (g.aciklama as string) ?? undefined,
+    olusturma: g.olusturma as string,
+    egitimIdleri: uyeler.filter((u) => u.grupId === g.id).map((u) => u.egitimId),
+  }));
+}
+
+export function grupGetir(id: string): Grup | null {
+  return gruplariGetir().find((g) => g.id === id) ?? null;
+}
+
+export function grupOlustur(ad: string, aciklama?: string): Grup {
+  const g: Grup = { id: kimlik("grp"), ad, aciklama, olusturma: simdi(), egitimIdleri: [] };
+  db()
+    .prepare("INSERT INTO grup (id,ad,aciklama,olusturma) VALUES (?,?,?,?)")
+    .run(g.id, g.ad, g.aciklama ?? null, g.olusturma);
+  return g;
+}
+
+export function grupGuncelle(id: string, yama: { ad?: string; aciklama?: string }): void {
+  const mevcut = grupGetir(id);
+  if (!mevcut) return;
+  db()
+    .prepare("UPDATE grup SET ad=?, aciklama=? WHERE id=?")
+    .run(yama.ad ?? mevcut.ad, yama.aciklama ?? mevcut.aciklama ?? null, id);
+}
+
+export function grupSil(id: string): void {
+  db().prepare("DELETE FROM grup WHERE id=?").run(id);
+}
+
+/** Üyeler TEK yazımda değişir — yarım kalan liste paketi bozar. */
+export function grupUyeleriYaz(grupId: string, egitimIdleri: string[]): void {
+  const sil = db().prepare("DELETE FROM grupUye WHERE grupId=?");
+  const ekle = db().prepare("INSERT INTO grupUye (grupId,egitimId,sira) VALUES (?,?,?)");
+  db().transaction(() => {
+    sil.run(grupId);
+    egitimIdleri.forEach((egitimId, i) => ekle.run(grupId, egitimId, i));
+  })();
+}
+
+/* ── medya kütüphanesi ────────────────────────────────────────────────────── */
+
+export function medyalariGetir(): Medya[] {
+  return db().prepare("SELECT * FROM medya ORDER BY olusturma DESC").all() as Medya[];
+}
+
+export function medyaKaydet(m: Omit<Medya, "olusturma">): void {
+  db()
+    .prepare(
+      "INSERT INTO medya (id,ad,tip,boyut,yukleyen,olusturma) VALUES (?,?,?,?,?,?) " +
+        "ON CONFLICT(id) DO UPDATE SET ad=excluded.ad",
+    )
+    .run(m.id, m.ad, m.tip, m.boyut, m.yukleyen, simdi());
+}
+
+export function medyaSil(id: string): void {
+  db().prepare("DELETE FROM medya WHERE id=?").run(id);
+}
+
+/** Bir görselin kaç kartta/soruda kullanıldığı — silmeden önce sorulur. */
+export function medyaKullanimi(id: string): number {
+  const s = db()
+    .prepare("SELECT COUNT(*) n FROM sayfa WHERE gorselId=? OR videoId=? OR gorselIdler LIKE ?")
+    .get(id, id, `%"${id}"%`) as { n: number };
+  const q = db().prepare("SELECT COUNT(*) n FROM soru WHERE gorselId=?").get(id) as { n: number };
+  return s.n + q.n;
+}
+
+/* ── maliyet merkezi eşlemesi ─────────────────────────────────────────────── */
+
+export interface MmEsleme {
+  kod: string;
+  bolum: string;
+  amirSicil: string;
+}
+
+export function mmEslemeleriGetir(): MmEsleme[] {
+  return db().prepare("SELECT kod,bolum,amirSicil FROM mmEsleme ORDER BY kod").all() as MmEsleme[];
+}
+
+export function mmEslemeKaydet(kod: string, bolum: string, amirSicil: string): void {
+  db()
+    .prepare(
+      "INSERT INTO mmEsleme (kod,bolum,amirSicil) VALUES (?,?,?) " +
+        "ON CONFLICT(kod) DO UPDATE SET bolum=excluded.bolum, amirSicil=excluded.amirSicil",
+    )
+    .run(kod.trim(), bolum.trim(), amirSicil.trim());
+}
+
+export function mmEslemeSil(kod: string): void {
+  db().prepare("DELETE FROM mmEsleme WHERE kod=?").run(kod);
 }

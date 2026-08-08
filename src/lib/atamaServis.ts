@@ -20,7 +20,8 @@ export interface AtamaSatiri extends Atama {
 
 async function malzeme() {
   const kisiler = await personelKaynagi().listele();
-  const kurallar = depo.kurallariGetir().filter((k) => k.aktif);
+  // Paket kuralları burada üyelerine açılmış gelir; motor yalnız eğitim bilir.
+  const kurallar = depo.kurallariCozulmus().filter((k) => k.aktif);
   const egitimler = new Map(depo.egitimleriListele().map((e) => [e.id, e]));
   // YAYINDA OLMAYAN eğitim kimseye atanmaz: taslak bir eğitim kiosk'ta
   // görünseydi, hazırlayan yarım bıraktığı içeriği hatta yayınlamış olurdu.

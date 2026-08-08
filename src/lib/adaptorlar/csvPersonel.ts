@@ -61,6 +61,10 @@ export function onbellegiTemizle(): void {
   onbellek = null;
 }
 
+export function personelDosyaYolu(): string {
+  return DOSYA();
+}
+
 export const csvPersonel: PersonelKaynagi = {
   ad: "CSV dosyası",
   async listele() {
@@ -73,8 +77,6 @@ export const csvPersonel: PersonelKaynagi = {
     return csvKisileriOku().filter((k) => k.amirSicil === amirSicil);
   },
   tazele: onbellegiTemizle,
+  // Dosya kaynağı düzenlenebilir: `/personel` ekranı bu yetenekten açılır.
+  // Döngüsel içe aktarma olmasın diye burada değil, `index.ts`te bağlanır.
 };
-
-export function personelDosyaYolu(): string {
-  return DOSYA();
-}

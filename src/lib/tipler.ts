@@ -71,8 +71,38 @@ export interface Egitim {
   karisik: boolean
   /** Tekrar gerekiyorsa kaç ay sonra (sertifika geçerliliği). */
   tekrarAy?: number
+  /** Katalog süzgeci — serbest metin, fabrika kendi listesini kurar. */
+  kategori: string
+  /** Yasal zorunluluk mu? Denetim raporu bunu ayrı sayar. */
+  zorunlu: boolean
+  /** Planlanan süre (dakika) — sınıf kaydında ve katalogda gösterilir. */
+  sureDk?: number
+  /** Sınıf eğitiminde varsayılan eğitmen adı. */
+  egitmen?: string
   olusturma: string
   guncelleme: string
+}
+
+/**
+ * EĞİTİM PAKETİ — atama kuralı tek eğitime değil pakete de yazılabilir.
+ * Pakete sonradan eklenen eğitim kural yeniden yazılmadan kapsanır.
+ */
+export interface Grup {
+  id: string
+  ad: string
+  aciklama?: string
+  olusturma: string
+  /** Sıralı üye eğitim kimlikleri. */
+  egitimIdleri: string[]
+}
+
+export interface Medya {
+  id: string
+  ad: string
+  tip: string
+  boyut: number
+  yukleyen: string
+  olusturma: string
 }
 
 export interface Sayfa {
@@ -85,6 +115,8 @@ export interface Sayfa {
   /** yapYapma kartında sağ kolon; diğerlerinde kullanılmaz. */
   metinKarsi?: string
   gorselId?: string
+  /** Birden çok görsel. Tekil `gorselId` ilk görsel olarak korunur. */
+  gorselIdler: string[]
   videoId?: string
   asgariSure: number
 }
@@ -97,12 +129,18 @@ export interface Soru {
   secenekler: string[]
   /** Doğru seçeneklerin indeksleri. dogruYanlis'ta tek eleman. */
   dogru: number[]
+  gorselId?: string
+  /** Yanlış cevaplayana gösterilir — sınav öğretmenin yerine geçer. */
+  aciklama?: string
 }
 
 /** Atama kişi kişi değil KURAL olarak yazılır; yeni personel kendiliğinden kapsanır. */
 export interface Kural {
   id: string
+  /** Tek eğitime yazılan kural. `grupId` doluysa boş olabilir. */
   egitimId: string
+  /** Pakete yazılan kural — paketin tüm üyeleri kapsanır. */
+  grupId?: string
   kosul: {
     bolum?: string[]
     hat?: string[]
@@ -135,6 +173,25 @@ export interface Oturum {
   puan?: number
   sonuc?: Sonuc
   senkron: 'bekliyor' | 'gonderildi' | 'hata'
+  /** Kaydın nereden doğduğu — rapor süzgeci `cihaz` serbest metnine güvenemez. */
+  kaynak: OturumKaynagi
+  /** Sınıf eğitiminde dersi veren. */
+  egitmen?: string
+  notlar?: string
+}
+
+/**
+ * `sinif`: eğitmen anlattı, katılım listesi girildi (ekranda kart dönmedi).
+ * `aktarim`: başka bir sistemden taşınan geçmiş kayıt — canlıya geçerken
+ * herkesin "eksik" görünmemesi için şart.
+ */
+export type OturumKaynagi = 'kiosk' | 'amir' | 'sinif' | 'aktarim'
+
+export const KAYNAK_ETIKET: Record<OturumKaynagi, string> = {
+  kiosk: 'Kiosk',
+  amir: 'Amir gözetiminde',
+  sinif: 'Sınıf eğitimi',
+  aktarim: 'Dış aktarım',
 }
 
 /** Personel adaptöründen gelir — FlowTrain bu kaydı ASLA yazmaz. */

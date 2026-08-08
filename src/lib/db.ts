@@ -184,6 +184,50 @@ CREATE TABLE IF NOT EXISTS ziyaretciOturum (
   sayfaSureleri TEXT NOT NULL DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS ix_ziyaretciOturum_z ON ziyaretciOturum(ziyaretciId);
+
+/* Maliyet merkezi → bölüm + amir eşlemesi. OPM'den (ya da OPM dışa aktarım
+   dosyasından) gelen kayıtta yalnız maliyet merkezi kodu vardır; bölümü ve
+   amiri bu tablo belirler. EŞLEME VERİDİR, KODDA DEĞİL — ziyaretçi soru
+   eşlemesiyle aynı gerekçe: her fabrika kendi kodlarını kendisi bağlar.
+   OPM'e özel alanlar çekirdek tiplere GİRMEZ; bu tablo adaptör tarafının
+   sözlüğüdür, Kisi tipi yine yalnız bölüm/amir görür. */
+CREATE TABLE IF NOT EXISTS mmEsleme (
+  kod TEXT PRIMARY KEY,
+  bolum TEXT NOT NULL DEFAULT '',
+  amirSicil TEXT NOT NULL DEFAULT ''
+);
+
+/* ── EĞİTİM PAKETİ (grup) ──────────────────────────────────────────────────
+   "Oryantasyon" = beş eğitim. Atama kuralı pakete yazılınca içindekiler
+   topluca düşer; pakete sonradan eklenen eğitim, kural yeniden yazılmadan
+   herkese gider. Kurallar tek tek eğitime yazılsaydı paket değiştikçe
+   kuralları elle güncellemek gerekirdi ve biri mutlaka unutulurdu. */
+CREATE TABLE IF NOT EXISTS grup (
+  id TEXT PRIMARY KEY,
+  ad TEXT NOT NULL,
+  aciklama TEXT,
+  olusturma TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS grupUye (
+  grupId TEXT NOT NULL REFERENCES grup(id) ON DELETE CASCADE,
+  egitimId TEXT NOT NULL REFERENCES egitim(id) ON DELETE CASCADE,
+  sira INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (grupId, egitimId)
+);
+
+/* Medya kütüphanesi — dosyalar zaten veri/medya'da; bu tablo onların
+   ADINI ve nereden geldiğini tutar. Dosya adı tek başına "kkd fotoğrafı mı,
+   forklift mi" sorusunu cevaplamıyordu, hazırlayan her seferinde yeniden
+   yüklüyordu. */
+CREATE TABLE IF NOT EXISTS medya (
+  id TEXT PRIMARY KEY,
+  ad TEXT NOT NULL DEFAULT '',
+  tip TEXT NOT NULL DEFAULT '',
+  boyut INTEGER NOT NULL DEFAULT 0,
+  yukleyen TEXT NOT NULL DEFAULT '',
+  olusturma TEXT NOT NULL
+);
 `;
 
 export function db(): Database.Database {
@@ -207,6 +251,31 @@ function gocleriUygula(d: Database.Database): void {
     "ALTER TABLE pin ADD COLUMN hataliDeneme INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE pin ADD COLUMN kilitBitis TEXT",
     "ALTER TABLE oturum ADD COLUMN sorulanSoruIdleri TEXT NOT NULL DEFAULT '[]'",
+
+    /* Katalog alanları: kategori süzer, zorunlu/planlanan süre denetim
+       raporunda görünür, egitmen sınıf eğitiminin varsayılanıdır. */
+    "ALTER TABLE egitim ADD COLUMN kategori TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE egitim ADD COLUMN zorunlu INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE egitim ADD COLUMN sureDk INTEGER",
+    "ALTER TABLE egitim ADD COLUMN egitmen TEXT",
+
+    /* Kural artık tek eğitime YA DA bir pakete yazılabilir. egitimId eski
+       kayıtlarda dolu kalır; ikisinden biri doludur. */
+    "ALTER TABLE kural ADD COLUMN grupId TEXT",
+
+    /* Oturumun nereden geldiği: kiosk · amir tableti · sınıf · dış aktarım.
+       `cihaz` serbest metindi ve rapor süzgeci ona güvenemiyordu. */
+    "ALTER TABLE oturum ADD COLUMN kaynak TEXT NOT NULL DEFAULT 'kiosk'",
+    "ALTER TABLE oturum ADD COLUMN egitmen TEXT",
+    "ALTER TABLE oturum ADD COLUMN notlar TEXT",
+
+    /* Soruya görsel ve "neden yanlış" açıklaması. */
+    "ALTER TABLE soru ADD COLUMN gorselId TEXT",
+    "ALTER TABLE soru ADD COLUMN aciklama TEXT",
+
+    /* Kartta birden çok görsel (JSON dizi). Tekil `gorselId` korunur:
+       eski kayıtlar ve tek görselli kartlar onu kullanmaya devam eder. */
+    "ALTER TABLE sayfa ADD COLUMN gorselIdler TEXT NOT NULL DEFAULT '[]'",
   ];
   for (const sorgu of ekle) {
     try {

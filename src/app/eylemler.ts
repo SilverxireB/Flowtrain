@@ -157,7 +157,19 @@ export async function sablondanAcEylem(sablonId: string): Promise<void> {
  * kişinin adını yazabiliyordu. Dört göz kuralının tek gerçek yeri burası —
  * düğmeyi gizlemek sunucuda karşılığı olmayan bir önlemdir.
  */
-const HAZIRLAYAN_ALANLARI = ["ad", "aciklama", "gecmeNotu", "denemeHakki", "soruSayisi", "karisik", "tekrarAy"] as const;
+const HAZIRLAYAN_ALANLARI = [
+  "ad",
+  "aciklama",
+  "gecmeNotu",
+  "denemeHakki",
+  "soruSayisi",
+  "karisik",
+  "tekrarAy",
+  "kategori",
+  "zorunlu",
+  "sureDk",
+  "egitmen",
+] as const;
 
 /**
  * YAYINDAKİ EĞİTİM DEĞİŞTİRİLEMEZ.
