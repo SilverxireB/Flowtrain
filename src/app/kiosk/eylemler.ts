@@ -7,6 +7,7 @@ import { aktifHesap } from "@/lib/kimlik";
 import { kimlik } from "@/lib/db";
 import { puanla, sinaviKur, tohumla } from "@/lib/sinav";
 import { yanlisAciklamalari, type YanlisAciklama } from "@/lib/kioskAkis";
+import { kartGorselleri } from "@/components/oyun/gorseller";
 import type { Egitim, Sayfa, Soru } from "@/lib/tipler";
 
 /**
@@ -65,10 +66,42 @@ export interface OyunVerisi {
   egitim: Egitim;
   sayfalar: Sayfa[];
   sorular: GizliSoru[];
+  /**
+   * Görsel kimliği → alt metni. YALNIZ bu eğitimde geçen görseller.
+   *
+   * Kütüphanenin tamamı gönderilmiyor: burası hesapsız bir uç nokta ve alt
+   * metinleriyle birlikte tüm medya listesi, sicil numarasından başka hiçbir
+   * şey bilmeyen birine fabrikanın eğitim içeriğinin dökümünü verirdi.
+   */
+  altMetinler: Record<string, string>;
   /** Kişi ilk kez imzalıyor mu — PIN belirleme ekranı buna göre açılır. */
   pinKurulacak: boolean;
   /** İlk PIN'de işe giriş tarihi sorulacak mı (kişide tarih varsa). */
   iseGirisSorulacak: boolean;
+}
+
+/**
+ * Bu eğitimde GEÇEN görsellerin alt metinleri.
+ *
+ * Kütüphanenin tamamını göndermemek bilinçli (bkz. `OyunVerisi.altMetinler`).
+ * Açıklaması yazılmamış görsel sözlüğe hiç girmez; oynatıcı o durumda kartın
+ * başlığından türetilmiş metne düşer.
+ */
+function altMetinleriTopla(sayfalar: Sayfa[], soruGorselleri: (string | undefined)[]): Record<string, string> {
+  const kullanilan = new Set<string>();
+  for (const s of sayfalar) {
+    for (const id of kartGorselleri(s)) kullanilan.add(id);
+  }
+  for (const id of soruGorselleri) {
+    if (id) kullanilan.add(id);
+  }
+  if (kullanilan.size === 0) return {};
+
+  const cikti: Record<string, string> = {};
+  for (const m of depo.medyalariGetir()) {
+    if (kullanilan.has(m.id) && (m.altMetin ?? "").trim()) cikti[m.id] = m.altMetin!.trim();
+  }
+  return cikti;
 }
 
 export async function oturumBaslat(sicil: string, egitimId: string): Promise<{ hata?: string; veri?: OyunVerisi }> {
@@ -118,11 +151,13 @@ export async function oturumBaslat(sicil: string, egitimId: string): Promise<{ h
   depo.izBirak(kokpit?.kullanici ?? "kiosk", `oturum açıldı: ${temiz} · ${egitim.ad}`);
 
   const pinYok = !depo.pinVarMi(temiz);
+  const sayfalar = depo.sayfalariGetir(egitimId);
   return {
     veri: {
       oturumId: oturum.id,
       egitim,
-      sayfalar: depo.sayfalariGetir(egitimId),
+      sayfalar,
+      altMetinler: altMetinleriTopla(sayfalar, sinav.map((s) => s.gorselId)),
       // Cevap anahtarı istemciye HİÇ inmez: eskiden `dogru` dizileriyle
       // birlikte gönderiliyordu, yani sınavın cevapları tek istekle
       // indirilebiliyordu.

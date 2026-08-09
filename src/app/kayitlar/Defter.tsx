@@ -6,12 +6,17 @@ import Icon from "@/components/Icon";
 import { csvYaz } from "@/lib/csv";
 import {
   BOS_SUZGEC,
+  damgaMetni,
+  duzeltmeHaritasi,
   kayitlariSuz,
+  kunyeliCsv,
   sayfala,
   sureMetni,
   suzgecAcikMi,
   suzgecOzeti,
   zamanMetni,
+  type BelgeKunyesi,
+  type DuzeltmeHaritasi,
   type KayitSatiri,
   type KayitSuzgeci,
   type SonucSuzgeci,
@@ -38,6 +43,17 @@ const SONUC_SECENEKLERI: SonucSuzgeci[] = ["gecti", "kaldi", "iptal", "acik"];
 
 /** Toplu sertifikada üst sınır: 500 sayfalık bir PDF tarayıcıyı kilitler. */
 const SERTIFIKA_SINIRI = 200;
+
+/**
+ * PDF'in okunur kalabildiği üst sınır — AŞAN ENGELLENMEZ, UYARILIR.
+ *
+ * Yük denemesi (`scripts/yuk.mjs`) 20 bin kayıtlık defterin PDF'ini 1,9
+ * saniyede basıyor; sorun süre değil, çıkan şey: 477 sayfalık bir PDF kimsenin
+ * okuyacağı bir belge değil ve yazıcıya gönderildiğinde bir kutu kâğıt eder.
+ * O hacimde doğru araç CSV. Yine de basmak isteyen basar — belgenin ne
+ * olacağını önceden bilerek. Sınır ~42 satır/sayfa üzerinden hesaplandı.
+ */
+const PDF_UYARI_SATIRI = 2000;
 
 const CSV_BASLIKLARI = [
   { anahtar: "tamamlama", etiket: "Tamamlama" },
@@ -98,11 +114,14 @@ export default function Defter({
   egitimler,
   bolumler,
   bugunGun,
+  kurum,
 }: {
   satirlar: KayitSatiri[];
   egitimler: { id: string; ad: string }[];
   bolumler: string[];
   bugunGun: string;
+  /** Ayarlardan gelen kurum adı — her çıktının künyesine yazılır. */
+  kurum: string;
 }) {
   const [suzgec, setSuzgec] = useState<KayitSuzgeci>(BOS_SUZGEC);
   const [sayfaBoyu, setSayfaBoyu] = useState(20);
@@ -113,6 +132,12 @@ export default function Defter({
   const suzulmus = useMemo(() => kayitlariSuz(satirlar, suzgec), [satirlar, suzgec]);
   const { gorunen, gecerliSayfa, sonSayfa } = sayfala(suzulmus, sayfa, sayfaBoyu);
   const gecenler = useMemo(() => suzulmus.filter((k) => k.sonuc === "gecti"), [suzulmus]);
+
+  /* DÜZELTME BAĞLARI TEK GEÇİŞTE çıkarılır ve tüm defter için hesaplanır
+     (süzülmüş liste için değil): düzeltme kaydı süzgecin dışında kalmış
+     olabilir ve o zaman eski satır "düzeltildi" işaretini kaybederdi —
+     denetimde en yanıltıcı hâl. */
+  const duzeltmeler = useMemo(() => duzeltmeHaritasi(satirlar), [satirlar]);
 
   function degistir(yama: Partial<KayitSuzgeci>) {
     setSuzgec((s) => ({ ...s, ...yama }));
@@ -126,9 +151,21 @@ export default function Defter({
     suzgec.sonuc ? SONUC_ETIKET[suzgec.sonuc] : "",
   );
 
+  /**
+   * Belgenin künyesi ÜRETİM ANINDA kurulur, sayfa açılışında değil.
+   *
+   * Sunucudan gelen tarih, sekme sabahtan beri açıksa dünün tarihi olabilir;
+   * "bu belge ne zaman üretildi" sorusunun cevabı, düğmeye basıldığı andır.
+   * Saat de yazılır: aynı gün içinde iki farklı süzgeçle alınmış iki belge
+   * yalnız günle ayırt edilemiyordu.
+   */
+  function kunyeKur(belge: string, kayitSayisi: number): BelgeKunyesi {
+    return { kurum, belge, uretim: damgaMetni(new Date()), kayitSayisi, suzgec: ozet };
+  }
+
   function csvIndir() {
     dosyaIndir(
-      csvYaz(CSV_BASLIKLARI, suzulmus.map(csvSatiri)),
+      kunyeliCsv(kunyeKur("Eğitim kayıt defteri", suzulmus.length), csvYaz(CSV_BASLIKLARI, suzulmus.map(csvSatiri))),
       `flowtrain-kayit-defteri-${bugunGun}.csv`,
       "text/csv;charset=utf-8",
     );
@@ -139,7 +176,7 @@ export default function Defter({
     setCalisiyor("pdf");
     // jsPDF + gömülü yazı tipi ağır: sayfa açılışında değil, basıldığında iner.
     const { kayitDefteriPdfIndir } = await import("@/lib/kayitPdf");
-    await kayitDefteriPdfIndir(suzulmus, ozet, bugunGun);
+    await kayitDefteriPdfIndir(suzulmus, kunyeKur("Eğitim kayıt defteri", suzulmus.length), bugunGun);
     setCalisiyor("");
   }
 
@@ -147,8 +184,9 @@ export default function Defter({
     if (calisiyor || kayitlar.length === 0) return;
     setCalisiyor("sertifika");
     const { sertifikaIndir } = await import("@/lib/sertifika");
+    const basilacak = kayitlar.slice(0, SERTIFIKA_SINIRI);
     await sertifikaIndir(
-      kayitlar.slice(0, SERTIFIKA_SINIRI).map((k) => ({
+      basilacak.map((k) => ({
         ad: k.ad,
         sicil: k.sicil,
         bolum: k.bolum,
@@ -163,6 +201,7 @@ export default function Defter({
         egitmen: k.egitmen,
         belgeNo: k.id,
       })),
+      kunyeKur("Eğitim kayıt belgesi", basilacak.length),
       bugunGun,
     );
     setCalisiyor("");
@@ -305,9 +344,20 @@ export default function Defter({
         </div>
       </div>
       <p className="mt-1 text-xs text-muted">
-        Çıktılar EKRANDAKİ SÜZGECİ izler ve süzgeç belgenin üstüne yazılır — denetimde &quot;bu liste neyin listesi&quot;
-        sorusu cevapsız kalmasın. Tüm atamaların durumu için Pano&apos;daki CSV kullanılır.
+        Çıktılar EKRANDAKİ SÜZGECİ izler. Her belgenin üstünde kurum adı, üretim anı, kayıt sayısı ve süzgeç özeti
+        yazar; PDF&apos;te bunlar her sayfanın altında tekrarlanır ve sayfa numarası bulunur — denetçi tek bir yaprağa
+        bakıp &quot;bu ne zaman, neyin listesi, kaç kayıt&quot; sorusunu cevaplayabilsin. Tüm atamaların durumu için
+        Pano&apos;daki CSV kullanılır.
       </p>
+      {/* SINIR DEĞİL UYARI: yük denemesinde 20 bin kayıtlık defter 477 sayfalık
+          bir PDF üretti — hızlı basılıyor ama okunacak bir belge değil. */}
+      {suzulmus.length > PDF_UYARI_SATIRI ? (
+        <p className="mt-1 text-xs text-orta-dark">
+          Bu süzgeçte <strong>{suzulmus.length}</strong> kayıt var; PDF yaklaşık{" "}
+          <strong>{Math.ceil(suzulmus.length / 42)} sayfa</strong> olur. Bu hacimde CSV daha kullanışlı — PDF&apos;i
+          daraltılmış bir süzgeçle almayı düşünün.
+        </p>
+      ) : null}
 
       {/* ── liste ─────────────────────────────────────────────────────────── */}
       {gorunen.length === 0 ? (
@@ -348,6 +398,14 @@ export default function Defter({
                   <td className="px-4 py-2.5">
                     {k.egitimAdi}
                     {k.zorunlu ? <span className="ml-1.5 text-xs font-semibold text-brand-dark">zorunlu</span> : null}
+                    {/* DÜZELTME ZİNCİRİ LİSTEDE GÖRÜNÜR. Eskiden bağ yalnız
+                        notun içindeki cümleydi ve kimse notu açmıyordu; bir
+                        satırın düzeltilmiş olduğunu görmeden okuyan denetçi
+                        yanlış kaydı geçerli sanıyordu. */}
+                    <DuzeltmeRozeti
+                      duzeltildi={duzeltmeler.duzeltilenler.has(k.id)}
+                      duzeltiyor={duzeltmeler.duzeltenler.has(k.id)}
+                    />
                   </td>
                   <td className="px-2 py-2.5 text-right font-mono text-xs text-muted">{k.egitimSurum}</td>
                   <td className="px-2 py-2.5 text-right text-xs text-muted">{sureMetni(k.sureSn)}</td>
@@ -413,18 +471,48 @@ export default function Defter({
       </div>
 
       {/* KAYDIN DEĞİŞMEZLİĞİ EKRANDA YAZAR: kullanıcı "düzenle" düğmesini
-          arayıp bulamamak yerine niçin olmadığını okusun. */}
-      <p className="card mt-6 p-5 text-sm text-muted">
-        <strong className="text-ink">Kayıtlar düzenlenmez ve silinmez.</strong> Değiştirilebilen bir tamamlama kaydı
-        denetimde hiçbir şey ispat etmez. Yanlış bir kayıt gördüyseniz doğrusunu{" "}
-        <Link href="/kayitlar/sinif" className="font-semibold text-accent">
-          yeni bir kayıt
-        </Link>{" "}
-        olarak girin ve gerekçesini kaydın notuna yazın — denetim izi her iki satırı da görür.
-      </p>
+          arayıp bulamamak yerine niçin olmadığını VE ne yapacağını okusun.
+          Eskiden burada yalnız kuralı yazıyorduk ve kullanıcıyı boş bir sınıf
+          formuna yolluyorduk; düzeltmenin nasıl yapılacağı belirsizdi. */}
+      <div className="card mt-6 p-5 text-sm text-muted">
+        <p>
+          <strong className="text-ink">Kayıtlar düzenlenmez ve silinmez.</strong> Değiştirilebilen bir tamamlama kaydı
+          denetimde hiçbir şey ispat etmez.
+        </p>
+        <p className="mt-2">
+          Yanlış bir kayıt gördüyseniz satırın sonundaki <Icon name="eye" size={13} className="inline" /> düğmesiyle
+          kaydı açın ve <strong className="text-ink">Düzeltme kaydı</strong> deyin. Doğrusu YENİ bir kayıt olarak
+          girilir, gerekçesi sorulur ve yeni satır &quot;hangi kaydın yerine geçtiğini&quot; notunda taşır. Eski satır
+          silinmez; defter ikisini de <span className="chip text-[11px]">düzeltildi</span> /{" "}
+          <span className="chip text-[11px]">düzeltme kaydı</span> olarak işaretler ve denetçi zincirin tamamını görür.
+        </p>
+      </div>
 
-      {secili ? <Ayrinti kayit={secili} onKapat={() => setSecili(null)} onSertifika={() => sertifikaBas([secili])} /> : null}
+      {secili ? (
+        <Ayrinti
+          kayit={secili}
+          duzeltmeler={duzeltmeler}
+          onKapat={() => setSecili(null)}
+          onSertifika={() => sertifikaBas([secili])}
+        />
+      ) : null}
     </div>
+  );
+}
+
+/**
+ * Düzeltme zincirinin satırdaki izi.
+ *
+ * İki ayrı rozet, çünkü iki ayrı anlam: "bu satır artık geçerli değil, yerine
+ * bir kayıt girildi" ile "bu satır bir başkasının yerine geçti". Tek rozetle
+ * gösterilseydi denetçi zincirin hangi ucunda olduğunu ayırt edemezdi.
+ */
+function DuzeltmeRozeti({ duzeltildi, duzeltiyor }: { duzeltildi: boolean; duzeltiyor: boolean }) {
+  if (!duzeltildi && !duzeltiyor) return null;
+  return (
+    <span className="ml-1.5 whitespace-nowrap text-xs font-semibold text-accent">
+      {duzeltildi ? "düzeltildi" : "düzeltme kaydı"}
+    </span>
   );
 }
 
@@ -448,13 +536,17 @@ function Alan({ etiket, deger }: { etiket: string; deger: string }) {
 
 function Ayrinti({
   kayit,
+  duzeltmeler,
   onKapat,
   onSertifika,
 }: {
   kayit: KayitSatiri;
+  duzeltmeler: DuzeltmeHaritasi;
   onKapat: () => void;
   onSertifika: () => void;
 }) {
+  const bunuDuzeltenler = duzeltmeler.duzeltilenler.get(kayit.id) ?? [];
+  const bununDuzelttigi = duzeltmeler.duzeltenler.get(kayit.id);
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-4" onClick={onKapat}>
       <div className="card max-h-[90vh] w-full max-w-lg overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
@@ -487,12 +579,43 @@ function Ayrinti({
           </div>
         ) : null}
 
+        {/* ZİNCİRİN İKİ UCU DA GÖSTERİLİR. Denetçinin sorusu "bu kayıt geçerli
+            mi" değil, "bu kaydın hikâyesi ne" — cevabı ancak iki yön birden
+            görününce tamamlanır. */}
+        {bunuDuzeltenler.length > 0 ? (
+          <p className="mt-3 rounded-xl border border-accent/40 bg-accent/5 px-3 py-2 text-sm">
+            <strong>Bu kayıt düzeltildi.</strong> Yerine geçen kayıt
+            {bunuDuzeltenler.length > 1 ? "lar" : ""}:{" "}
+            <span className="font-mono text-xs">{bunuDuzeltenler.join(", ")}</span>. Bu satır silinmedi, defterde
+            kalıyor.
+          </p>
+        ) : null}
+        {bununDuzelttigi ? (
+          <p className="mt-3 rounded-xl border border-accent/40 bg-accent/5 px-3 py-2 text-sm">
+            <strong>Bu bir düzeltme kaydı.</strong> <span className="font-mono text-xs">{bununDuzelttigi}</span>{" "}
+            numaralı kaydın yerine geçer.
+          </p>
+        ) : null}
+
         <p className="mt-4 font-mono text-xs text-muted">Kayıt no: {kayit.id}</p>
 
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           <button onClick={onKapat} className="btn-ghost text-sm">
             Kapat
           </button>
+          {/* DÜZELTMENİN KAPISI BURADA. Kayıt defterinde silme/düzenleme yok,
+              ama düzeltmenin bir yolu VAR ve bulunabilir olmalı; kullanıcı
+              önce kalem ikonunu arıyor, bulamayınca ürünü eksik sanıyordu.
+              Zaten düzeltilmiş bir kayda ikinci düzeltme teklif edilmez. */}
+          {bunuDuzeltenler.length === 0 ? (
+            <Link
+              href={`/kayitlar/sinif?duzelt=${encodeURIComponent(kayit.id)}`}
+              className="btn-ghost text-sm"
+              title="Bu kaydın yerine geçecek yeni bir kayıt girin — eski satır silinmez"
+            >
+              <Icon name="pencil" size={16} /> Düzeltme kaydı
+            </Link>
+          ) : null}
           {kayit.sonuc === "gecti" ? (
             <button onClick={onSertifika} className="btn-primary text-sm">
               <Icon name="print" size={16} /> Sertifika

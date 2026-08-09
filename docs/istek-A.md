@@ -1,85 +1,87 @@
 # Hat A — çekirdekten / diğer hatlardan istekler
 
-S2–S4 kapsamı editör tarafında bitti. Aşağıdakiler **benim dosyalarımın dışında**
-kaldığı için yapılmadı. Sıra önem sırasına göre.
+İkinci dalga (PPTX içe aktarma, alt metin, başarım, öksüz medya) bitti.
+Aşağıdakiler **benim dosyalarımın dışında** kaldığı için yapılmadı.
 
 ---
 
-## 1. Kiosk kartı çoklu görseli çizmiyor — **Hat D**
-
-**Dosya:** `src/components/oyun/Kart.tsx`
-
-Editör artık kart başına birden çok görsel tutuyor (`Sayfa.gorselIdler`,
-sıralanabilir, tek tek silinebilir). `Kart.tsx` ise hâlâ yalnız tekil
-`sayfa.gorselId`'yi çiziyor.
-
-Kaçağı önlemek için editör **her yazımda ikisini birden** güncelliyor:
-`gorselId` daima listenin ilkidir (`src/lib/editorMedya.ts` → `gorselYamasi`).
-Yani bugün kioskta **kapak görseli** doğru görünüyor, diğerleri görünmüyor.
-
-Canlı önizleme `Kart.tsx`i **ithal ediyor** (kopyalamıyor), dolayısıyla
-önizleme de yalnız kapağı gösteriyor — yani yalan söylemiyor, ama hazırlayan
-eklediği ikinci görseli hiçbir yerde göremiyor.
-
-**İstenen:** `Kart.tsx` görselleri `kartGorselleri(sayfa)` ile okusun
-(`@/lib/editorMedya`, saf fonksiyon, sunucu bağımlılığı yok) ve hepsini
-çizsin. Tek görselde bugünkü görünüm birebir korunmalı; ikiden fazlasında
-ızgara/yığın kararı Hat D'nin.
-
-```ts
-import { kartGorselleri } from "@/lib/editorMedya";
-const gorseller = kartGorselleri(sayfa); // tekil alan geriye dönük korunur
-```
-
-## 2. Soru görseli sınavda çizilmiyor — **Hat D**
-
-**Dosya:** `src/components/oyun/EgitimOyun.tsx` (sınav aşaması)
-
-`Soru.gorselId` alanı çekirdekte var, editörde artık **doldurulabiliyor**
-("Soru görseli ekle"), ama oynatıcının sınav ekranı yalnız `soru.metin` ve
-şıkları çiziyor. "Bu fotoğraftaki hangi davranış yanlış?" sorusu bugün
-kioskta görselsiz çıkıyor.
-
-Aynı ekranda `Soru.aciklama` da var (yanlış cevaplayana gösterilecek
-açıklama, S2'de Hat D'ye yazılmıştı) — editör onu da dolduruyor.
-
-## 3. Kart silinince medya dosyası diskte kalıyor — **çekirdek**
+## 1. İÇE AKTARILAN GÖRSELLER MEDYA TABLOSUNDA YOK — **çekirdek** (en önemli)
 
 **Dosya:** `src/lib/depo.ts`
 
-`sayfaSil` / `soruSil` / `egitimSil` yalnız satırı siliyor; `data/medya/`
-altındaki dosya kalıyor ve kütüphanede kullanımı `0` görünen bir kayda
-dönüşüyor. Editörden tek tek silinebiliyor ama kimse temizlemez.
+PDF ve PPTX kapıları görselleri `kutuphane=hayir` ile yüklüyor (bilinçli:
+kırk slaytlık bir sunum kütüphaneyi kırk tane `image7.png` ile doldurur ve
+yeniden kullanılacak fotoğraf aralarında kaybolur). Sonuç: o dosyaların
+`medya` tablosunda **satırı yok.** Bunun iki sessiz bedeli var:
+
+**a) `oksuzMedyalar()` onları HİÇ göremiyor.** Liste `medyalariGetir()`
+üzerinden kuruluyor; satırı olmayan dosya öksüz sayılmıyor. Yani kartı
+silinen bir PDF sayfası `data/medya/` altında **sonsuza kadar** kalıyor —
+tam da bu isteğin (birinci dalga, madde 3) çözmek istediği şey. Öksüz
+temizliği bugün yalnız kütüphaneye elle yüklenmiş görselleri topluyor.
+
+**b) `medyaAltMetinYaz()` hiçbir satırı güncellemiyor.** `UPDATE` olduğu için
+satır yoksa sessizce kayboluyor; kullanıcı alt metni yazıyor, hiçbir şey
+olmuyor. Bugün eylem dosyamda (`egitimler/[id]/eylemler.ts` →
+`medyaAltMetinEylem`) dosyayı `stat`layıp boyut/tür türeterek `medyaKaydet`
+ile satırı **ben açıyorum** — çalışıyor ama o görseli kütüphaneye de sokuyor.
 
 **İstenen (biri yeterli):**
-- `depo.oksuzMedyalar(): string[]` — hiçbir kartta/soruda geçmeyen medya
-  kimlikleri; ayarlar ekranından toplu temizlik yapılabilir, ya da
-- silme işlemlerinin içinde referans düşünce dosyayı da kaldıran bir kanca.
 
-Dosya silmeyi kendi eylem dosyamda yapıyorum (`medyaSilEylem`), o yüzden
-çekirdekten yalnız **listeye** ihtiyacım var, silme koduna değil.
+- `Medya.kutuphaneDisi: boolean` — içe aktarılan görsel KAYITLI olur ama
+  `medyalariGetir()` (kütüphane listesi) onu göstermez. Öksüz taraması ve
+  alt metin doğal olarak çalışır. Tercihim bu.
+- ya da: diskteki dosyaları tarayıp hiçbir kayıtta/kartta geçmeyenleri
+  döndüren `oksuzDosyalar(): string[]` + `medyaAltMetinYaz`ın upsert olması.
 
-## 4. `medyaKullanimi` N+1 sorgu üretiyor — **çekirdek** (düşük öncelik)
+## 2. Kategori normalizasyonu — **çekirdek / Hat B** (düşük öncelik)
 
-Editör sayfası kütüphanedeki her medya için ayrı bir `medyaKullanimi(id)`
-çağırıyor. Bugünkü hacimde (yerel SQLite, birkaç yüz görsel) sorun değil;
-kütüphane binlere çıkarsa `medyaKullanimlariGetir(): Record<string, number>`
-gibi tek sorguluk bir karşılık iyi olur.
+Birinci dalgadan devrediyor. `kategori` serbest metin ve editörde mevcutlar
+`datalist` ile öneriliyor, ama "İSG" / "isg" / "İş Güvenliği" hâlâ üç ayrı
+kategori olabiliyor. Büyük/küçük harf duyarsız gruplama katalog süzgecinde mi
+(Hat B) yoksa `kategorileriGetir()` içinde mi olmalı, koordinatör karar versin.
 
-## 5. Kategori normalizasyonu — **çekirdek / Hat B** (düşük öncelik)
+## 3. `sayfalariTopluEkleEylem` yalnız görsel kart üretiyor — **çekirdek** (bilgi)
 
-`kategori` serbest metin ve editörde mevcutlar `datalist` ile öneriliyor, ama
-"İSG" / "isg" / "İş Güvenliği" hâlâ üç ayrı kategori olabiliyor. Katalog
-süzgeci Hat B'de; büyük/küçük harf duyarsız gruplama orada mı yoksa
-`kategorileriGetir()` içinde mi olmalı, koordinatör karar versin.
+**Dosya:** `src/app/eylemler.ts`
+
+Kök eylem `{gorselId, baslik}` alıyor; PDF kapısının ürettiği şey bu. PPTX'ten
+gövde METNİ ve birden çok görsel geliyor, o yüzden kendi eylemimi yazdım
+(`egitimler/[id]/eylemler.ts` → `pptxKartlariEkleEylem`). Bir şey kırılmıyor;
+yalnız iki toplu ekleme eylemi var. Kök eylem `Partial<Sayfa>` alacak şekilde
+genişletilirse benimkini silerim.
+
+---
+
+## Birinci dalgadan KARŞILANANLAR (kapandı)
+
+- **Kiosk kartı çoklu görseli çizmiyor** → Hat D `Kart.tsx`i `kartGorselleri`
+  ile yeniden yazdı, `gorseller.ts` saf yerleşim mantığını taşıyor. ✔
+- **Soru görseli sınavda çizilmiyor** → `EgitimOyun` sınav aşaması artık
+  `soru.gorselId`i ve `soru.aciklama`yı çiziyor. ✔
+- **Kart silinince medya diskte kalıyor** → `depo.oksuzMedyalar()` geldi;
+  editöre "kullanılmayan N medya var — temizle" yolu kuruldu. Kısmen: yukarıdaki
+  madde 1'e bakın, içe aktarılan görseller hâlâ kapsam dışı. ◐
+- **`medyaKullanimi` N+1** → `depo.medyaKullanimlariGetir()` geldi ve editör
+  sayfası onu kullanıyor. Ölçüldü: 300 medyada 30,6 ms → 1,0 ms;
+  2000 medyada 199 ms → 5,3 ms. ✔
+- **`Medya.altMetin`** → çekirdekte açıldı, editör dolduruyor, kiosk/ziyaretçi
+  okuyor. ✔
 
 ---
 
 ## Notlar
 
-- `npm test` bende **7/8**. Düşen tek doğrulama benim değil:
-  `sinir.test.mjs` → `✗ dış alan adı geçen dosya: src/lib/qr.ts` (Hat B).
-  "Kapalı ağ" kuralı gereği o dosyadaki dış alan adı kaldırılmalı.
-- `npx tsc --noEmit` temiz.
-- **Yeni npm paketi eklenmedi.** Ölçekli önizleme, medya seçici ve kontrol
-  listesi dış bağımlılık olmadan yazıldı.
+- `npx tsc --noEmit` temiz. `npm test` **16/16 dosya** geçiyor.
+- **Yeni npm paketi eklenmedi.** PPTX ayrıştırıcısı (ZIP merkezi dizini + küçük
+  XML ayrıştırıcı) `src/lib/pptx.ts` içinde kendi kodumuz; sıkıştırmayı
+  tarayıcının yerleşik `DecompressionStream("deflate-raw")`i açıyor.
+- `src/app/api/medya/route.ts`e **GIF** eklendi (sunumlarda ok/işaret
+  grafikleri sık sık GIF). SVG bilerek eklenmedi: kendi kökenimizden sunulan
+  SVG script çalıştırabilir.
+- **Hat D'ye sınav önerisi** — `src/lib/pptx.ts` saf ve sınavlanabilir yazıldı,
+  hiçbir fonksiyonu DOM'a/ağa/depoya dokunmuyor. Sınavlanması gerekenler:
+  `zipGirdileri`, `girdiAc`, `xmlAyristir`, `varlikCoz`, `dugumleriBul`,
+  `metniTopla`, `slaytCoz`, `iliskileriCoz`, `yolCoz`, `slaytSirasi`, `pptxCoz`.
+  Elde .pptx dosyası yoksa `CompressionStream("deflate-raw")` ile sınav içinde
+  gerçek bir ZIP üretilebiliyor (ben böyle doğruladım).

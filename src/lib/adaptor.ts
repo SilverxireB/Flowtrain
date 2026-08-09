@@ -26,6 +26,17 @@ export interface PersonelKaynagi {
    * ekranı kendini salt okunur gösterir — ekran adaptörü SORMAZ, yeteneğe bakar.
    */
   yonetim?: PersonelYonetimi
+
+  /**
+   * `/personel` listesinin tam kayıtları — maliyet merkezi dahil.
+   *
+   * `listele()` çekirdek tipi `Kisi`yi döner ve maliyet merkezi orada YOKTUR
+   * (OPM'e özel alan çekirdeğe girmez). Ekranın o sütuna ihtiyacı var, ama
+   * onu `yonetim`den okumak salt okunur kaynakta listeyi BOŞ bırakıyordu:
+   * "düzenlenemez" ile "hiç kayıt yok" bambaşka şeyler. Görüntüleme ve
+   * düzenleme yetenekleri bu yüzden ayrı.
+   */
+  kayitlar?(): Promise<PersonelKaydi[]>
 }
 
 /**

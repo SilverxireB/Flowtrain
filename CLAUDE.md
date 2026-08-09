@@ -106,10 +106,15 @@ misafirle sulandırırdı.
 
 ## Sınavlar
 
-- `npm test` — saf mantık (kurallar · sinav · anomali · csv · pin · sinir ·
-  yetki · ziyaretci), 8 dosya / 207 doğrulama.
-- `npm run e2e` — GERÇEK tarayıcı + GERÇEK sunucu, tüm zincir, 37 doğrulama.
-  Geçici veri klasörü kurar, kurulumun verisine dokunmaz.
+- `npm test` — saf mantık ve şema (kurallar · sinav · anomali · csv · pin ·
+  sinir · yetki · ziyaretci · qr · aktarım · paket · erişilebilirlik ·
+  oynatıcı · **yükseltme** · **güvenlik**), 16 dosya / ~760 doğrulama.
+- `npm run e2e` — GERÇEK tarayıcı + GERÇEK sunucu, tüm zincir. Geçici veri
+  klasörü kurar, kurulumun verisine dokunmaz. **Playwright gerekir:**
+  `npm install --no-save playwright && npx playwright install chromium`.
+- `node scripts/yuk.mjs` — fabrika ölçeğinde başarım (1000 kişi · 60 eğitim ·
+  20 000 kayıt). Kabul ölçütü: kiosk 1 sn, kokpit 3 sn. Ölçüt aşılırsa çıkış
+  kodu 1. **Demo veride görünmeyen kareli maliyetler yalnız burada çıkar.**
 
 **İkisi de gerekli, biri diğerinin yerini tutmaz.** Birim sınavlar
 küçültülmemiş kod koşar: SWC'nin `ayiriciBul`ı bozduğu hatayı (parametre

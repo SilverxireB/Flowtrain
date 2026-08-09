@@ -151,6 +151,16 @@ body {
       focus-visible:ring-accent-soft disabled:opacity-30 disabled:cursor-default;
   }
 
+  /* Simge-yalnız dokunma hedefi (kioskta çıkış ×). Kokpitin `.btn-icon`ı 36px
+     ve eldivenle ıskalanıyor; burada ölçü 72px'te sabit. Sınıf olarak duruyor
+     çünkü ölçüler satır içi yazıldığında ikinci simge düğmesinde kopyalanır ve
+     biri er geç küçük kalır. */
+  .kiosk-btn-ikon {
+    @apply inline-grid h-[72px] w-[72px] shrink-0 place-items-center rounded-2xl
+      text-muted transition-colors hover:bg-line/60 hover:text-ink
+      focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
+  }
+
   /* Kiosk'ta seçilebilir şık: seçili hâli UZAKTAN okunmalı (renk tek başına
      yetmez — kalın kenar + dolgu birlikte). */
   .kiosk-secenek {

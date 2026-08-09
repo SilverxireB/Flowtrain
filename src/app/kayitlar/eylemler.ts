@@ -13,6 +13,7 @@ import {
   type AktarimKaydi,
   type AktarimRaporu,
 } from "@/lib/kayitAktarim";
+import { duzeltmeNotu } from "@/lib/rapor";
 import type { OturumKaynagi } from "@/lib/tipler";
 
 /**
@@ -94,6 +95,29 @@ export interface SinifGirdisi {
   notlar: string;
   /** Satır satır yapıştırılan katılımcı listesi. */
   liste: string;
+  /**
+   * DÜZELTME KAYDI: hangi kaydın yerine geçtiği (defterdeki oturum kimliği).
+   *
+   * Doluysa iki şey değişir: (1) aynı kişi/eğitim/gün için mükerrer denetimi
+   * aşılır — yoksa "kayıt zaten var" diyerek düzeltmenin kendisini engellerdi,
+   * (2) not alanının BAŞINA düzeltilen belgenin numarası yazılır. Not
+   * kullanıcının eline bırakılsaydı bağ her seferinde başka biçimde yazılır ve
+   * defter iki satırı birbirine bağlayamazdı.
+   */
+  duzeltilen?: string;
+}
+
+/**
+ * Düzeltme kaydının gerçekten bir kaydı düzeltip düzeltmediğini SUNUCUDA
+ * doğrular ve nota bağı yazar. İstemciden gelen kimliğe güvenilmez: olmayan bir
+ * belge numarası, defterde hiçbir şeye bağlanmayan bir "düzeltme" satırı
+ * bırakırdı — denetimde en kötü satır türü.
+ */
+function duzeltmeyiCoz(girdi: SinifGirdisi): { notlar: string; mukerrerIzni: boolean; hata?: string } {
+  if (!girdi.duzeltilen) return { notlar: girdi.notlar, mukerrerIzni: false };
+  const eski = depo.oturumGetir(girdi.duzeltilen);
+  if (!eski) return { notlar: girdi.notlar, mukerrerIzni: false, hata: "Düzeltilecek kayıt bulunamadı." };
+  return { notlar: duzeltmeNotu(eski.id, girdi.notlar), mukerrerIzni: true };
 }
 
 /** ÖNİZLEME: kaydetmeden önce kimin gireceğini ve kimin neden atlanacağını gösterir. */
@@ -101,20 +125,30 @@ export async function sinifDenetleEylem(girdi: SinifGirdisi): Promise<AktarimCev
   kapi("hazirlayan", "/kayitlar/sinif");
   const hata = sinifHatasi(girdi);
   if (hata) return { hata };
+  const d = duzeltmeyiCoz(girdi);
+  if (d.hata) return { hata: d.hata };
   const baglam = await baglamKur();
-  return { rapor: sinifListesiniCoz(girdi.liste, girdi.egitimId, girdi.gun, girdi.egitmen, girdi.notlar, baglam) };
+  return {
+    rapor: sinifListesiniCoz(girdi.liste, girdi.egitimId, girdi.gun, girdi.egitmen, d.notlar, baglam, {
+      mukerrerIzni: d.mukerrerIzni,
+    }),
+  };
 }
 
 export async function sinifKaydetEylem(girdi: SinifGirdisi): Promise<AktarimCevabi> {
   const ben = kapi("hazirlayan", "/kayitlar/sinif");
   const hata = sinifHatasi(girdi);
   if (hata) return { hata };
+  const d = duzeltmeyiCoz(girdi);
+  if (d.hata) return { hata: d.hata };
 
   /* Liste SUNUCUDA yeniden çözülür. Önizlemeden gelen satırlara güvenmek,
      ekranda "atlandı" görünen bir sicilin istek gövdesi değiştirilerek
      yazdırılması demekti — kayıt üreten bir uç noktada bu kabul edilemez. */
   const baglam = await baglamKur();
-  const rapor = sinifListesiniCoz(girdi.liste, girdi.egitimId, girdi.gun, girdi.egitmen, girdi.notlar, baglam);
+  const rapor = sinifListesiniCoz(girdi.liste, girdi.egitimId, girdi.gun, girdi.egitmen, d.notlar, baglam, {
+    mukerrerIzni: d.mukerrerIzni,
+  });
   const kayitlar = rapor.satirlar.map((s) => s.kayit).filter((k): k is AktarimKaydi => !!k);
   if (kayitlar.length === 0) return { rapor, yazilan: 0 };
 
@@ -122,7 +156,9 @@ export async function sinifKaydetEylem(girdi: SinifGirdisi): Promise<AktarimCeva
   const egitim = depo.egitimGetir(girdi.egitimId);
   depo.izBirak(
     ben.kullanici,
-    `sınıf eğitimi kaydı: ${egitim?.ad ?? girdi.egitimId} · ${girdi.gun} · eğitmen ${girdi.egitmen.trim()} · ${yazilan} katılımcı`,
+    girdi.duzeltilen
+      ? `düzeltme kaydı: ${girdi.duzeltilen} numaralı kaydın yerine · ${egitim?.ad ?? girdi.egitimId} · ${girdi.gun} · ${yazilan} kayıt`
+      : `sınıf eğitimi kaydı: ${egitim?.ad ?? girdi.egitimId} · ${girdi.gun} · eğitmen ${girdi.egitmen.trim()} · ${yazilan} katılımcı`,
   );
   tazele();
   return { rapor, yazilan };
@@ -131,9 +167,17 @@ export async function sinifKaydetEylem(girdi: SinifGirdisi): Promise<AktarimCeva
 function sinifHatasi(girdi: SinifGirdisi): string | null {
   if (!girdi.egitimId) return "Eğitim seçin.";
   if (!tarihiCoz(girdi.gun)) return "Geçerli bir tarih girin.";
-  // Eğitmen adı zorunlu: sınıf kaydının kiosk kaydından tek farkı, arkasında
-  // duran insanın adıdır. Boş bırakılırsa kayıt kimin sözüne dayanıyor bilinmez.
-  if (!girdi.egitmen.trim()) return "Eğitmen adı zorunlu — kayıt kimin beyanına dayanıyor, denetimde bu sorulur.";
+  /* DÜZELTMEDE GEREKÇE, SINIFTA EĞİTMEN ZORUNLU — ikisi de aynı soruyu
+     cevaplıyor: "bu kayıt kimin beyanına dayanıyor?" Sınıf kaydında cevap
+     dersi veren kişidir. Düzeltmede ise kaydın arkasında bir ders yok, bir
+     KARAR var; denetçinin soracağı şey eğitmenin adı değil, önceki kaydın
+     neden yanlış olduğudur. Düzeltmede eğitmen istemek de anlamsızdı: kiosk
+     kaydını düzelten kişinin yazacağı bir eğitmen adı yok. */
+  if (girdi.duzeltilen) {
+    if (!girdi.notlar.trim()) return "Düzeltme gerekçesi zorunlu — denetimde sorulan soru, önceki kaydın neden yanlış olduğudur.";
+  } else if (!girdi.egitmen.trim()) {
+    return "Eğitmen adı zorunlu — kayıt kimin beyanına dayanıyor, denetimde bu sorulur.";
+  }
   if (!girdi.liste.trim()) return "Katılımcı listesi boş.";
   return null;
 }

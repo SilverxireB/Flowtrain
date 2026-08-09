@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { aktifHesap, yetkili } from "@/lib/kimlik";
 import { csvYaz } from "@/lib/csv";
+import * as depo from "@/lib/depo";
 import { tumAtamalar } from "@/lib/atamaServis";
 import { DURUM_ETIKET } from "@/lib/kurallar";
+import { damgaMetni, kunyeliCsv, kurumAdiMetni } from "@/lib/rapor";
 import { bugun } from "@/lib/db";
 
 /**
@@ -11,13 +13,16 @@ import { bugun } from "@/lib/db";
  * TERS KURAL (bilinçli): ekranlardaki süzgeç neyi gizlerse gizlesin, dışa
  * aktarma HER ZAMAN tam listeyi verir. Denetimde eksik belge, hiç belge
  * olmamasından kötüdür — "bunlar da vardı ama süzgeç kapatmıştı" savunması yok.
+ *
+ * Tam liste olması künyeyi GEREKSİZ KILMAZ, tersine: dosyanın üstünde
+ * "süzgeç yok" yazması, listenin kırpılmadığının belgedeki tek kanıtıdır.
  */
 export async function GET() {
   const hesap = aktifHesap();
   if (!yetkili(hesap, "hazirlayan")) return new NextResponse("Yetki yok", { status: 403 });
 
   const satirlar = await tumAtamalar();
-  const csv = csvYaz(
+  const govde = csvYaz(
     [
       { anahtar: "sicil", etiket: "Sicil" },
       { anahtar: "ad", etiket: "Ad" },
@@ -46,6 +51,17 @@ export async function GET() {
       tamamlama: s.sonOturum?.bitis?.slice(0, 16).replace("T", " ") ?? "",
       gozeten: s.sonOturum?.gozeten ?? "",
     })),
+  );
+
+  const csv = kunyeliCsv(
+    {
+      kurum: kurumAdiMetni(depo.ayarOku("kurumAdi")),
+      belge: "Eğitim durumu — tüm atamalar",
+      uretim: damgaMetni(new Date()),
+      kayitSayisi: satirlar.length,
+      suzgec: "Süzgeç yok — tüm atamalar.",
+    },
+    govde,
   );
 
   return new NextResponse(csv, {

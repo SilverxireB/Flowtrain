@@ -527,9 +527,15 @@ export function oturumKaydet(veri: {
  */
 export function eskiOturumlariKapat(sicil: string, egitimId: string, saat = 2): number {
   const sinir = new Date(Date.now() - saat * 3_600_000).toISOString();
+  /* SEBEP YAZILIYOR: defterde "iptal" satırının neden iptal olduğu
+     görünmezse denetçi ağ kopmasıyla vazgeçmeyi ayırt edemez ve her iptal
+     şüpheli görünür. */
   const r = db()
-    .prepare("UPDATE oturum SET bitis=?, sonuc='iptal', senkron='gonderildi' WHERE sicil=? AND egitimId=? AND bitis IS NULL AND baslangic < ?")
-    .run(simdi(), sicil, egitimId, sinir);
+    .prepare(
+      "UPDATE oturum SET bitis=?, sonuc='iptal', senkron='gonderildi', " +
+        "notlar=COALESCE(notlar, ?) WHERE sicil=? AND egitimId=? AND bitis IS NULL AND baslangic < ?",
+    )
+    .run(simdi(), `${saat} saat içinde tamamlanmadı, kendiliğinden kapatıldı`, sicil, egitimId, sinir);
   return r.changes;
 }
 
@@ -724,17 +730,56 @@ export function grupUyeleriYaz(grupId: string, egitimIdleri: string[]): void {
 
 /* ── medya kütüphanesi ────────────────────────────────────────────────────── */
 
-export function medyalariGetir(): Medya[] {
-  return db().prepare("SELECT * FROM medya ORDER BY olusturma DESC").all() as Medya[];
+/**
+ * Medya kayıtları.
+ *
+ * VARSAYILAN KÜTÜPHANE GÖRÜNÜMÜ: içe aktarılan sayfa görselleri (`kutuphaneDisi`)
+ * elenir — kırk sayfalık bir sunum seçiciyi kullanılamaz hâle getirirdi.
+ * `hepsi: true` bakım işleri içindir (öksüz taraması gibi): orada tam liste
+ * gerekir, yoksa temizlik göremediği dosyayı hiç silmez.
+ */
+export function medyalariGetir(hepsi = false): Medya[] {
+  // Ham satır DÖNDÜRÜLMÜYOR: SQLite boş alanı `null`, mantıksalı 0/1 verir;
+  // tip ise `altMetin?: string` ve `kutuphaneDisi: boolean` diyor. Dönüşüm
+  // sınırda yapılmazsa `null` ekranlara sızar ve `?? varsayilan` kontrolleri
+  // sessizce yanlış çalışır.
+  const sorgu = hepsi
+    ? "SELECT * FROM medya ORDER BY olusturma DESC"
+    : "SELECT * FROM medya WHERE kutuphaneDisi=0 ORDER BY olusturma DESC";
+  return db()
+    .prepare(sorgu)
+    .all()
+    .map((satir) => {
+      const r = satir as Satir;
+      return {
+        id: r.id as string,
+        ad: r.ad as string,
+        tip: r.tip as string,
+        boyut: r.boyut as number,
+        yukleyen: r.yukleyen as string,
+        olusturma: r.olusturma as string,
+        altMetin: (r.altMetin as string) ?? undefined,
+        kutuphaneDisi: !!r.kutuphaneDisi,
+      };
+    });
 }
 
-export function medyaKaydet(m: Omit<Medya, "olusturma">): void {
+export function medyaKaydet(m: Omit<Medya, "olusturma" | "kutuphaneDisi"> & { kutuphaneDisi?: boolean }): void {
   db()
     .prepare(
-      "INSERT INTO medya (id,ad,tip,boyut,yukleyen,olusturma) VALUES (?,?,?,?,?,?) " +
+      "INSERT INTO medya (id,ad,tip,boyut,yukleyen,olusturma,altMetin,kutuphaneDisi) VALUES (?,?,?,?,?,?,?,?) " +
         "ON CONFLICT(id) DO UPDATE SET ad=excluded.ad",
     )
-    .run(m.id, m.ad, m.tip, m.boyut, m.yukleyen, simdi());
+    .run(m.id, m.ad, m.tip, m.boyut, m.yukleyen, simdi(), m.altMetin ?? null, m.kutuphaneDisi ? 1 : 0);
+}
+
+/**
+ * Alt metni AYRI yazılır: `medyaKaydet` yükleme anında çağrılıyor ve o an
+ * kimse görselin ne gösterdiğini yazmış olmaz. Çakışma çözümünde alt metni
+ * korunuyor — yeniden yükleme yazılmış açıklamayı silmemeli.
+ */
+export function medyaAltMetinYaz(id: string, altMetin: string): void {
+  db().prepare("UPDATE medya SET altMetin=? WHERE id=?").run(altMetin.trim() || null, id);
 }
 
 export function medyaSil(id: string): void {
@@ -788,7 +833,9 @@ export function medyaKullanimlariGetir(): Record<string, number> {
  */
 export function oksuzMedyalar(): string[] {
   const kullanim = medyaKullanimlariGetir();
-  return medyalariGetir()
+  // TAM liste taranıyor: içe aktarılan sayfa görselleri kütüphanede
+  // görünmüyor ama kartı silindiğinde diskte kalan asıl çöp onlar.
+  return medyalariGetir(true)
     .filter((m) => !kullanim[m.id])
     .map((m) => m.id);
 }

@@ -5,6 +5,7 @@ import Icon from "@/components/Icon";
 import * as depo from "@/lib/depo";
 import * as zdepo from "@/lib/ziyaretciDepo";
 import { ilerleme } from "@/lib/ziyaretci";
+import { kartGorselleri } from "@/components/oyun/gorseller";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,24 @@ export default function ZiyaretciTablet({ params }: { params: { id: string } }) 
     );
   }
 
-  return <Tablet ziyaretciId={z.id} ziyaretciAdi={z.ad} adimlar={adimlar} bastanTamam={durum.durum === "tamam"} />;
+  /* Alt metinleri YALNIZ bu ziyaretçinin göreceği görseller için iner.
+     Kütüphanenin tamamını hesapsız bir sayfaya gömmek, bağlantıyı eline geçiren
+     birine fabrikanın eğitim içeriğinin dökümünü verirdi (kioskla aynı gerekçe). */
+  const kullanilan = new Set(adimlar.flatMap((a) => a.sayfalar.flatMap(kartGorselleri)));
+  const altMetinler: Record<string, string> = {};
+  for (const m of depo.medyalariGetir()) {
+    if (kullanilan.has(m.id) && (m.altMetin ?? "").trim()) altMetinler[m.id] = m.altMetin!.trim();
+  }
+
+  return (
+    <Tablet
+      ziyaretciId={z.id}
+      ziyaretciAdi={z.ad}
+      adimlar={adimlar}
+      altMetinler={altMetinler}
+      bastanTamam={durum.durum === "tamam"}
+    />
+  );
 }
 
 function Bos({ baslik, metin }: { baslik: string; metin: string }) {

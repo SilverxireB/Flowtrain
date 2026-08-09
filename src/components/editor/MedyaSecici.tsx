@@ -14,7 +14,8 @@ import { boyutMetni, gorselMi, type MedyaOzet } from "@/lib/editorMedya";
  * yukarıda tek satır olarak durur.
  *
  * Silme burada, listede: kütüphaneyi ayrı bir yönetim ekranına taşımak
- * "sonra temizlerim" demekti — kimse temizlemezdi.
+ * "sonra temizlerim" demekti — kimse temizlemezdi. Aynı sebeple ALT METİN de
+ * burada: görselin ne gösterdiğini yazacak an, onu seçtiğiniz andır.
  */
 export default function MedyaSecici({
   tur,
@@ -22,6 +23,7 @@ export default function MedyaSecici({
   onSec,
   onKapat,
   onMedyaSil,
+  onAltMetin,
 }: {
   /** Görsel mi video mu aranıyor — kütüphane buna göre süzülür. */
   tur: "gorsel" | "video";
@@ -30,6 +32,7 @@ export default function MedyaSecici({
   onSec: (id: string) => void;
   onKapat: () => void;
   onMedyaSil: (id: string) => void;
+  onAltMetin: (medyaId: string, altMetin: string) => void;
 }) {
   const [yukleniyor, setYukleniyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
@@ -57,7 +60,7 @@ export default function MedyaSecici({
   }
 
   const suzulmus = medyalar.filter(
-    (m) => gorselMi(m.id) !== video && m.ad.toLocaleLowerCase("tr").includes(arama.toLocaleLowerCase("tr")),
+    (m) => gorselMi(m.id) !== video && aramayaUyar(m, arama),
   );
 
   return (
@@ -90,7 +93,7 @@ export default function MedyaSecici({
           <input
             ref={dosyaGirdi}
             type="file"
-            accept={video ? "video/mp4,video/webm" : "image/png,image/jpeg,image/webp"}
+            accept={video ? "video/mp4,video/webm" : "image/png,image/jpeg,image/webp,image/gif"}
             onChange={dosyaSec}
             className="hidden"
           />
@@ -109,6 +112,13 @@ export default function MedyaSecici({
         ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          {!video && suzulmus.length > 0 ? (
+            <p className="mb-3 text-xs text-muted">
+              Alt metin <strong>ekran okuyucuya</strong> okunur: görselin ne gösterdiğini yazın, dosya adını değil.
+              Bir kez yazılır, görselin kullanıldığı her kartta geçerlidir.
+            </p>
+          ) : null}
+
           {suzulmus.length === 0 ? (
             <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-muted">
               {medyalar.length === 0
@@ -135,10 +145,21 @@ export default function MedyaSecici({
                       <span className="block truncate text-xs font-semibold">{m.ad || m.id}</span>
                       <span className="block text-[11px] text-muted">
                         {boyutMetni(m.boyut)}
-                        {m.kullanim > 0 ? ` · ${m.kullanim} yerde` : ""}
+                        {m.kullanim > 0 ? ` · ${m.kullanim} yerde` : " · kullanılmıyor"}
                       </span>
                     </span>
                   </button>
+
+                  {!video ? (
+                    <input
+                      defaultValue={m.altMetin ?? ""}
+                      onBlur={(e) => e.target.value !== (m.altMetin ?? "") && onAltMetin(m.id, e.target.value)}
+                      placeholder="Bu görsel ne gösteriyor?"
+                      aria-label={`${m.ad || m.id} için alt metin`}
+                      className="input-base mt-1 px-2 py-1 text-[11px]"
+                    />
+                  ) : null}
+
                   <button
                     onClick={() =>
                       confirm(
@@ -168,5 +189,22 @@ export default function MedyaSecici({
 
       {dialog}
     </div>
+  );
+}
+
+/**
+ * Arama hem dosya adında hem ALT METİNDE arar.
+ *
+ * MODÜL SEVİYESİNDE: `csv.ts`teki küçültücü tuzağı — parametre yakalayıp
+ * birden çok kez çağrılan yardımcı — burada da mümkündü.
+ *
+ * Alt metinde aramanın sebebi: dosya adı `mdy_lz3k9a.jpg`, açıklama ise
+ * "baret takmış kaynakçı". Aranan şey ikincisidir.
+ */
+function aramayaUyar(m: MedyaOzet, arama: string): boolean {
+  if (arama.trim() === "") return true;
+  const a = arama.toLocaleLowerCase("tr");
+  return (
+    m.ad.toLocaleLowerCase("tr").includes(a) || (m.altMetin ?? "").toLocaleLowerCase("tr").includes(a)
   );
 }

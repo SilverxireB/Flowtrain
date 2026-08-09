@@ -10,9 +10,15 @@ const IZINLI: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/webp": "webp",
+  // GIF, PPTX içe aktarımı için: sunumlarda ok/işaret grafikleri sık sık GIF.
+  // Animasyonu kioskta sorun değil, kart görseli zaten ekranda duruyor.
+  "image/gif": "gif",
   "video/mp4": "mp4",
   "video/webm": "webm",
 };
+// SVG BİLEREK YOK: kendi kökenimizden sunulan bir SVG script çalıştırabilir
+// (medya kapısı `<img>` ile çizdiğimizi varsayamaz). Kapalı ağ, "içeriden
+// gelen dosya güvenlidir" demek değil.
 
 const EN_BUYUK = 200 * 1024 * 1024; // 200 MB — hat videosu için bolca yeter
 
@@ -25,6 +31,7 @@ function turTutuyorMu(bas: Buffer, tur: string): boolean {
   const png = bas[0] === 0x89 && bas[1] === 0x50 && bas[2] === 0x4e && bas[3] === 0x47;
   const jpg = bas[0] === 0xff && bas[1] === 0xd8 && bas[2] === 0xff;
   const webp = bas.subarray(0, 4).toString("ascii") === "RIFF" && bas.subarray(8, 12).toString("ascii") === "WEBP";
+  const gif = bas.subarray(0, 4).toString("ascii") === "GIF8";
   const mp4 = bas.subarray(4, 8).toString("ascii") === "ftyp";
   const webm = bas[0] === 0x1a && bas[1] === 0x45 && bas[2] === 0xdf && bas[3] === 0xa3;
   switch (tur) {
@@ -34,6 +41,8 @@ function turTutuyorMu(bas: Buffer, tur: string): boolean {
       return jpg;
     case "image/webp":
       return webp;
+    case "image/gif":
+      return gif;
     case "video/mp4":
       return mp4;
     case "video/webm":
@@ -75,18 +84,20 @@ export async function POST(istek: Request) {
      kimseye "forklift mi kkd mi" demiyor ve hazırlayan her seferinde aynı
      fotoğrafı yeniden yüklüyordu.
 
-     PDF'ten dönen sayfalar HARİÇ (`kutuphane=hayir`): kırk sayfalık bir sunum
-     kütüphaneye kırk tane `s7.jpg` doldurur, aradığı fotoğrafı bulmak
-     imkânsızlaşır. O görseller zaten kendi kartlarına bağlı. */
-  if (String(form.get("kutuphane") ?? "") !== "hayir") {
-    depo.medyaKaydet({
-      id,
-      ad: dosya.name.slice(0, 120),
-      tip: dosya.type,
-      boyut: dosya.size,
-      yukleyen: hesap?.kullanici ?? "",
-    });
-  }
+     PDF/PPTX'ten dönen sayfalar KAYDA GİRER ama kütüphane listesinde
+     GÖRÜNMEZ (`kutuphaneDisi`). Kırk sayfalık bir sunum seçiciye kırk tane
+     `s7.jpg` doldurup aranan fotoğrafı bulunmaz hâle getirirdi; ama kaydı hiç
+     açmamak iki şeyi sessizce bozuyordu: öksüz taraması o dosyaları göremediği
+     için kartı silinen sayfa diskte sonsuza kadar kalıyordu, ve alt metin
+     yazımı güncelleyecek satır bulamayıp kayboluyordu. */
+  depo.medyaKaydet({
+    id,
+    ad: dosya.name.slice(0, 120),
+    tip: dosya.type,
+    boyut: dosya.size,
+    yukleyen: hesap?.kullanici ?? "",
+    kutuphaneDisi: String(form.get("kutuphane") ?? "") === "hayir",
+  });
 
   return NextResponse.json({ id, tur: dosya.type.startsWith("video") ? "video" : "gorsel" });
 }

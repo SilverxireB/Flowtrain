@@ -4,6 +4,9 @@ Katalog · eğitim paketleri · atama · QR hattının paylaşılan dosyalardan
 ihtiyaç duyduğu değişiklikler. Hiçbiri hattı bloklamadı; her maddede
 "bugün ne yapıldı" yazılı.
 
+> **2. dalga (OPM adaptör iskeleti)** maddeleri 6–8'de. Eskiler olduğu gibi
+> duruyor.
+
 ---
 
 ## 1. `kural.egitimId` paket kuralında NULL olabilmeli — **öncelikli**
@@ -99,3 +102,72 @@ o eğitimi açması Hat D'de.
 Doğrulama yöntemi `src/lib/qr.ts` başındaki yorumda maddeler hâlinde yazılı
 (RS sendrom denetimi · matristen geri okuma · bilinen sabitler · yapısal
 denetim).
+
+---
+
+## 6. Salt okunur kaynakta `/personel` ekranı BOŞ görünüyor — **öncelikli**
+
+**Dosya:** `src/app/personel/page.tsx` (Hat B'nin değil).
+
+```ts
+const kisiler = kaynak.yonetim?.kayitlar() ?? [];
+```
+
+Ekran listeyi **yönetim yeteneğinden** okuyor. OPM adaptöründe `yonetim`
+bilerek `undefined` (tek yönlü okuma, bkz. `docs/OPM-ENTEGRASYON.md` §6) —
+yani ekran "salt okunur" olmuyor, **bomboş** oluyor. Yönetici personelini hiç
+göremiyor, MM eşlemesini de kime uyguladığını göremiyor.
+
+**İstenen.** Liste düzenlenemez kaynakta da `PersonelKaynagi.listele()`ten
+gelsin; `duzenlenebilir` bayrağı zaten var:
+
+```ts
+const kaynak = personelKaynagi();
+const kayitlar = kaynak.yonetim?.kayitlar();
+const kisiler = kayitlar ?? (await kaynak.listele()).map(/* Kisi → PersonelKaydi */);
+```
+
+`Kisi` → `PersonelKaydi` çevirisi kayıpsız değil (`maliyetMerkezi` `Kisi`de
+yok). İki seçenek: (a) `Personel` bileşeni `Kisi` de kabul etsin, (b)
+`PersonelKaynagi`ye opsiyonel `kayitlar?(): PersonelKaydi[]` eklensin.
+**(b) tercih edilir** ve `adaptor.ts`i bozmadan genişletir.
+
+**Bugün ne yapıldı.** Hiçbir şey — ekran Hat B'nin değil. Varsayılan CSV
+olduğu için bugün kimse etkilenmiyor; OPM devreye alınmadan önce kapatılmalı.
+
+---
+
+## 7. `senkronTekrarEylem` hatanın SEBEBİNİ göstermiyor
+
+**Dosya:** `src/app/eylemler.ts` (paylaşılan, dokunulmadı).
+
+`kaydiGonder(o)` yalnız `true/false` döndürüyor; yönetici "3 kayıt
+gönderilemedi" görüyor ama **neden** gönderilemediğini göremiyor (adres yanlış
+mı, anahtar mı süresi mi doldu, servis mi kapalı).
+
+**Bugün ne yapıldı.** `adaptorlar/index.ts` son hatayı saklıyor:
+`sonKayitGonderimHatasi(): { zaman, mesaj } | null`. `/ayarlar` bunu yazıyor.
+İstenen: `senkronTekrarEylem` bittiğinde denetim izine de sebebi düşsün —
+
+```ts
+const h = sonKayitGonderimHatasi();
+depo.izBirak(ben.kullanici, `senkron tekrar: ${basarili} gönderildi${h ? ` · son hata: ${h.mesaj}` : ""}`);
+```
+
+Tek satır; imza değişmiyor.
+
+---
+
+## 8. (Bilgi) OPM adaptörünün çekirdekten beklentisi: YOK
+
+İskelet, paylaşılan hiçbir dosyayı değiştirmeden tamamlandı.
+
+- `adaptor.ts` arayüzleri **bozulmadı, genişletilmedi** — OPM ikisini de olduğu
+  gibi uyguluyor (`yonetim` bilerek boş).
+- Yeni tablo gerekmedi: yapılandırma `ayar` tablosunda (`opm*` anahtarları,
+  `docs/OPM-ENTEGRASYON.md` §5).
+- Yeni npm paketi yok: Node'un yerleşik `fetch`i + `AbortSignal.timeout`.
+- Çekirdek tiplere OPM'e özel tek alan girmedi.
+
+Değişen tek paylaşılan davranış: `kaydiGonder` artık son hatanın metnini
+saklıyor (§7). İmzası aynı (`Promise<boolean>`).

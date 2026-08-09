@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import { PDF_FONT, yaziTipiGom } from "./pdfYaziTipi";
+import type { BelgeKunyesi } from "./rapor";
 
 /**
  * KİŞİ SERTİFİKASI — "bu kişi, bu eğitimi, şu tarihte, şu sürümle tamamladı."
@@ -47,7 +48,7 @@ function alanYaz(doc: jsPDF, etiket: string, deger: string, x: number, y: number
   doc.text(doc.splitTextToSize(deger || "—", genislik)[0] ?? "—", x, y + 15);
 }
 
-function sayfaCiz(doc: jsPDF, v: SertifikaVerisi, kalin: () => void, duz: () => void): void {
+function sayfaCiz(doc: jsPDF, v: SertifikaVerisi, kunye: BelgeKunyesi, kalin: () => void, duz: () => void): void {
   const genislik = doc.internal.pageSize.getWidth();
   const yukseklik = doc.internal.pageSize.getHeight();
   const govde = genislik - KENAR * 2;
@@ -60,10 +61,13 @@ function sayfaCiz(doc: jsPDF, v: SertifikaVerisi, kalin: () => void, duz: () => 
 
   let y = KENAR + 14;
 
+  /* KURUM ADI EN ÜSTTE: sertifika kişinin elinde fabrikadan çıkar, başka bir
+     işverene ya da denetçiye gösterilir. Üstünde yalnız ürünün adı yazan bir
+     belge "hangi kurumda alınmış" sorusunu cevaplamıyordu. */
   duz();
   doc.setFontSize(9);
   doc.setTextColor(120, 113, 108);
-  doc.text("FLOWTRAIN · EĞİTİM KAYIT BELGESİ", KENAR, y);
+  doc.text(`${kunye.kurum.toLocaleUpperCase("tr")} · EĞİTİM KAYIT BELGESİ`.slice(0, 90), KENAR, y);
   y += 34;
 
   kalin();
@@ -128,7 +132,10 @@ function sayfaCiz(doc: jsPDF, v: SertifikaVerisi, kalin: () => void, duz: () => 
   duz();
   doc.setFontSize(8);
   doc.setTextColor(160, 155, 150);
-  doc.text(`Belge no: ${v.belgeNo}`, KENAR, yukseklik - KENAR - 4);
+  // Belge no defterdeki oturum kimliğidir; üretim anı ise belgenin ne zaman
+  // BASILDIĞINI söyler. İkisi farklı şeydir: kayıt 2024'te doğmuş olabilir,
+  // çıktısı bugün alınmıştır ve denetçi hangi kopyaya baktığını bilmelidir.
+  doc.text(`Belge no: ${v.belgeNo} · Üretim: ${kunye.uretim}`, KENAR, yukseklik - KENAR - 4);
   doc.text(
     "Bu belge kayıt defterindeki tek bir kaydın çıktısıdır; kayıt düzenlenmez ve silinmez.",
     KENAR + govde,
@@ -138,13 +145,12 @@ function sayfaCiz(doc: jsPDF, v: SertifikaVerisi, kalin: () => void, duz: () => 
 }
 
 /**
- * Bir ya da çok kişi için sertifika basar — HER KAYIT AYRI SAYFA.
+ * Bir ya da çok kişi için sertifika basar — HER KAYIT AYRI SAYFA. Kaydetmez.
  *
  * TOPLU BASIM AYRI BİR DOSYA ÜRETMEZ: otuz kişilik sınıf için otuz indirme,
  * otuz kez "kaydet" penceresi demekti. Tek PDF yazıcıya bir kez gider.
  */
-export async function sertifikaIndir(kayitlar: SertifikaVerisi[], tarih: string): Promise<void> {
-  if (kayitlar.length === 0) return;
+export async function sertifikaKur(kayitlar: SertifikaVerisi[], kunye: BelgeKunyesi): Promise<jsPDF> {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const gomuldu = await yaziTipiGom(doc);
   const kalin = () => doc.setFont(gomuldu ? PDF_FONT : "helvetica", "bold");
@@ -152,9 +158,34 @@ export async function sertifikaIndir(kayitlar: SertifikaVerisi[], tarih: string)
 
   for (let i = 0; i < kayitlar.length; i++) {
     if (i > 0) doc.addPage();
-    sayfaCiz(doc, kayitlar[i], kalin, duz);
+    sayfaCiz(doc, kayitlar[i], kunye, kalin, duz);
   }
 
+  /* TOPLU BASIMDA SAYFA NUMARASI VAR, TEKTE YOK.
+     Tek sayfalık bir sertifikanın üstündeki "1/1" gereksiz gürültü; 200
+     sayfalık bir tomarda ise eksik yaprağın fark edilmesinin tek yolu.
+     Numara belgenin İÇERİĞİNİN parçası değil, tomarın sayacıdır — o yüzden
+     kenarda, künyenin karşısında durur. */
+  const sayfaSayisi = doc.getNumberOfPages();
+  if (sayfaSayisi > 1) {
+    const genislik = doc.internal.pageSize.getWidth();
+    const yukseklik = doc.internal.pageSize.getHeight();
+    for (let i = 1; i <= sayfaSayisi; i++) {
+      doc.setPage(i);
+      duz();
+      doc.setFontSize(8);
+      doc.setTextColor(160, 155, 150);
+      doc.text(`${i}/${sayfaSayisi}`, genislik - KENAR, KENAR - 2, { align: "right" });
+      doc.text(`Toplu basım · ${kunye.uretim}`, genislik - KENAR, yukseklik - KENAR + 8, { align: "right" });
+    }
+  }
+
+  return doc;
+}
+
+export async function sertifikaIndir(kayitlar: SertifikaVerisi[], kunye: BelgeKunyesi, tarih: string): Promise<void> {
+  if (kayitlar.length === 0) return;
+  const doc = await sertifikaKur(kayitlar, kunye);
   const dosya =
     kayitlar.length === 1
       ? `flowtrain-sertifika-${kayitlar[0].sicil}-${gunMetni(kayitlar[0].tamamlama)}.pdf`

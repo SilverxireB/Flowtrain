@@ -458,6 +458,364 @@ try {
   kontrol(await s.getByText(/%75/).isVisible(), "amir sütunu doluluk oranı hesaplanıyor (4 kişinin 3'ünde amir var)");
   kontrol(await s.getByText("Ali Yılmaz").isVisible(), "PIN kayıtları listesinde kişi adıyla görünüyor");
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     BURADAN SONRASI: birinci dalgada HİÇ AÇILMAYAN yüzeyler.
+     `/kayitlar`, `/kayitlar/sinif`, `/kayitlar/aktarim`, `/gruplar`,
+     `/egitimler/qr`, `/kiosk?egitim=`, `/personel` — hepsi kokpitin gerçek
+     iş yüzeyleri ve hiçbiri bu zincirde bir kez bile çizilmiyordu. Ekranı
+     açmayan bir sınav, ekranın çöktüğünü göremez (rehber çekmecesi hatası tam
+     olarak böyle kaçmıştı).
+
+     SIRA ÖNEMLİ: `/personel` EN SONDA, çünkü maliyet merkezi eşlemesi kişinin
+     BÖLÜMÜNÜ değiştiriyor ve bölüm değişince atama kuralları başka kişileri
+     kapsar — daha önce koşan hiçbir ölçüm bundan etkilenmemeli.
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  /* 15. KAYIT DEFTERİ — süzgeç, ayrıntı, CSV. */
+  await s.goto(`${ADRES}/kayitlar`, { waitUntil: "networkidle" });
+  kontrol(await s.getByText("Kayıt defteri").first().isVisible(), "kayıt defteri açılıyor");
+  kontrol(await s.getByText("Ali Yılmaz").first().isVisible(), "kayıt satırı kişinin adıyla görünüyor");
+  kontrol(
+    await s.getByText("Yüksekte Çalışma").first().isVisible(),
+    "kioskta tamamlanan eğitim deftere düşmüş",
+  );
+  /* Kayıt DÜZENLENMEZ, SİLİNMEZ (CLAUDE.md 7): defterde kalem ya da çöp kutusu
+     olmamalı. Bu kural yalnız yazıyla değil, ekranın kendisiyle korunuyor. */
+  kontrol(
+    (await s.locator('button[aria-label*="sil"], button[aria-label*="düzenle"]').count()) === 0,
+    "defterde düzenle/sil düğmesi YOK",
+  );
+  kontrol(await s.getByText("Kayıtlar düzenlenmez ve silinmez.").isVisible(), "değişmezlik ekranda yazıyor");
+
+  await s.getByLabel("Sonuç süzgeci").selectOption("kaldi");
+  await s.waitForTimeout(400);
+  kontrol(await s.getByText("Bu süzgeçle eşleşen kayıt yok.").isVisible(), "süzgeç çalışıyor (kalan kimse yok)");
+  await s.getByLabel("Sonuç süzgeci").selectOption("gecti");
+  await s.waitForTimeout(400);
+  kontrol(await s.getByText("Ali Yılmaz").first().isVisible(), "süzgeç geçenleri geri getiriyor");
+  await s.click('button:has-text("Süzgeci temizle")');
+  await s.waitForTimeout(400);
+
+  /* Kayıt ayrıntısı: belge numarası olmayan bir kaydın denetimde karşılığı yok. */
+  await s.locator('button[aria-label*="kaydını aç"]').first().click();
+  await s.waitForTimeout(500);
+  kontrol(await s.getByText(/Kayıt no:/).isVisible(), "kayıt ayrıntısı belge numarasını gösteriyor");
+  await s.getByRole("button", { name: "Kapat" }).click();
+  await s.waitForTimeout(300);
+
+  /* CSV GERÇEKTEN İNİYOR mu: düğmenin varlığı değil, dosyanın kendisi ölçülüyor. */
+  let defterCsv = "";
+  let defterCsvAdi = "";
+  try {
+    const [indirme] = await Promise.all([
+      s.waitForEvent("download", { timeout: 15000 }),
+      s.getByRole("button", { name: "CSV" }).click(),
+    ]);
+    defterCsvAdi = indirme.suggestedFilename();
+    const yol = await indirme.path();
+    if (yol) defterCsv = readFileSync(yol, "utf8");
+  } catch {
+    /* indirme gelmedi — aşağıdaki doğrulamalar düşer ve sebebi görünür */
+  }
+  kontrol(defterCsvAdi.includes("kayit-defteri"), "kayıt defteri CSV olarak iniyor");
+  kontrol(defterCsv.includes("1001"), "inen CSV kayıtları taşıyor");
+  kontrol(defterCsv.startsWith("﻿"), "inen CSV BOM ile başlıyor (Excel doğru açar)");
+  kontrol(defterCsv.includes("Kayıt no"), "inen CSV belge numarası sütunu taşıyor");
+
+  /* 16. SINIF EĞİTİMİ TOPLU KAYDI — kart döndürmeden yazılan kayıt.
+     Her eğitim kioskta verilmez; sınıfta anlatılan da AYNI deftere düşmeli,
+     yoksa panonun tamamlanma oranı gerçeği göstermez. */
+  await s.goto(`${ADRES}/kayitlar/sinif`, { waitUntil: "networkidle" });
+  kontrol(await s.getByText("Sınıf eğitimi kaydı").first().isVisible(), "sınıf kaydı sayfası açılıyor");
+
+  await s.getByRole("combobox").first().selectOption({ label: "Yüksekte Çalışma" });
+  await s.waitForTimeout(300);
+  await s.fill('input[placeholder="Dersi veren kişi"]', "Veli Usta");
+  await s.locator("textarea").first().fill("1002 Ayşe Demir\n1003 Mehmet Öz\n7777 Listede Yok\n1002");
+  await s.click('button:has-text("Listeyi denetle")');
+  await s.waitForTimeout(1500);
+
+  /* DENETİM ADIMI ÖNCE: otuz kişilik listede tek harf hatası olan sicil
+     sessizce atlanırsa eğitmen "girdim" sanır. */
+  kontrol(await s.getByText(/2 satır yazılacak/).isVisible(), "denetim kaç satırın yazılacağını söylüyor");
+  kontrol(await s.getByText(/Atlanan 2 satır/).isVisible(), "atlanan satırlar sayısıyla listeleniyor");
+  kontrol(
+    await s.getByText("Sicil personel listesinde yok.").first().isVisible(),
+    "tanınmayan sicilin GEREKÇESİ yazıyor",
+  );
+  kontrol(
+    await s.getByText("Bu kişi için bu tarihte kayıt zaten var.").first().isVisible(),
+    "listede iki kez geçen sicil gerekçesiyle atlanıyor",
+  );
+
+  await s.getByRole("button", { name: /^Kaydet/ }).click();
+  await s.waitForTimeout(500);
+  await s.getByRole("alertdialog").getByRole("button", { name: "Kaydet" }).click();
+  await s.waitForTimeout(2500);
+  kontrol(await s.getByText(/2 kayıt deftere yazıldı/).isVisible(), "sınıf kayıtları gerçekten yazıldı");
+
+  /* Kayıt DEFTERDE ve KAYNAĞI doğru: sınıf kaydı kioskta yapılmış gibi
+     görünmemeli — süre/anomali ölçüsü ikisini karıştırırsa pano yalan söyler. */
+  await s.goto(`${ADRES}/kayitlar`, { waitUntil: "networkidle" });
+  await s.getByLabel("Kaynak süzgeci").selectOption("sinif");
+  await s.waitForTimeout(500);
+  kontrol(await s.getByText("Ayşe Demir").first().isVisible(), "sınıf kaydı defterde görünüyor");
+  kontrol(await s.getByText("Mehmet Öz").first().isVisible(), "listedeki ikinci katılımcı da defterde");
+  kontrol(
+    (await s.getByText("Sınıf eğitimi").count()) >= 2,
+    "kayıtlar 'Sınıf eğitimi' kaynağıyla işaretli",
+  );
+  kontrol(await s.getByText("Veli Usta").first().isVisible(), "kaydın arkasındaki eğitmen defterde duruyor");
+
+  /* 17. GEÇMİŞ KAYIT AKTARIMI — canlıya geçişin şartı. */
+  await s.goto(`${ADRES}/kayitlar/aktarim`, { waitUntil: "networkidle" });
+  kontrol(await s.getByText("Geçmiş kayıt aktarımı").first().isVisible(), "geçmiş kayıt aktarımı sayfası açılıyor");
+  await s
+    .locator("textarea")
+    .first()
+    .fill(
+      "Sicil;Eğitim;Tarih;Puan;Eğitmen\r\n" +
+        "1002;İkinci Eğitim;12.03.2024;85;Dış Eğitmen\r\n" +
+        "7777;İkinci Eğitim;12.03.2024;90;Dış Eğitmen\r\n" +
+        "1003;Olmayan Eğitim;12.03.2024;70;Dış Eğitmen\r\n" +
+        "1003;İkinci Eğitim;bozuk tarih;70;Dış Eğitmen\r\n",
+    );
+  await s.click('button:has-text("Denetle")');
+  await s.waitForTimeout(1500);
+  kontrol(await s.getByText("Okunan sütunlar").isVisible(), "hangi sütunun nasıl okunduğu ekranda");
+  kontrol(await s.getByText(/1 satır yazılacak/).isVisible(), "aktarımda yalnız geçerli satır sayılıyor");
+  kontrol(await s.getByText(/Atlanan 3 satır/).isVisible(), "atlanan satırlar gerekçeleriyle listeleniyor");
+  kontrol(
+    await s.getByText("Eğitim adı katalogda eşleşmedi.").first().isVisible(),
+    "katalogda olmayan eğitimin gerekçesi yazıyor",
+  );
+
+  await s.getByRole("button", { name: /^Aktar/ }).click();
+  await s.waitForTimeout(500);
+  await s.getByRole("alertdialog").getByRole("button", { name: "Aktar" }).click();
+  await s.waitForTimeout(2500);
+  kontrol(await s.getByText(/1 kayıt deftere yazıldı/).isVisible(), "geçmiş kayıt deftere alındı");
+
+  await s.goto(`${ADRES}/kayitlar`, { waitUntil: "networkidle" });
+  await s.getByLabel("Kaynak süzgeci").selectOption("aktarim");
+  await s.waitForTimeout(500);
+  kontrol(await s.getByText("Dış aktarım").first().isVisible(), "aktarılan kayıt 'Dış aktarım' kaynağıyla duruyor");
+  kontrol(await s.getByText("Ayşe Demir").first().isVisible(), "aktarılan kayıt kişiye bağlanmış");
+
+  /* 18. EĞİTİM PAKETİ — paket mantığının TEK gerçek sınavı: pakete yazılan
+     kural, paketin ÜYELERİNİ kioskta kişiye düşürüyor mu? Paket ekranını
+     açıp "1 eğitim" yazdığını görmek hiçbir şey ispat etmez. */
+  await s.goto(`${ADRES}/egitimler`, { waitUntil: "networkidle" });
+  await s.fill('input[name="ad"]', "Paket Eğitimi");
+  await s.click('button:has-text("Oluştur")');
+  await s.waitForURL(/\/egitimler\/egt_/, { timeout: 15000 });
+  const paketEgitimId = new URL(s.url()).pathname.split("/").pop();
+  await s.click('button:has-text("Kural kartı")');
+  await s.waitForTimeout(900);
+  const pkBaslik = s.locator('input[placeholder="Başlık"]').first();
+  await pkBaslik.fill("Paketten gelen kart");
+  await pkBaslik.blur();
+  await s.waitForTimeout(700);
+  const pkSure = s.locator('input[type="number"][class*="w-20"]').first();
+  await pkSure.fill("1");
+  await pkSure.blur();
+  await s.waitForTimeout(700);
+  await s.click('button:has-text("Yayınla")');
+  await s.waitForTimeout(2000);
+
+  await s.goto(`${ADRES}/gruplar`, { waitUntil: "networkidle" });
+  kontrol(await s.getByText("Eğitim paketleri").first().isVisible(), "paket sayfası açılıyor");
+  await s.fill('input[name="ad"]', "Oryantasyon");
+  await s.click('button:has-text("Oluştur")');
+  await s.waitForTimeout(2000);
+  kontrol(await s.getByText("Oryantasyon").first().isVisible(), "paket açıldı");
+  kontrol(
+    await s.getByText("Kural yazılmamış — kimseye düşmüyor").isVisible(),
+    "kuralsız paket kimseye düşmediğini SÖYLÜYOR",
+  );
+  kontrol(await s.getByText(/Paket boş/).isVisible(), "boş paketin hiçbir şey atamadığı yazıyor");
+
+  await s.click('button:has-text("Düzenle")');
+  await s.waitForTimeout(600);
+  await s.locator('button:has-text("Paket Eğitimi")').first().click();
+  await s.waitForTimeout(400);
+  await s.getByRole("button", { name: /^Kaydet/ }).click();
+  await s.waitForTimeout(2500);
+  kontrol(await s.getByText("1 eğitim").first().isVisible(), "paket üyesi kaydedildi");
+
+  /* Kural PAKETE yazılıyor — tek tek eğitimlere değil. */
+  await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
+  await s.getByRole("button", { name: "Eğitim paketi" }).click();
+  await s.waitForTimeout(400);
+  await s.selectOption('select[name="hedefId"]', { label: "Oryantasyon (1 eğitim)" });
+  await s.getByRole("button", { name: "Montaj", exact: true }).click();
+  await s.click('button:has-text("Kuralı ekle")');
+  await s.waitForTimeout(2500);
+  kontrol(await s.getByText(/1 paket kuralı/).isVisible(), "paket kuralı listede paket olarak ayrılıyor");
+
+  /* ASIL ÖLÇÜM: Montaj bölümündeki 1003, daha önce "bekleyen eğitiminiz yok"
+     diyordu. Paket kuralı yazıldıktan sonra paketin ÜYESİ kioskta ona düşmeli. */
+  await k.goto(`${ADRES}/kiosk`, { waitUntil: "networkidle" });
+  await k.fill("#kiosk-sicil", "1003");
+  await k.click('button:has-text("Devam")');
+  await k.waitForTimeout(2000);
+  kontrol(
+    await k.getByText("Paket Eğitimi").isVisible(),
+    "PAKETE yazılan kural, paketin üyesini kioskta kişiye düşürüyor",
+  );
+
+  /* Paket ilerlemesi ekrana yansıyor mu (kaç kişi paketi bitirdi). */
+  await s.goto(`${ADRES}/gruplar`, { waitUntil: "networkidle" });
+  kontrol(await s.getByText(/kişi paketi bitirdi/).isVisible(), "paket ilerlemesi kişi sayısıyla görünüyor");
+
+  /* 19. QR ETİKETLERİ — dijitalleşmenin anahtarı asılabilir bir etiket. */
+  await s.goto(`${ADRES}/egitimler/qr`, { waitUntil: "networkidle" });
+  kontrol(await s.getByText("QR etiketleri").first().isVisible(), "QR etiket sayfası açılıyor");
+  /* Göreli yol telefonda AÇILMAZ; bunu basmadan önce söylemek zorundayız. */
+  kontrol(
+    await s.getByText("Kurulum adresi tanımlı değil.").isVisible(),
+    "temel adres yokken etiket basmadan önce uyarılıyor",
+  );
+  const qrKareler = s.locator('svg[role="img"][aria-label*="QR kod"]');
+  kontrol((await qrKareler.count()) >= 3, `yayındaki her eğitim için QR üretildi (${await qrKareler.count()})`);
+  const qrYolVerisi = await qrKareler.first().locator("path").getAttribute("d");
+  kontrol(!!qrYolVerisi && qrYolVerisi.length > 200, "QR matrisi gerçekten çizilmiş (boş kare değil)");
+  kontrol(
+    (await s.locator('svg[aria-label*="Paket Eğitimi"]').count()) === 1,
+    "etiket hangi eğitimi açtığını ekran okuyucuya da söylüyor",
+  );
+
+  await s.click('button:has-text("Seçimi temizle")');
+  await s.waitForTimeout(400);
+  kontrol(
+    await s.getByText("Yazdırılacak etiket seçin").isVisible(),
+    "seçim boşalınca ne yapılacağı yazıyor",
+  );
+
+  /* QR uç noktası: kare bir görsel ama kurulumun iç ağ adresini taşıyor. */
+  const qrCevap = await s.request.get(`${ADRES}/api/qr?egitim=${paketEgitimId}`);
+  kontrol(qrCevap.ok() && (await qrCevap.text()).includes("<svg"), "QR uç noktası SVG üretiyor");
+  const qrYabanci = await y.request.get(`${ADRES}/api/qr?egitim=${paketEgitimId}`);
+  kontrol(qrYabanci.status() === 403, "QR uç noktası oturumsuz isteği reddediyor");
+
+  /* 20. QR YOLU — `/kiosk?egitim=<id>`: liste atlanır, eğitim doğrudan açılır. */
+  await k.goto(`${ADRES}/kiosk?egitim=egt_olmayan`, { waitUntil: "networkidle" });
+  kontrol(
+    await k.getByText(/etiketin eğitimi şu anda yayında değil/).isVisible(),
+    "geçersiz QR hedefi kullanıcıya söyleniyor (sessiz kapı yok)",
+  );
+
+  const yuksekteId = egitimYolu.split("/").pop();
+  await k.goto(`${ADRES}/kiosk?egitim=${yuksekteId}`, { waitUntil: "networkidle" });
+  kontrol(await k.getByText("Yüksekte Çalışma").isVisible(), "QR ile gelen kişi hangi eğitimin açılacağını önden görüyor");
+  kontrol(await k.getByText("Eğitimi aç").isVisible(), "QR yolunda düğme 'Eğitimi aç' oluyor");
+  await k.fill("#kiosk-sicil", "1003");
+  await k.click('button:has-text("Eğitimi aç")');
+  await k.waitForTimeout(2500);
+  kontrol(
+    await k.getByText(/size atanmış görünmüyor/).isVisible(),
+    "atanmamış QR eğitimi açılmıyor ama kapı NAZİKÇE kapanıyor",
+  );
+  kontrol(await k.getByText("Paket Eğitimi").isVisible(), "atanmamış QR'da kişinin GERÇEK bekleyenleri yine gösteriliyor");
+
+  await k.goto(`${ADRES}/kiosk?egitim=${paketEgitimId}`, { waitUntil: "networkidle" });
+  await k.fill("#kiosk-sicil", "1003");
+  await k.click('button:has-text("Eğitimi aç")');
+  await k.waitForTimeout(3000);
+  kontrol(await k.getByText("Sayfa 1/1").isVisible(), "QR ile gelindiğinde LİSTE ATLANIYOR, eğitim doğrudan açılıyor");
+  kontrol(await k.getByText("Paketten gelen kart").isVisible(), "doğrudan açılan eğitim paketin üyesi");
+  await k.locator('button[aria-label="Eğitimden çık"]').click();
+  await k.waitForTimeout(800);
+
+  /* 21. PERSONEL — liste, maliyet merkezi eşlemesi, eşlemenin GERÇEKTEN
+     bölüm/amir yazması. Bölüm burada değişiyor: bu yüzden en sonda. */
+  await s.goto(`${ADRES}/personel`, { waitUntil: "networkidle" });
+  kontrol(await s.getByText("Personel").first().isVisible(), "personel sayfası açılıyor");
+  kontrol(await s.getByText("4 kayıt").first().isVisible(), "personel kaynağındaki kayıt sayısı görünüyor");
+  kontrol(await s.getByText("Mehmet Öz").isVisible(), "personel listesi kişileri gösteriyor");
+  // Rol yalın: herkes operatördür, YALNIZ amir yapılanlar rozet taşır.
+  kontrol((await s.locator("span.chip", { hasText: "Amir" }).count()) === 1, "amir rolü listede rozetle ayrılıyor");
+
+  await s.fill('input[placeholder="Ada, sicile veya maliyet merkezine göre ara"]', "1003");
+  await s.waitForTimeout(500);
+  kontrol(!(await s.getByText("Ali Yılmaz").isVisible()), "arama listeyi süzüyor");
+  kontrol(await s.getByText("Mehmet Öz").isVisible(), "aranan kişi listede kalıyor");
+  await s.fill('input[placeholder="Ada, sicile veya maliyet merkezine göre ara"]', "");
+  await s.waitForTimeout(500);
+
+  /* Rol yalın: bir kişi AMİR YAPILIR ve ancak o zaman eşlemede amir olarak
+     seçilebilir. Ayşe'yi amir yapıyoruz ki eşlemenin yazdığı amir, personel
+     dosyasında ZATEN yazan amirden (9001) FARKLI olsun — yoksa "amiri gerçekten
+     eşleme mi yazdı" sorusu ölçülemez, sayı tesadüfen tutardı. */
+  await s.locator('button[aria-label="Ayşe Demir kaydını düzenle"]').click();
+  await s.waitForTimeout(600);
+  await s.getByRole("button", { name: "Amir", exact: true }).click();
+  await s.getByRole("button", { name: "Kaydet" }).last().click();
+  await s.waitForTimeout(2500);
+  kontrol(
+    (await s.locator("span.chip", { hasText: "Amir" }).count()) === 2,
+    "rolü değiştirilen kişi listede amir olarak görünüyor",
+  );
+
+  /* MALİYET MERKEZİ EŞLEMESİ VERİDİR: fabrika kendi kodunu kendi bağlar. */
+  await s.fill('input[placeholder="264302"]', "264302");
+  await s.locator('input[list="mm-bolum-listesi"]').fill("Boyahane");
+  // Amir SEÇİLİR, yazılmaz. Kutunun adı yok; şıkkının değeriyle bulunuyor.
+  await s.locator('select:has(option[value="1002"])').selectOption("1002");
+  await s.getByRole("button", { name: /^Kaydet/ }).click();
+  await s.waitForTimeout(2500);
+  kontrol(await s.getByText("264302").first().isVisible(), "maliyet merkezi eşlemesi tanımlandı");
+  kontrol(await s.getByText("Boyahane").first().isVisible(), "eşlemenin bölümü listede görünüyor");
+
+  /* ASIL ÖLÇÜM: kişiye yalnız KOD yazılıyor; bölüm ve amir elle değil
+     EŞLEMEDEN gelmeli. Mehmet dosyada "Montaj / 9001" idi. */
+  await s.locator('button[aria-label="Mehmet Öz kaydını düzenle"]').click();
+  await s.waitForTimeout(600);
+  await s.locator('input[list="mm-listesi"]').fill("264302");
+  await s.waitForTimeout(400);
+  kontrol(
+    await s.getByText(/Bu koddan gelen: bölüm/).isVisible(),
+    "kod girilince hangi bölüm/amirin geleceği ÖNCEDEN yazıyor",
+  );
+  // Pencerenin kendi "Kaydet"i EN SONDA çizilir; eşleme bölümündeki aynı adlı
+  // düğmeyle karışmasın diye sonuncusu alınıyor.
+  await s.getByRole("button", { name: "Kaydet" }).last().click();
+  await s.waitForTimeout(2500);
+
+  const mehmetSatiri = s.locator("tr", { hasText: "Mehmet Öz" }).first();
+  kontrol(await mehmetSatiri.getByText("Boyahane").isVisible(), "eşleme kişinin BÖLÜMÜNÜ gerçekten yazdı");
+  kontrol(await mehmetSatiri.getByText("1002").isVisible(), "eşleme kişinin AMİRİNİ gerçekten yazdı (9001 değil 1002)");
+  kontrol(!(await mehmetSatiri.getByText("Montaj").isVisible()), "eski bölüm eşlemeyle EZİLDİ (iki gerçek yarışmıyor)");
+
+  /* "Tüm listeye uygula": eşleme sonradan değişince tek düğmeyle düzeltilir.
+     Maliyet merkezi olmayan satıra DOKUNULMAZ — o yüzden sayı 1. */
+  await s.click('button:has-text("Tüm listeye uygula")');
+  await s.waitForTimeout(2500);
+  kontrol(await s.getByText(/1 kayda uygulandı/).isVisible(), "toplu uygulama yalnız kodu olan kaydı etkiliyor");
+
+  /* 22. YETKİ MATRİSİ — yeni yüzeyler doğru rolü istiyor mu (gerçek HTTP). */
+  for (const yol of ["/kayitlar", "/kayitlar/sinif", "/kayitlar/aktarim", "/gruplar", "/egitimler/qr", "/personel"]) {
+    await y.goto(`${ADRES}${yol}`, { waitUntil: "networkidle" });
+    kontrol(y.url().includes("/giris"), `oturumsuz kullanıcı ${yol} sayfasından girişe atılıyor`);
+  }
+  const yabanciCsv = await y.request.get(`${ADRES}/api/disa-aktar`);
+  kontrol(yabanciCsv.status() === 403, "dışa aktarma uç noktası oturumsuz isteği reddediyor");
+
+  /* YOL DOLAŞIMI: medya kimliği hesapsız bir uç noktadan geliyor; `../` veri
+     klasörünün dışına çıkabilseydi personel dosyası tek istekle okunurdu. */
+  for (const kotuId of ["..%2F..%2Fpersonel.csv", "....%2F%2Fflowtrain.db", "..%5C..%5Cpersonel.csv"]) {
+    let govde = "";
+    let durum = 0;
+    try {
+      const c = await y.request.get(`${ADRES}/api/medya/${kotuId}`);
+      durum = c.status();
+      govde = await c.text();
+    } catch {
+      /* istek hiç kurulamadıysa da kapı kapalı demektir */
+    }
+    kontrol(durum !== 200 && !govde.includes("Ali Yılmaz"), `yol dolaşımı reddediliyor: ${kotuId}`);
+  }
+
   await tarayici.close();
   bitir();
 } catch (h) {

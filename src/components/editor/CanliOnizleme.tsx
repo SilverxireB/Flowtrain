@@ -26,10 +26,16 @@ export default function CanliOnizleme({
   sayfa,
   sira,
   toplam,
+  altMetinler,
 }: {
   sayfa: Sayfa | null;
   sira: number;
   toplam: number;
+  /**
+   * Görsel kimliği → yazılmış alt metin. Kart bileşenine olduğu gibi geçilir:
+   * önizleme kioskun gördüğünü göstermeli, alt metin de kioskta okunan şey.
+   */
+  altMetinler?: Record<string, string>;
 }) {
   const dis = useRef<HTMLDivElement>(null);
   const ic = useRef<HTMLDivElement>(null);
@@ -75,7 +81,7 @@ export default function CanliOnizleme({
               ref={ic}
               style={{ width: KIOSK_GENISLIK, transform: `scale(${olcek})`, transformOrigin: "top left" }}
             >
-              <Kart sayfa={sayfa} key={sayfa.id} />
+              <Kart sayfa={sayfa} altMetinler={altMetinler} key={sayfa.id} />
             </div>
           </div>
 

@@ -26,6 +26,11 @@ DOKUNMAZ; ihtiyaçları önden karşılanır, ek istek `docs/istek-<hat>.md`e ya
 
 ## Sprintler
 
+> **Durum (dalga 1 sonrası):** S1–S4 bitti. S5'ten yalnız PPTX içe aktarma
+> kaldı. S6 ve S7 maddeleri hatlar erken bitirdiği için tamamlandı. S8–S10
+> dalga 2'de yapılıyor: PPTX, OPM adaptör iskeleti, yük denemesi, uçtan uca
+> kapsam ve teslim paketi.
+
 ### S1 — Temel (tamamlandı)
 Personel yüzeyi · maliyet merkezi eşlemesi · dış aktarım · çekirdek şema
 (kategori, paket, medya, oturum kaynağı, soru görseli).
@@ -77,9 +82,8 @@ Tüm hatlar: hata avı, sınır durumları, yük denemesi (1000+ kişi, 60+ eği
 güvenlik turu, yetki matrisi doğrulaması.
 
 ### S10 — Teslim
-Kurulum paketi, sürüm notları, kullanım rehberi güncellemesi, canlıya geçiş
-kontrol listesi (`data/` yeniden ignore, repo private, yedek planı, demo
-verisinin temizlenmesi).
+Kurulum paketi, sürüm notları (`docs/SURUM-NOTLARI.md`), kullanım rehberi
+güncellemesi, canlıya geçiş kontrol listesi (`docs/CANLIYA-GECIS.md`).
 
 ---
 

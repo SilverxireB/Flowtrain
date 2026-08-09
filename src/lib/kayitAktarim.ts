@@ -61,17 +61,39 @@ export function sutunlariEsle(basliklar: string[]): Partial<Record<AktarimAlani,
 }
 
 /**
+ * Eğik çizgili tarih iki biçimde de okunabiliyor mu?
+ *
+ * `05/03/2024` Avrupa'da 5 Mart, ABD'de 3 Mayıs — ikisi de geçerli bir gün.
+ * Nokta ayırıcı (`05.03.2024`) Türkçe Excel'in çıktısıdır ve gün-önce olduğu
+ * yerelinden bellidir; eğik çizgi ise hangi sistemden geldiğini söylemez.
+ */
+export function tarihBelirsizMi(ham: string): boolean {
+  const metin = ham ?? "";
+  const parcalar = metin.match(/\d+/g);
+  if (!parcalar || parcalar.length < 3) return false;
+  if (String(parcalar[0]).length === 4) return false; // ISO — belirsizlik yok
+  if (!metin.includes("/")) return false;
+  const [a, b] = parcalar.map(Number);
+  return a <= 12 && b <= 12;
+}
+
+/**
  * Tarihi `YYYY-AA-GG`e indirger; çözemezse null.
  *
  * GÜN/AY SIRASI KORUNUR: dört haneli parça yılsa başta `YYYY-AA-GG`, sondaysa
  * `GG.AA.YYYY` okunur. Rakamları sıralayıp tahmin etmek 03.05 ile 05.03'ü eşit
  * sayardı — bir kişinin sertifika geçerliliğini iki ay kaydıran bir hata.
- * ABD biçimi (AA/GG/YYYY) BİLEREK desteklenmiyor: `05/03/2024` iki biçimde de
- * geçerli görünür ve hangisi olduğunu dosyaya bakarak anlamanın yolu yoktur.
+ *
+ * BELİRSİZ EĞİK ÇİZGİ REDDEDİLİR, tahmin edilmez. Eskiden bu satır ABD
+ * biçimini "desteklemiyor" sayıp sessizce gün-önce okuyordu: ABD'den gelen
+ * 5 Mart deftere 3 Mayıs olarak düşüyor, satır GEÇERLİ görünüyor ve kimse
+ * fark etmiyordu. Yanlış bir tarihi kabul etmektense satırı gerekçesiyle
+ * atlamak yeğdir — aktarımın tek sözü zaten "hiçbir satır sessizce düşmez".
  */
 export function tarihiCoz(ham: string): string | null {
   const parcalar = (ham ?? "").match(/\d+/g);
   if (!parcalar || parcalar.length < 3) return null;
+  if (tarihBelirsizMi(ham)) return null;
   const [a, b, c] = parcalar.map(Number);
   const [yil, ay, gun] = String(parcalar[0]).length === 4 ? [a, b, c] : [c, b, a];
   if (yil < 1900 || yil > 2999 || ay < 1 || ay > 12 || gun < 1 || gun > 31) return null;
@@ -219,7 +241,13 @@ export function aktarimiCoz(kayitlar: Record<string, string>[], baglam: AktarimB
 
     const gun = tarihiCoz(tarihHam);
     if (!gun) {
-      satirlar.push({ satirNo, ozet, durum: "atlandi", sebep: "Tarih okunamadı (GG.AA.YYYY ya da YYYY-AA-GG bekleniyor)." });
+      /* Belirsizlik ile okunamamak AYRI şeyler: birinde dosya bozuk, ötekinde
+         dosya doğru ama biz hangi sırayı kastettiğini bilmiyoruz. İkinci
+         durumda kullanıcıya ne yapacağını söyleyebiliyoruz. */
+      const sebep = tarihBelirsizMi(tarihHam)
+        ? `Tarih belirsiz: "${tarihHam}" hem gün/ay hem ay/gün okunabilir. Dosyayı GG.AA.YYYY ya da YYYY-AA-GG biçimine çevirin.`
+        : "Tarih okunamadı (GG.AA.YYYY ya da YYYY-AA-GG bekleniyor).";
+      satirlar.push({ satirNo, ozet, durum: "atlandi", sebep });
       continue;
     }
 
@@ -268,6 +296,21 @@ export function aktarimiCoz(kayitlar: Record<string, string>[], baglam: AktarimB
  * sayılır, gerisi yok sayılır — kullanıcıyı listeyi temizlemeye zorlamak,
  * kaydı hiç girmemesine yol açar.
  */
+export interface SinifSecenegi {
+  /**
+   * MÜKERRER DENETİMİNİ BİLEREK KAPATIR — yalnız düzeltme kaydı için.
+   *
+   * Normalde aynı kişi + eğitim + gün için ikinci kayıt "zaten var" diye
+   * atlanır ve doğrusu budur. Ama ürünün düzeltme yolu tam da budur: yanlış
+   * kayıt SİLİNMEZ, doğrusu yeni bir kayıt olarak girilir. Aynı günü düzeltmek
+   * isteyen hazırlayan, mükerrer denetimine takılıp "kaydı düzeltemiyorum"
+   * diyordu — kaydın değişmezliğini koruyan kural, kaydın düzeltilmesini
+   * engelliyordu. Bayrak yalnız düzeltme akışından geçer ve denetim izine
+   * hangi kaydın düzeltildiği yazılır.
+   */
+  mukerrerIzni?: boolean;
+}
+
 export function sinifListesiniCoz(
   hamListe: string,
   egitimId: string,
@@ -275,6 +318,7 @@ export function sinifListesiniCoz(
   egitmen: string,
   notlar: string,
   baglam: AktarimBaglami,
+  secenek: SinifSecenegi = {},
 ): AktarimRaporu {
   const egitim = baglam.egitimler.find((e) => e.id === egitimId);
   if (!egitim) {
@@ -286,6 +330,7 @@ export function sinifListesiniCoz(
 
   const sicilKumesi = new Set(baglam.siciller.map((s) => s.trim()));
   const gorulen = new Set(baglam.mevcutAnahtarlar);
+  const listedeGorulen = new Set<string>();
   const satirlar: AktarimSatiri[] = [];
   const hamSatirlar = hamListe.split(/\r?\n/);
 
@@ -300,10 +345,16 @@ export function sinifListesiniCoz(
       continue;
     }
     const a = anahtar(sicil, egitim.id, gun);
-    if (gorulen.has(a)) {
+    /* Düzeltme akışında bile AYNI LİSTEDE iki kez geçen sicil mükerrerdir:
+       izin verilen şey defterdeki kaydın yerine yenisini yazmak, aynı
+       yapıştırmada aynı kişiyi iki kez saymak değil. Bu yüzden liste içi
+       tekrarlar ayrı kümede tutulur — küme, listeyi her satırda baştan taramak
+       zorunda bırakmaz (yapıştırılan liste yüzlerce satır olabiliyor). */
+    if (listedeGorulen.has(a) || (gorulen.has(a) && !secenek.mukerrerIzni)) {
       satirlar.push({ satirNo, ozet: metin, durum: "atlandi", sebep: "Bu kişi için bu tarihte kayıt zaten var." });
       continue;
     }
+    listedeGorulen.add(a);
     gorulen.add(a);
 
     satirlar.push({

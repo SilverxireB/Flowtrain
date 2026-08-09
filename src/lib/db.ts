@@ -237,7 +237,9 @@ CREATE TABLE IF NOT EXISTS medya (
   tip TEXT NOT NULL DEFAULT '',
   boyut INTEGER NOT NULL DEFAULT 0,
   yukleyen TEXT NOT NULL DEFAULT '',
-  olusturma TEXT NOT NULL
+  olusturma TEXT NOT NULL,
+  altMetin TEXT,
+  kutuphaneDisi INTEGER NOT NULL DEFAULT 0
 );
 `;
 
@@ -283,6 +285,12 @@ function gocleriUygula(d: Database.Database): void {
     /* Kartta birden çok görsel (JSON dizi). Tekil `gorselId` korunur:
        eski kayıtlar ve tek görselli kartlar onu kullanmaya devam eder. */
     "ALTER TABLE sayfa ADD COLUMN gorselIdler TEXT NOT NULL DEFAULT '[]'",
+
+    /* Görselin ne gösterdiği — ekran okuyucu için. */
+    "ALTER TABLE medya ADD COLUMN altMetin TEXT",
+
+    /* İçe aktarılan sayfa görselleri: kaydı var, kütüphane listesinde yok. */
+    "ALTER TABLE medya ADD COLUMN kutuphaneDisi INTEGER NOT NULL DEFAULT 0",
   ];
   for (const sorgu of ekle) {
     try {

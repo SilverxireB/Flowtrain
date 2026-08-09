@@ -103,6 +103,24 @@ export interface Medya {
   boyut: number
   yukleyen: string
   olusturma: string
+  /**
+   * Görselin NE GÖSTERDİĞİ — ekran okuyucuya okunan metin.
+   *
+   * Kart görseli çoğu zaman süs değil KURALIN KENDİSİDİR (doğru kaldırma
+   * duruşu, doğru KKD, doğru istifleme). Dosya adı ("IMG_2841.jpg") bunu
+   * söylemez; kart başlığı da görselin kendisini değil bağlamı anlatır.
+   */
+  altMetin?: string
+  /**
+   * Kütüphane seçicisinde GÖRÜNMEZ ama kaydı vardır.
+   *
+   * PDF/PPTX'ten gelen sayfa görselleri buraya düşer: kırk sayfalık bir sunum
+   * kütüphaneyi çöple doldururdu. Ama satırın hiç olmaması iki şeyi sessizce
+   * bozuyordu — `oksuzMedyalar()` onları göremediği için kartı silinen sayfa
+   * diskte sonsuza kadar kalıyordu, ve alt metin yazımı (bir UPDATE) hiçbir
+   * satır bulamayıp kayboluyordu. Kayıt var, yalnız listede görünmüyor.
+   */
+  kutuphaneDisi: boolean
 }
 
 export interface Sayfa {

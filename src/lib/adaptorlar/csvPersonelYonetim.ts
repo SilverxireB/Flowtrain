@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { BOM, ayiriciBul, csvOku, satiriBol } from "../csv";
-import { mmEslemeleriGetir } from "../depo";
 import { onbellegiTemizle, personelDosyaYolu } from "./csvPersonel";
+import { mmTuret } from "./mmTuretme";
 import type { AktarimSonucu, PersonelKaydi, PersonelYama, PersonelYonetimi } from "../adaptor";
 
 /**
@@ -102,9 +102,13 @@ function indeksSagla(d: Dosya, alan: Alan): number {
   return d.basliklar.length - 1;
 }
 
-/** Maliyet merkezi eşlemesini tek satıra uygular; kod tanımsızsa DOKUNMAZ. */
+/**
+ * Maliyet merkezi eşlemesini tek satıra uygular; kod tanımsızsa DOKUNMAZ.
+ * Türetme kuralı `mmTuretme.ts`te ORTAK: OPM adaptörü de aynı tabloyu aynı
+ * biçimde okur, yoksa aynı fabrikada iki farklı bölüm gerçeği doğar.
+ */
 function eslemeyiSatiraUygula(d: Dosya, satir: string[], kod: string): boolean {
-  const es = mmEslemeleriGetir().find((e) => e.kod === kod.trim());
+  const es = mmTuret(kod);
   if (!es) return false;
   if (es.bolum) satir[indeksSagla(d, "bolum")] = es.bolum;
   if (es.amirSicil) satir[indeksSagla(d, "amirSicil")] = es.amirSicil;

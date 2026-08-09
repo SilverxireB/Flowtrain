@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import Icon from "@/components/Icon";
 import MedyaSecici from "@/components/editor/MedyaSecici";
 import OtoMetin from "@/components/editor/OtoMetin";
@@ -15,8 +15,12 @@ import { SORU_ETIKET, type Soru } from "@/lib/tipler";
  *
  * `zor` işareti İÇERİK KALİTE SİNYALİdir: soruyu çoğunluk yanlış yapıyorsa
  * insanlar değil, o sayfa kötüdür. Hiçbir LMS bunu hazırlayanın yüzüne söylemez.
+ *
+ * GERİ ÇAĞRILAR SORU KİMLİĞİNİ ALIR — `SayfaSatiri`daki ile aynı sebep: kararlı
+ * geri çağrı olmadan `memo` hiçbir işe yaramaz, kart metnine yazılan her harf
+ * bütün soruları da yeniden çizerdi.
  */
-export default function SoruSatiri({
+function SoruSatiriIc({
   soru,
   sira,
   zor,
@@ -25,6 +29,7 @@ export default function SoruSatiri({
   onGuncelle,
   onSil,
   onMedyaSil,
+  onAltMetin,
   kilitli,
 }: {
   soru: Soru;
@@ -35,36 +40,38 @@ export default function SoruSatiri({
   medyalar: MedyaOzet[];
   /** Yayındaki eğitim salt okunur — sunucu da reddeder. */
   kilitli?: boolean;
-  onGuncelle: (yama: Record<string, unknown>) => void;
-  onSil: () => void;
-  onMedyaSil: (id: string) => void;
+  onGuncelle: (soruId: string, yama: Record<string, unknown>) => void;
+  onSil: (soruId: string) => void;
+  onMedyaSil: (medyaId: string) => void;
+  onAltMetin: (medyaId: string, altMetin: string) => void;
 }) {
   const [secici, setSecici] = useState(false);
   const cokluSecim = soru.tip === "cokluSecim";
   const sabitSecenek = soru.tip === "dogruYanlis";
+  const soruGorseli = soru.gorselId ? medyalar.find((m) => m.id === soru.gorselId) : undefined;
 
   function dogruDegistir(i: number) {
     if (cokluSecim) {
       const yeni = soru.dogru.includes(i) ? soru.dogru.filter((x) => x !== i) : [...soru.dogru, i];
       // En az bir doğru şık kalmalı: doğrusu olmayan soru herkesi yanlışa düşürür
       // ve puanı sessizce aşağı çeker.
-      if (yeni.length > 0) onGuncelle({ dogru: yeni });
-    } else onGuncelle({ dogru: [i] });
+      if (yeni.length > 0) onGuncelle(soru.id, { dogru: yeni });
+    } else onGuncelle(soru.id, { dogru: [i] });
   }
 
   function secenekDegistir(i: number, deger: string) {
     const yeni = [...soru.secenekler];
     yeni[i] = deger;
-    onGuncelle({ secenekler: yeni });
+    onGuncelle(soru.id, { secenekler: yeni });
   }
 
   function secenekEkle() {
-    onGuncelle({ secenekler: [...soru.secenekler, ""] });
+    onGuncelle(soru.id, { secenekler: [...soru.secenekler, ""] });
   }
 
   function secenekSil(i: number) {
     if (soru.secenekler.length <= 2) return;
-    onGuncelle({
+    onGuncelle(soru.id, {
       secenekler: soru.secenekler.filter((_, x) => x !== i),
       // Silinen şıktan sonrakiler kaydığı için doğru indeksleri de kaydır —
       // yoksa doğru cevap sessizce başka bir şıkka geçer.
@@ -95,7 +102,12 @@ export default function SoruSatiri({
           </span>
         ) : null}
         <div className="flex-1" />
-        <button onClick={onSil} disabled={kilitli} className="btn-icon hover:text-brand" aria-label="Soruyu sil">
+        <button
+          onClick={() => onSil(soru.id)}
+          disabled={kilitli}
+          className="btn-icon hover:text-brand"
+          aria-label="Soruyu sil"
+        >
           <Icon name="trash" size={16} />
         </button>
       </div>
@@ -103,7 +115,7 @@ export default function SoruSatiri({
       <OtoMetin
         disabled={kilitli}
         defaultValue={soru.metin}
-        onBlur={(e) => e.target.value !== soru.metin && onGuncelle({ metin: e.target.value })}
+        onBlur={(e) => e.target.value !== soru.metin && onGuncelle(soru.id, { metin: e.target.value })}
         rows={2}
         placeholder="Soru metni"
         className="input-base mt-3 font-semibold"
@@ -164,7 +176,7 @@ export default function SoruSatiri({
         <OtoMetin
           disabled={kilitli}
           defaultValue={soru.aciklama ?? ""}
-          onBlur={(e) => e.target.value !== (soru.aciklama ?? "") && onGuncelle({ aciklama: e.target.value })}
+          onBlur={(e) => e.target.value !== (soru.aciklama ?? "") && onGuncelle(soru.id, { aciklama: e.target.value })}
           rows={2}
           placeholder="Doğrusu neden doğru? Tek cümle."
           className="input-base"
@@ -183,8 +195,24 @@ export default function SoruSatiri({
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`/api/medya/${soru.gorselId}`} alt="" className="h-14 rounded-lg border border-line object-cover" />
+            {/* ALT METİN SORUDA DAHA DA GEREKLİ: "bu fotoğraftaki hangi davranış
+                yanlış?" sorusunu ekran okuyucuyla dinleyen kişi görseli
+                göremiyorsa soruyu hiç cevaplayamaz. */}
+            <input
+              key={soru.gorselId}
+              disabled={kilitli}
+              defaultValue={soruGorseli?.altMetin ?? ""}
+              onBlur={(e) =>
+                soru.gorselId &&
+                e.target.value !== (soruGorseli?.altMetin ?? "") &&
+                onAltMetin(soru.gorselId, e.target.value)
+              }
+              placeholder="Bu görsel ne gösteriyor? (ekran okuyucu bunu okur)"
+              aria-label="Soru görselinin alt metni"
+              className="input-base w-auto min-w-[14rem] flex-1 py-1.5 text-xs"
+            />
             <button
-              onClick={() => onGuncelle({ gorselId: null })}
+              onClick={() => onGuncelle(soru.id, { gorselId: null })}
               disabled={kilitli}
               className="btn-icon hover:text-brand"
               aria-label="Soru görselini kaldır"
@@ -200,13 +228,18 @@ export default function SoruSatiri({
           tur="gorsel"
           medyalar={medyalar}
           onMedyaSil={onMedyaSil}
+          onAltMetin={onAltMetin}
           onKapat={() => setSecici(false)}
           onSec={(id) => {
             setSecici(false);
-            onGuncelle({ gorselId: id });
+            onGuncelle(soru.id, { gorselId: id });
           }}
         />
       ) : null}
     </div>
   );
 }
+
+/** `memo`: gerekçesi `SayfaSatiri`daki ile aynı — ölçüm oradaki notta. */
+const SoruSatiri = memo(SoruSatiriIc);
+export default SoruSatiri;

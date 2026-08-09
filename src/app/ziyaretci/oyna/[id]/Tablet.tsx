@@ -25,11 +25,14 @@ export default function Tablet({
   ziyaretciId,
   ziyaretciAdi,
   adimlar,
+  altMetinler,
   bastanTamam,
 }: {
   ziyaretciId: string;
   ziyaretciAdi: string;
   adimlar: Adim[];
+  /** Görsel kimliği → hazırlayanın yazdığı alt metni; sunucuda süzülür. */
+  altMetinler?: Record<string, string>;
   bastanTamam: boolean;
 }) {
   const [bitenler, setBitenler] = useState<string[]>(() => adimlar.filter((a) => a.bitti).map((a) => a.egitim.id));
@@ -84,6 +87,7 @@ export default function Tablet({
           egitim={oynanan.adim.egitim}
           sayfalar={oynanan.adim.sayfalar}
           sorular={[]}
+          altMetinler={altMetinler}
           sinavHazir
           oturumId={oynanan.oturumId}
           kisiAdi={ziyaretciAdi}

@@ -7,7 +7,7 @@ import * as depo from "@/lib/depo";
 import { personelKaynagi } from "@/lib/adaptorlar";
 import { gecenSure } from "@/lib/anomali";
 import { ayEkle } from "@/lib/kurallar";
-import type { KayitSatiri } from "@/lib/rapor";
+import { kurumAdiMetni, type KayitSatiri } from "@/lib/rapor";
 import { bugun } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -92,6 +92,7 @@ export default async function KayitlarSayfa() {
           egitimler={egitimler.map((e) => ({ id: e.id, ad: e.ad }))}
           bolumler={bolumler}
           bugunGun={bugun()}
+          kurum={kurumAdiMetni(depo.ayarOku("kurumAdi"))}
         />
       </div>
     </main>

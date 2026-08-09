@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import { PDF_FONT as FONT, yaziTipiGom } from "./pdfYaziTipi";
+import { kunyeSatirlari, type BelgeKunyesi } from "./rapor";
 
 /**
  * Pano PDF'i — denetim toplantısına götürülecek özet sayfa.
@@ -26,7 +27,11 @@ export interface PanoOzeti {
   gecikenler: { ad: string; sicil: string; egitim: string; sonTarih: string }[];
 }
 
-export async function panoPdfIndir(ozet: PanoOzeti, tarih: string): Promise<void> {
+/**
+ * Belgeyi kurar ama KAYDETMEZ — `kayitPdf.ts`teki ayrımın aynısı: kurma
+ * maliyeti tarayıcı açmadan ölçülebilsin (`scripts/yuk.mjs`).
+ */
+export async function panoPdfKur(ozet: PanoOzeti, kunye: BelgeKunyesi): Promise<jsPDF> {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const gomuldu = await yaziTipiGom(doc);
   const ft = (kalin = false) => doc.setFont(gomuldu ? FONT : "helvetica", kalin ? "bold" : "normal");
@@ -44,14 +49,20 @@ export async function panoPdfIndir(ozet: PanoOzeti, tarih: string): Promise<void
   ft(true);
   doc.setFontSize(20);
   doc.setTextColor(0, 30, 100);
-  doc.text("Eğitim durumu", KENAR, y);
+  doc.text(kunye.belge, KENAR, y);
   y += 20;
 
+  /* KÜNYE ÖZET BELGEDE DE VAR. Pano PDF'i toplantı masasına konur ve orada
+     "bu hangi tarihin fotoğrafı, kaç atamayı sayıyor" sorusu ilk sorulan
+     sorudur; tek satırlık "FlowTrain · 2026-08-09" ikisini de söylemiyordu. */
   ft();
   doc.setFontSize(10);
   doc.setTextColor(120, 113, 108);
-  doc.text(`FlowTrain · ${tarih}`, KENAR, y);
-  y += 28;
+  for (const satir of kunyeSatirlari(kunye)) {
+    doc.text(doc.splitTextToSize(satir, GENIS)[0] ?? "", KENAR, y);
+    y += 13;
+  }
+  y += 15;
 
   // ── özet ──
   ft(true);
@@ -157,19 +168,24 @@ export async function panoPdfIndir(ozet: PanoOzeti, tarih: string): Promise<void
     y += 15;
   }
 
-  // Sayfa altı notu: bu belgenin ne OLMADIĞINI söylemek, yanlış kullanımı önler.
+  /* Sayfa altı HER SAYFADA künyeyi tekrarlar (tek yaprak masaya konabilir) ve
+     bu belgenin ne OLMADIĞINI söyler — yanlış kullanımı önler. */
   const sayfaSayisi = doc.getNumberOfPages();
+  const dip = doc.internal.pageSize.getHeight();
   for (let i = 1; i <= sayfaSayisi; i++) {
     doc.setPage(i);
     ft();
     doc.setFontSize(8);
     doc.setTextColor(160, 155, 150);
-    doc.text(
-      `Özet rapor — tam kayıt listesi için CSV çıktısını kullanın.   ${i}/${sayfaSayisi}`,
-      KENAR,
-      doc.internal.pageSize.getHeight() - 26,
-    );
+    doc.text(`${kunye.kurum} · ${kunye.belge} · ${kunye.uretim} · ${kunye.kayitSayisi} atama`, KENAR, dip - 36);
+    doc.text("Özet rapor — tam kayıt listesi için CSV çıktısını kullanın.", KENAR, dip - 26);
+    doc.text(`Sayfa ${i}/${sayfaSayisi}`, KENAR + GENIS, dip - 26, { align: "right" });
   }
 
+  return doc;
+}
+
+export async function panoPdfIndir(ozet: PanoOzeti, kunye: BelgeKunyesi, tarih: string): Promise<void> {
+  const doc = await panoPdfKur(ozet, kunye);
   doc.save(`flowtrain-egitim-durumu-${tarih}.pdf`);
 }

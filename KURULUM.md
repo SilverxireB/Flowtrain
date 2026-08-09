@@ -94,13 +94,43 @@ Dosyanın biçimi (ayırıcı `;` ya da `,` olabilir, Excel'in UTF-8 çıktısı
 okunur):
 
 ```csv
-Sicil;Ad;Bölüm;Hat;Görev;Amir;İşe giriş
-1001;Ali Yılmaz;Kaynak;Hat 1;Operatör;9001;2026-08-01
-9001;Veli Usta;Kaynak;Hat 1;Amir;;2020-05-05
+Sicil;Ad;Maliyet merkezi
+1001;Ali Yılmaz;264302
+9001;Veli Usta;264302
 ```
 
-**Amir sütunu ekip listesini kurar.** Boşsa o kişi hiçbir amirin ekranında
-görünmez; Ayarlar bunu doluluk oranı olarak söyler.
+**Bir personel kaydı üç şeydir: sicil, ad, maliyet merkezi.** Bölüm ve amir
+elle yazılmaz — maliyet merkezinden türer.
+
+### Dosya yerine ekrandan
+
+**Personel** sayfası aynı işi ekrandan yapar: kurumun dışa aktarımını (sicil ·
+ad soyad · maliyet merkezi) yapıştırır ya da dosya olarak seçersiniz. Var olan
+kayıtlar güncellenir, yenileri eklenir, **kimse silinmez** — silme kararı
+insanın işidir.
+
+### Maliyet merkezi eşlemesi
+
+Aynı sayfanın altında her koda bir **bölüm** ve bir **amir** bağlarsınız:
+
+```
+264302  →  Montaj · amir 1001
+```
+
+Bir kodun eşlemesi yoksa o kişiler bölümsüz kalır ve bölüm bazlı atama
+kuralları onları kapsamaz — aktarım sonrası eşlemesi olmayan kodları listeler.
+Eşlemeyi sonradan tanımlayıp **"Tüm listeye uygula"** diyebilirsiniz.
+
+Bölümü elle girilebilir yapmadık çünkü iki gerçek yarışırdı: kurumdan gelen
+her yeni liste, elle yapılan düzeltmeleri ezer ve kimse hangisinin doğru
+olduğunu bilemezdi.
+
+### Amir kim?
+
+Herkes varsayılan olarak **operatör**. Personel sayfasından bir kişinin rolünü
+**Amir** yaparsınız; o kişi artık eşlemede amir olarak seçilebilir ve kendi
+ekibini görür. Amirin **hesabına sicil girilmezse** giriş yapar ama ekranı boş
+görür — Ayarlar bunu doluluk oranı olarak söyler.
 
 ---
 
@@ -118,6 +148,12 @@ görünmez; Ayarlar bunu doluluk oranı olarak söyler.
    `1001` yazın → eğitim listede çıkar → izleyin → sınavı olun → kendinize bir
    PIN belirleyin (işe giriş tarihi olarak `01.08.2026` girin).
 8. **Pano →** tamamlanma oranı ve CSV/PDF çıktısı.
+9. **Kayıt defteri →** az önceki tamamlama burada; süzün, CSV/PDF indirin,
+   kişiye sertifika basın.
+10. **Eğitimler → QR etiketleri →** eğitimi işaretleyip yazdırın. Kodu bir
+    telefonla okutun: kiosk doğrudan o eğitimi açar. (Önce **Ayarlar →
+    Kurulumun ağ adresi**ni doldurun; `localhost` yazılırsa başka cihazda
+    çalışmaz.)
 
 > Kiosk'u ayrı bir tarayıcı **profilinde ya da gizli pencerede** açın: aynı
 > pencerede yönetici oturumunuz açıkken oturum "gözetimli" olarak kaydedilir

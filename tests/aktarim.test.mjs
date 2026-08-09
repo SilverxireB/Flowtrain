@@ -10,6 +10,7 @@
  *    Eksik belge, hiç belge olmamasından kötüdür.
  */
 import {
+  tarihBelirsizMi,
   tarihiCoz,
   gunDamgasi,
   sutunlariEsle,
@@ -27,10 +28,22 @@ import { kontrol, esit, bitir } from "./yardim.mjs";
    ay kaydırır ve kimse fark etmez. */
 esit(tarihiCoz("2024-05-03"), "2024-05-03", "ISO tarih aynen okunur");
 esit(tarihiCoz("03.05.2024"), "2024-05-03", "GG.AA.YYYY doğru çözülür");
-esit(tarihiCoz("3/5/2024"), "2024-05-03", "eğik çizgili biçim de okunur");
 // 03.05 ile 05.03 AYNI DEĞİLDİR: rakamları sıralayıp tahmin etmek iki ay kaydırırdı.
 kontrol(tarihiCoz("03.05.2024") !== tarihiCoz("05.03.2024"), "gün/ay sırası korunuyor");
 esit(tarihiCoz("05.03.2024"), "2024-03-05", "ters sıra ters sonucu verir");
+
+/* BELİRSİZ EĞİK ÇİZGİ TAHMİN EDİLMEZ.
+   `05/03/2024` Avrupa'da 5 Mart, ABD'de 3 Mayıs; ikisi de geçerli bir gün, yani
+   doğrulama bunu YAKALAYAMAZ. Eskiden sessizce gün-önce okunuyordu: ABD dışa
+   aktarımından gelen kayıt iki ay kayıyor, satır "geçerli" görünüyor ve
+   sertifika geçerliliği yanlış hesaplanıyordu. */
+esit(tarihiCoz("3/5/2024"), null, "belirsiz eğik çizgili tarih reddedilir");
+esit(tarihiCoz("05/03/2024"), null, "iki biçimde de okunabilen tarih tahmin edilmez");
+kontrol(tarihBelirsizMi("05/03/2024"), "belirsizlik ayrıca bildirilebiliyor (gerekçe için)");
+esit(tarihiCoz("25/03/2024"), "2024-03-25", "gün 12'den büyükse eğik çizgi belirsiz DEĞİL");
+kontrol(!tarihBelirsizMi("05.03.2024"), "nokta ayırıcı belirsiz sayılmaz (Türkçe Excel çıktısı)");
+kontrol(!tarihBelirsizMi("2024/03/05"), "ISO sırası eğik çizgiyle de belirsiz değil");
+esit(tarihiCoz("2024/03/05"), "2024-03-05", "yıl baştaysa eğik çizgi sorun değil");
 esit(tarihiCoz(""), null, "boş tarih okunmaz");
 esit(tarihiCoz("geçen yıl"), null, "serbest metin okunmaz");
 esit(tarihiCoz("32.05.2024"), null, "olmayan gün reddedilir");

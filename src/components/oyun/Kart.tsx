@@ -17,7 +17,20 @@ import { gorselIzgaraSinifi, gorselYukseklikSinifi, kartGorselleri } from "./gor
  * yalnız çizilir — kaç görselin nasıl dizileceğini bileşenin içine gömmek,
  * kiosk düzeninin bozulup bozulmadığını sınavla korunamaz hâle getirirdi.
  */
-export default function Kart({ sayfa }: { sayfa: Sayfa }) {
+export default function Kart({
+  sayfa,
+  altMetinler,
+}: {
+  sayfa: Sayfa;
+  /**
+   * Görsel kimliği → hazırlayanın yazdığı açıklama (`Medya.altMetin`).
+   *
+   * İSTEĞE BAĞLI: editörün canlı önizlemesi kütüphaneyi taşımıyor, oradan
+   * gelmediğinde türetilmiş metne düşülür. Zorunlu olsaydı önizlemeyi çizen
+   * her yerin medya tablosunu okuması gerekirdi.
+   */
+  altMetinler?: Record<string, string>;
+}) {
   const gorseller = kartGorselleri(sayfa);
 
   if (sayfa.tip === "yapYapma") {
@@ -28,7 +41,7 @@ export default function Kart({ sayfa }: { sayfa: Sayfa }) {
           <Sutun renk="iyi" ikon="check" baslik="Yap" metin={sayfa.metin} />
           <Sutun renk="brand" ikon="close" baslik="Yapma" metin={sayfa.metinKarsi} />
         </div>
-        <Gorseller idler={gorseller} baslik={sayfa.baslik} />
+        <Gorseller idler={gorseller} baslik={sayfa.baslik} altMetinler={altMetinler} />
       </div>
     );
   }
@@ -47,7 +60,7 @@ export default function Kart({ sayfa }: { sayfa: Sayfa }) {
             <p className="mt-4 whitespace-pre-line text-lg leading-relaxed text-ink/90">{sayfa.metin}</p>
           ) : null}
         </div>
-        <Gorseller idler={gorseller} baslik={sayfa.baslik} />
+        <Gorseller idler={gorseller} baslik={sayfa.baslik} altMetinler={altMetinler} />
       </div>
     );
   }
@@ -70,7 +83,7 @@ export default function Kart({ sayfa }: { sayfa: Sayfa }) {
             </li>
           ))}
         </ol>
-        <Gorseller idler={gorseller} baslik={sayfa.baslik} />
+        <Gorseller idler={gorseller} baslik={sayfa.baslik} altMetinler={altMetinler} />
       </div>
     );
   }
@@ -109,7 +122,7 @@ export default function Kart({ sayfa }: { sayfa: Sayfa }) {
       {sayfa.metin ? (
         <p className="mt-5 whitespace-pre-line text-xl leading-relaxed text-ink/90">{sayfa.metin}</p>
       ) : null}
-      <Gorseller idler={gorseller} baslik={sayfa.baslik} />
+      <Gorseller idler={gorseller} baslik={sayfa.baslik} altMetinler={altMetinler} />
     </div>
   );
 }
@@ -123,11 +136,22 @@ function Baslik({ metin }: { metin: string }) {
  *
  * ALT METNİ BOŞ BIRAKILMIYOR: görsel burada süs değil, çoğu zaman kuralın
  * kendisi (doğru kaldırma duruşu, doğru KKD). Ekran okuyucu kullanan kişiye
- * "resim" bile denmemesi, sayfanın yarısının yok sayılması demekti. Çekirdekte
- * görsel başına açıklama alanı yok; en azından kartın başlığına ve sıraya
- * bağlıyoruz (istek: `docs/istek-D.md`).
+ * "resim" bile denmemesi, sayfanın yarısının yok sayılması demekti.
+ *
+ * ÖNCE HAZIRLAYANIN YAZDIĞI (`Medya.altMetin`), sonra türetilmiş metin.
+ * Türetilmiş metin ("Yüksekte çalışma — görsel 2/3") görselin VARLIĞINI ve
+ * bağlamını söyler ama ne gösterdiğini söylemez; yazılmış bir açıklama varken
+ * onu kullanmamak, açıklamayı yazan kişinin emeğini çöpe atardı.
  */
-function Gorseller({ idler, baslik }: { idler: string[]; baslik: string }) {
+function Gorseller({
+  idler,
+  baslik,
+  altMetinler,
+}: {
+  idler: string[];
+  baslik: string;
+  altMetinler?: Record<string, string>;
+}) {
   if (idler.length === 0) return null;
   const yukseklik = gorselYukseklikSinifi(idler.length);
 
@@ -138,7 +162,10 @@ function Gorseller({ idler, baslik }: { idler: string[]; baslik: string }) {
         <img
           key={id}
           src={`/api/medya/${id}`}
-          alt={idler.length > 1 ? `${baslik} — görsel ${i + 1}/${idler.length}` : `${baslik} — görsel`}
+          alt={
+            (altMetinler?.[id] ?? "").trim() ||
+            (idler.length > 1 ? `${baslik} — görsel ${i + 1}/${idler.length}` : `${baslik} — görsel`)
+          }
           className={`w-full rounded-2xl border border-line object-contain ${yukseklik}`}
         />
       ))}

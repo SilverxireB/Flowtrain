@@ -7,7 +7,7 @@ import * as depo from "@/lib/depo";
 import { tumAtamalar } from "@/lib/atamaServis";
 import { acikMi, DURUM_ETIKET, type AtamaDurumu } from "@/lib/kurallar";
 import { anomaliMetni, beklenenSure, gozetenOzetleri } from "@/lib/anomali";
-import { ayEtiketi, aylikTrend, kirilimCikar, type Kirilim } from "@/lib/rapor";
+import { ayEtiketi, aylikTrend, kirilimCikar, kurumAdiMetni, type Kirilim } from "@/lib/rapor";
 import { bugun } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -115,7 +115,7 @@ export default async function Pano() {
             <Link href="/kayitlar" className="btn-ghost text-sm">
               <Icon name="receipt" size={16} /> Kayıt defteri
             </Link>
-            <Disari ozet={pdfOzeti} tarih={bugun()} />
+            <Disari ozet={pdfOzeti} tarih={bugun()} kurum={kurumAdiMetni(depo.ayarOku("kurumAdi"))} />
           </>
         }
       />

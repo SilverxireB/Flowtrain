@@ -72,6 +72,10 @@ export default function Ekip({ satirlar }: { satirlar: Satir[] }) {
           kisiAdi={veri.kisiAdi}
           pinKurulacak={veri.pinKurulacak}
           iseGirisSorulacak={veri.iseGirisSorulacak}
+          /* Kiosk ile AYNI veriden besleniyor: alt metin geçilmezse amir
+             tabletinde görsel açıklaması türetilmişe düşerdi — aynı eğitim
+             iki cihazda iki farklı şey okurdu. */
+          altMetinler={veri.altMetinler}
           sinavHazir
           onBitir={async (s: OyunSonucu) => oturumTamamla(veri.oturumId, s)}
           onCik={() => {

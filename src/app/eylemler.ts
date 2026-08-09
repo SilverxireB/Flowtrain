@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cikisYap, girisYap, guvenliYol, kapi, kurulumGerekli } from "@/lib/kimlik";
 import * as depo from "@/lib/depo";
-import { kaydiGonder, personelKaynagi } from "@/lib/adaptorlar";
+import { kaydiGonder, personelKaynagi, sonKayitGonderimHatasi } from "@/lib/adaptorlar";
 import { SABLONLAR } from "@/lib/sablonlar";
 import { nrm } from "@/lib/arama";
 import type { KartTipi, Soru, SoruTipi } from "@/lib/tipler";
@@ -83,12 +83,24 @@ export async function hesapSilEylem(kullanici: string): Promise<void> {
 export async function senkronTekrarEylem(): Promise<void> {
   const ben = kapi("yonetici", "/ayarlar");
   let basarili = 0;
-  for (const o of depo.bekleyenSenkronlar()) {
+  const bekleyenler = depo.bekleyenSenkronlar();
+  for (const o of bekleyenler) {
     const oldu = await kaydiGonder(o);
     depo.senkronIsaretle(o.id, oldu ? "gonderildi" : "hata");
     if (oldu) basarili++;
   }
-  depo.izBirak(ben.kullanici, `senkron tekrar denendi: ${basarili} kayıt gönderildi`);
+
+  /* SEBEP DE YAZILIYOR: "3 kayıt gönderilemedi" satırı tek başına eyleme
+     dönüşmüyor — adres mi yanlış, anahtar mı süresi dolmuş, servis mi kapalı
+     bilinmeden kimse düzeltemez. Sebep denetim izinde durursa sorun ertesi
+     gün başka biri tarafından da okunabilir. */
+  const kalan = bekleyenler.length - basarili;
+  const sebep = kalan > 0 ? sonKayitGonderimHatasi()?.mesaj : null;
+  depo.izBirak(
+    ben.kullanici,
+    `senkron tekrar denendi: ${basarili} gönderildi` +
+      (kalan > 0 ? `, ${kalan} başarısız${sebep ? ` — ${sebep}` : ""}` : ""),
+  );
   revalidatePath("/ayarlar");
   revalidatePath("/pano");
 }

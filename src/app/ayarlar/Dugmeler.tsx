@@ -16,7 +16,10 @@ export default function Dugmeler({ bekleyen }: { bekleyen: number }) {
         disabled={calisiyor}
         className="btn-ghost text-sm"
       >
-        <Icon name="refresh" size={16} /> Personel dosyasını yeniden oku
+        {/* Kaynağa göre değişmeyen bir ifade: OPM seçiliyken okunacak şey dosya
+            değil webservice'tir, ama düğmenin işi ikisinde de aynı — önbelleği
+            düşürüp yeniden okumak (`PersonelKaynagi.tazele`). */}
+        <Icon name="refresh" size={16} /> Personel listesini yeniden oku
       </button>
       {bekleyen > 0 ? (
         <button

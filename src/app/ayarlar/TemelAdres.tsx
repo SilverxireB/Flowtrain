@@ -3,15 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
-import { temelAdresKaydetEylem } from "./eylemler";
+import { kurumAdiKaydetEylem, temelAdresKaydetEylem } from "./eylemler";
 
 /**
  * QR etiketleri bu adresten üretilir. Boşsa etiketler göreli yol taşır ve
  * yalnız aynı kurulumdan açılan tarayıcıda çalışır — hattaki tablette değil.
  */
-export default function TemelAdres({ mevcut }: { mevcut: string }) {
+export default function TemelAdres({ mevcut, kurumAdi }: { mevcut: string; kurumAdi: string }) {
   const router = useRouter();
   const [adres, setAdres] = useState(mevcut);
+  const [kurum, setKurum] = useState(kurumAdi);
+  const [kurumKaydedildi, setKurumKaydedildi] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
   const [kaydedildi, setKaydedildi] = useState(false);
   const [calisiyor, setCalisiyor] = useState(false);
@@ -28,8 +30,37 @@ export default function TemelAdres({ mevcut }: { mevcut: string }) {
     router.refresh();
   }
 
+  async function kurumKaydet() {
+    setKurumKaydedildi(false);
+    await kurumAdiKaydetEylem(kurum);
+    setKurumKaydedildi(true);
+    router.refresh();
+  }
+
   return (
-    <div className="mt-3">
+    <div className="mt-3 space-y-4">
+      <label className="block">
+        <span className="text-xs font-semibold text-muted">Kurum adı</span>
+        <div className="mt-1 flex flex-wrap gap-2">
+          <input
+            value={kurum}
+            onChange={(e) => {
+              setKurum(e.target.value);
+              setKurumKaydedildi(false);
+            }}
+            placeholder="Örnek Fabrika A.Ş."
+            className="input-base min-w-0 flex-1 text-sm"
+          />
+          <button onClick={kurumKaydet} className="btn-ghost text-sm">
+            <Icon name="save" size={16} /> Kaydet
+          </button>
+        </div>
+        <p className="mt-1 text-xs text-muted">
+          Denetim belgelerinin (kayıt defteri CSV/PDF, pano çıktısı, sertifika) künyesine basılır.
+          {kurumKaydedildi ? <span className="ml-1 font-semibold text-iyi-dark">Kaydedildi.</span> : null}
+        </p>
+      </label>
+
       <label className="block">
         <span className="text-xs font-semibold text-muted">Kurulumun ağ adresi</span>
         <div className="mt-1 flex flex-wrap gap-2">

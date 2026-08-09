@@ -2,22 +2,37 @@ import { existsSync, statSync } from "node:fs";
 import Baslik from "@/components/Baslik";
 import Icon from "@/components/Icon";
 import HesapYonetimi from "./HesapYonetimi";
+import AdaptorAyari from "./AdaptorAyari";
 import Dugmeler from "./Dugmeler";
 import Pinler from "./Pinler";
 import TemelAdres from "./TemelAdres";
 import { kapi } from "@/lib/kimlik";
 import * as depo from "@/lib/depo";
 import { VERI_KLASORU } from "@/lib/db";
-import { personelKaynagi, kayitHedefi } from "@/lib/adaptorlar";
+import { adaptorDurumu, kayitHedefi, opmHataMetni, opmYapilandirmaOku, personelKaynagi } from "@/lib/adaptorlar";
 import { personelDosyaYolu } from "@/lib/adaptorlar/csvPersonel";
 import { kayitDosyaYolu } from "@/lib/adaptorlar/dosyaKayit";
+import type { Kisi } from "@/lib/tipler";
 
 export const dynamic = "force-dynamic";
 
 export default async function Ayarlar() {
   const ben = kapi("yonetici", "/ayarlar");
 
-  const kisiler = await personelKaynagi().listele();
+  const durum = adaptorDurumu();
+  const opm = opmYapilandirmaOku();
+
+  // OPM kaynağı yapılandırma eksikse ya da hiç okunamamışsa HATA FIRLATIR
+  // (boş liste dönmek "fabrikada kimse yok" demek olurdu). Ayarlar sayfası
+  // bundan KİLİTLENMEMELİ: düzeltmenin yapılacağı yer tam olarak burası.
+  let kisiler: Kisi[] = [];
+  let kaynakHatasi: string | null = null;
+  try {
+    kisiler = await personelKaynagi().listele();
+  } catch (h) {
+    kaynakHatasi = opmHataMetni(h);
+  }
+
   const personelYolu = personelDosyaYolu();
   const kayitYolu = kayitDosyaYolu();
   const bekleyen = depo.bekleyenSenkronlar().length;
@@ -44,21 +59,36 @@ export default async function Ayarlar() {
                  yedekte OLMAZ ve bunu kimse fark etmez. */
               not="Yedek alırken klasörün TAMAMINI kopyalayın (-wal ve -shm dosyaları dahil); en güvenlisi servisi kısa süre durdurmaktır."
             />
-            <Satir etiket="Personel kaynağı" deger={personelKaynagi().ad} />
             <Satir
-              etiket="Personel dosyası"
-              deger={personelYolu}
-              mono
-              not={
-                existsSync(personelYolu)
-                  ? `${kisiler.length} kişi · son güncelleme ${new Date(statSync(personelYolu).mtimeMs)
-                      .toISOString()
-                      .slice(0, 16)
-                      .replace("T", " ")}`
-                  : "Dosya yok — bu yola bırakın"
-              }
-              uyari={!existsSync(personelYolu)}
+              etiket="Personel kaynağı"
+              deger={personelKaynagi().ad}
+              not={kaynakHatasi ?? undefined}
+              uyari={!!kaynakHatasi}
             />
+            {durum.personelSecim === "csv" ? (
+              <Satir
+                etiket="Personel dosyası"
+                deger={personelYolu}
+                mono
+                not={
+                  existsSync(personelYolu)
+                    ? `${kisiler.length} kişi · son güncelleme ${new Date(statSync(personelYolu).mtimeMs)
+                        .toISOString()
+                        .slice(0, 16)
+                        .replace("T", " ")}`
+                    : "Dosya yok — bu yola bırakın"
+                }
+                uyari={!existsSync(personelYolu)}
+              />
+            ) : (
+              <Satir
+                etiket="OPM personel ucu"
+                deger={opm.temelAdres ? opm.temelAdres + opm.personelYolu : "Adres girilmemiş"}
+                mono
+                not={`${kisiler.length} kişi okundu · önbellek ${opm.onbellekDk} dk`}
+                uyari={!opm.temelAdres}
+              />
+            )}
             <Satir
               etiket="Amir sütunu doluluk"
               deger={`%${amirliOran}`}
@@ -71,7 +101,7 @@ export default async function Ayarlar() {
             />
             <Satir etiket="Kayıt hedefi" deger={kayitHedefi().ad} />
             <Satir
-              etiket="Kayıt dosyası"
+              etiket={durum.kayitSecim === "dosya" ? "Kayıt dosyası" : "Kayıt dosyası (yerel kopya)"}
               deger={kayitYolu}
               mono
               not={bekleyen > 0 ? `${bekleyen} kayıt gönderilemedi, bekliyor` : "Tüm kayıtlar gönderildi"}
@@ -80,7 +110,28 @@ export default async function Ayarlar() {
           </div>
 
           <Dugmeler bekleyen={bekleyen} />
-          <TemelAdres mevcut={depo.ayarOku("temelAdres")} />
+          <TemelAdres mevcut={depo.ayarOku("temelAdres")} kurumAdi={depo.ayarOku("kurumAdi")} />
+        </section>
+
+        <section>
+          <h2 className="eyebrow mb-3">Personel kaynağı ve kayıt hedefi</h2>
+          <AdaptorAyari
+            personelSecim={durum.personelSecim}
+            kayitSecim={durum.kayitSecim}
+            temelAdres={opm.temelAdres}
+            kimlikBasligi={opm.kimlikBasligi}
+            /* Anahtarın KENDİSİ ekrana hiç inmez — yalnız varlığı. */
+            anahtarVar={opm.kimlikAnahtari !== ""}
+            personelYolu={opm.personelYolu}
+            kayitYolu={opm.kayitYolu}
+            zamanAsimiMs={String(opm.zamanAsimiMs)}
+            onbellekDk={String(opm.onbellekDk)}
+            personelEksikleri={durum.personelEksikleri}
+            kayitEksikleri={durum.kayitEksikleri}
+            sonBasariliOkuma={durum.opmPersonel?.sonBasariliOkuma ?? null}
+            sonOkumaHatasi={durum.opmPersonel?.sonHata?.mesaj ?? null}
+            sonGonderimHatasi={durum.sonGonderimHatasi?.mesaj ?? null}
+          />
         </section>
 
         <section>

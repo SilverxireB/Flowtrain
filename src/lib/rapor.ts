@@ -10,6 +10,7 @@
  * Sınav önerisi: `tests/rapor.test.mjs`
  */
 import { eslesir } from "./arama";
+import { BOM } from "./csv";
 import type { OturumKaynagi, Sonuc } from "./tipler";
 
 /**
@@ -123,6 +124,86 @@ export function suzgecOzeti(s: KayitSuzgeci, egitimAdi: string, kaynakEtiket: st
   return parcalar.length === 0 ? "Süzgeç yok — tüm kayıtlar." : parcalar.join(" · ");
 }
 
+/* ── belge künyesi (denetim uyumu) ────────────────────────────────────────── */
+
+/**
+ * HER DIŞA AKTARIMIN ÜSTÜNDE DURAN DÖRT CEVAP.
+ *
+ * Bir denetçi masasındaki kâğıda ya da açtığı Excel dosyasına bakıp dört soruyu
+ * sorar: **kimin**, **neyin listesi**, **ne zaman üretildi**, **kaç kayıt**.
+ * Bugüne kadar sertifikada bu izlenebilirlik vardı (sürüm + belge no) ama CSV
+ * ve PDF'te yoktu: elde "flowtrain-kayit-defteri-2026-08-09.csv" adında,
+ * içinde hangi fabrikaya ait olduğu yazmayan bir dosya kalıyordu. İki
+ * kurulumun çıktısı yan yana konduğunda hangisinin hangisi olduğu
+ * ayırt edilemezdi — denetimde bu, belgenin hükmünü düşürür.
+ *
+ * Künye TEK yerde tanımlı: dört belge (defter CSV/PDF, pano CSV/PDF) ayrı ayrı
+ * yazsaydı biri güncellenip diğerleri geride kalır ve aynı denetim dosyasında
+ * iki farklı künye biçimi olurdu.
+ */
+export interface BelgeKunyesi {
+  /** Kurulumun sahibi fabrika/kurum. Ayarlardan okunur. */
+  kurum: string;
+  /** Belgenin ne olduğu — "Eğitim kayıt defteri", "Eğitim durumu (atamalar)". */
+  belge: string;
+  /** Belgenin basıldığı an: `YYYY-AA-GG SS:DD`. */
+  uretim: string;
+  kayitSayisi: number;
+  /** Süzgeç özeti — `suzgecOzeti` çıktısı ya da "Süzgeç yok — tüm kayıtlar." */
+  suzgec: string;
+}
+
+/**
+ * Kurum adı girilmemişse BOŞ BIRAKILMAZ, açıkça söylenir.
+ *
+ * Sessiz boşluk, belgeyi basanın eksiği fark etmemesi demek. Denetçi
+ * "(kurum adı girilmemiş)" yazan bir belgeye baktığında eksiğin ne olduğunu
+ * bilir; boş bir satıra baktığında belgeyi biz mi kırptık diye sorar.
+ */
+export const KURUM_BOS = "(kurum adı girilmemiş)";
+
+export function kurumAdiMetni(ham?: string): string {
+  return (ham ?? "").trim() || KURUM_BOS;
+}
+
+/** `YYYY-AA-GG SS:DD` — belgenin basıldığı an (yerel saat, ISO'nun Z'si değil). */
+export function damgaMetni(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/** Künyenin üç satırlık okunur hâli — PDF başlığı ve sayfa altı bunu basar. */
+export function kunyeSatirlari(k: BelgeKunyesi): string[] {
+  return [
+    `${k.kurum} · ${k.belge}`,
+    `Üretim: ${k.uretim} · ${k.kayitSayisi} kayıt`,
+    `Süzgeç: ${k.suzgec}`,
+  ];
+}
+
+/**
+ * Künye + tablo — Türkçe Excel'in doğru açtığı tek dosya.
+ *
+ * Künye TABLONUN ÜSTÜNE yazılır, altına değil: Excel'de dosyayı açan kişi
+ * ilk gördüğü şeyin belgenin kimliği olmasını bekler, 8000 satır kaydırıp
+ * dipnot aramaz. `csvYaz` çıktısı BOM ile başlar; BOM dosyanın EN BAŞINDA
+ * kalmalı (ortada kalırsa Excel kodlamayı yine yanlış okur), o yüzden
+ * gövdenin BOM'u kırpılıp künyenin önüne alınır.
+ */
+export function kunyeliCsv(k: BelgeKunyesi, govde: string): string {
+  const alanlar: [string, string][] = [
+    ["Kurum", k.kurum],
+    ["Belge", k.belge],
+    ["Üretim", k.uretim],
+    ["Kayıt sayısı", String(k.kayitSayisi)],
+    ["Süzgeç", k.suzgec],
+  ];
+  // Değerde `;` ya da tırnak olabilir (süzgeç özeti serbest metindir).
+  const kacir = (s: string) => (/[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+  const bas = alanlar.map(([a, d]) => `${a};${kacir(d)}`).join("\r\n");
+  return `${BOM}${bas}\r\n\r\n${govde.startsWith(BOM) ? govde.slice(BOM.length) : govde}`;
+}
+
 /* ── biçimlendirme ────────────────────────────────────────────────────────── */
 
 /** `2026-08-07T14:32:10.000Z` → `2026-08-07 14:32`. Boşsa tire. */
@@ -142,6 +223,66 @@ export function sayfala<T>(liste: T[], sayfa: number, boyut: number): { gorunen:
   const sonSayfa = Math.max(1, Math.ceil(liste.length / boyut));
   const gecerliSayfa = Math.min(Math.max(1, sayfa), sonSayfa);
   return { gorunen: liste.slice((gecerliSayfa - 1) * boyut, gecerliSayfa * boyut), gecerliSayfa, sonSayfa };
+}
+
+/* ── düzeltme kaydı ───────────────────────────────────────────────────────── */
+
+/**
+ * DÜZELTME BAĞI — bugün NOTUN İÇİNDE taşınıyor, bilerek.
+ *
+ * Kayıt düzenlenmez, silinmez (`CLAUDE.md` 7. kural); yanlış bir kayıt YENİ bir
+ * kayıtla düzeltilir. Ama iki satırın bağı yoktu: denetçi "hangi kaydı
+ * düzeltiyor" sorusunu nottaki serbest cümleden okumaya çalışıyordu ve o cümle
+ * her seferinde başka biçimde yazılıyordu.
+ *
+ * DOĞRU ÇÖZÜM ÇEKİRDEKTEDİR: `Oturum.duzeltir` alanı (`docs/istek-C.md` · 4).
+ * Alan çekirdek tipe girer ve dört hattı birden ilgilendirir, o yüzden Hat C
+ * onu yazmıyor. Buradaki önek, alan gelene kadar bağı MAKİNE OKUYABİLİR kılar:
+ * defter iki satırı da işaretler, çıktıda bağ görünür, alan geldiğinde bu
+ * ayrıştırma tek yerde silinir.
+ *
+ * Önek Türkçe ve okunur: not alanı denetçinin de okuduğu bir alan, oraya
+ * `#REF:otr_x` gibi bir işaret koymak belgeyi teknik gürültüye çevirirdi.
+ */
+export const DUZELTME_ONEKI = "Düzeltme:";
+
+/** Yeni kaydın notu — düzeltilen belgenin numarası her zaman BAŞTA durur. */
+export function duzeltmeNotu(duzeltilenBelgeNo: string, kullaniciNotu: string): string {
+  const kuyruk = kullaniciNotu.trim();
+  return `${DUZELTME_ONEKI} ${duzeltilenBelgeNo} numaralı kaydın yerine geçer.${kuyruk ? ` ${kuyruk}` : ""}`;
+}
+
+/** Nottan düzeltilen kaydın kimliğini çıkarır; düzeltme notu değilse undefined. */
+export function duzeltilenBelgeNo(notlar?: string): string | undefined {
+  const m = (notlar ?? "").match(/^Düzeltme:\s*(\S+)/);
+  return m ? m[1] : undefined;
+}
+
+export interface DuzeltmeHaritasi {
+  /** Düzeltilen kaydın kimliği → onu düzelten kayıt kimlikleri. */
+  duzeltilenler: Map<string, string[]>;
+  /** Düzeltme kaydının kimliği → düzelttiği kaydın kimliği. */
+  duzeltenler: Map<string, string>;
+}
+
+/**
+ * Defterdeki düzeltme bağlarının tamamı — TEK geçişte.
+ *
+ * Satır başına ayrı arama yapılsaydı 20 bin satırlık defterde kareli bir
+ * tarama olurdu (yük denemesinin çekirdekte ortaya çıkardığı hatanın aynısı).
+ */
+export function duzeltmeHaritasi(satirlar: Pick<KayitSatiri, "id" | "notlar">[]): DuzeltmeHaritasi {
+  const duzeltilenler = new Map<string, string[]>();
+  const duzeltenler = new Map<string, string>();
+  for (const s of satirlar) {
+    const eski = duzeltilenBelgeNo(s.notlar);
+    if (!eski || eski === s.id) continue;
+    duzeltenler.set(s.id, eski);
+    const liste = duzeltilenler.get(eski);
+    if (liste) liste.push(s.id);
+    else duzeltilenler.set(eski, [s.id]);
+  }
+  return { duzeltilenler, duzeltenler };
 }
 
 /* ── pano kırılımları ─────────────────────────────────────────────────────── */

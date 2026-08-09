@@ -168,6 +168,7 @@ export default function Kiosk({
           egitim={veri.egitim}
           sayfalar={veri.sayfalar}
           sorular={veri.sorular}
+          altMetinler={veri.altMetinler}
           oturumId={veri.oturumId}
           kisiAdi={durum.kisi.ad}
           pinKurulacak={veri.pinKurulacak}

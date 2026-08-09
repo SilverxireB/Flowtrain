@@ -53,6 +53,7 @@ export default function EgitimOyun({
   egitim,
   sayfalar,
   sorular,
+  altMetinler,
   oturumId,
   prova = false,
   kisiAdi,
@@ -69,6 +70,12 @@ export default function EgitimOyun({
   egitim: Egitim;
   sayfalar: Sayfa[];
   sorular: SoruGorunum[];
+  /**
+   * Görsel kimliği → hazırlayanın yazdığı alt metni (`Medya.altMetin`).
+   * Verilmezse kart ve soru görseli türetilmiş metne düşer — editörün canlı
+   * önizlemesi medya kütüphanesini taşımıyor ve taşımak zorunda değil.
+   */
+  altMetinler?: Record<string, string>;
   oturumId: string;
   prova?: boolean;
   kisiAdi?: string;
@@ -255,16 +262,12 @@ export default function EgitimOyun({
           </span>
         ) : null}
         {onCik ? (
-          /* 72px'lik dokunma hedefi — eldivenle. Kokpitin `.btn-icon`ı 36px
-             ve burada ıskalanıyordu; buradaki sadeleştirme görünümde değil
-             HEDEFTE: kutu büyük, çizgi hâlâ ince. */
-          <button
-            onClick={onCik}
-            aria-label="Eğitimden çık"
-            className="inline-grid h-[72px] w-[72px] shrink-0 place-items-center rounded-2xl text-muted
-              transition-colors hover:bg-line/60 hover:text-ink
-              focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft"
-          >
+          /* 72px'lik dokunma hedefi — eldivenle. Kokpitin `.btn-icon`ı 36px ve
+             burada ıskalanıyordu; sadeleştirme görünümde değil HEDEFTE: kutu
+             büyük, çizgi hâlâ ince. Ölçüler satır içi yazılıydı; ikinci bir
+             simge düğmesi eklenince kopyalanacaklardı — kural artık
+             `.kiosk-btn-ikon` ile tek yerde (`globals.css`). */
+          <button onClick={onCik} aria-label="Eğitimden çık" className="kiosk-btn-ikon">
             <Icon name="close" size={26} />
           </button>
         ) : null}
@@ -274,7 +277,7 @@ export default function EgitimOyun({
         <>
           <Ilerleme simdi={indeks + 1} toplam={sayfalar.length} etiket="Sayfa" />
           <div className="flex-1 py-6">
-            <Kart sayfa={sayfa} key={sayfa.id} />
+            <Kart sayfa={sayfa} altMetinler={altMetinler} key={sayfa.id} />
             {sayfa.tip === "video" && sayfa.videoId ? (
               <VideoBekci sayfaId={sayfa.id} onBitti={() => setVideoBitti(true)} />
             ) : null}
@@ -328,7 +331,10 @@ export default function EgitimOyun({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={`/api/medya/${soru.gorselId}`}
-                alt="Soru görseli"
+                /* "Soru görseli" bir açıklama değil, bir etiket. Hazırlayan
+                   görsele alt metni yazdıysa soruyu ANLAŞILIR kılan odur —
+                   "hangisi doğru duruş" sorusu görseli okunmadan cevaplanamaz. */
+                alt={(altMetinler?.[soru.gorselId] ?? "").trim() || "Soru görseli"}
                 className="mt-5 max-h-[34vh] w-full rounded-2xl border border-line object-contain"
               />
             ) : null}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Baslik from "@/components/Baslik";
@@ -31,10 +31,17 @@ import {
   taslagaAlEylem,
   yayinlaEylem,
 } from "@/app/eylemler";
-import { kartCogaltEylem, kartKopyalaEylem, medyaSilEylem } from "./eylemler";
+import {
+  kartCogaltEylem,
+  kartKopyalaEylem,
+  medyaAltMetinEylem,
+  medyaSilEylem,
+  oksuzMedyalariTemizleEylem,
+  pptxKartlariEkleEylem,
+} from "./eylemler";
 
 // Ağır ve nadir kullanılan: PDF motoru ilk açılışta indirilmesin.
-const PdfYukle = dynamic(() => import("@/components/editor/PdfYukle"), { ssr: false });
+const IceriAktar = dynamic(() => import("@/components/editor/IceriAktar"), { ssr: false });
 
 /**
  * EĞİTİM EDİTÖRÜ.
@@ -59,6 +66,7 @@ export default function Editor({
   kategoriler,
   hedefEgitimler,
   kirikGorselIdler,
+  oksuzSayisi,
 }: {
   egitim: Egitim;
   sayfalar: Sayfa[];
@@ -72,6 +80,8 @@ export default function Editor({
   hedefEgitimler: { id: string; ad: string }[];
   /** Kayıtta duran ama diskte bulunmayan medya kimlikleri. */
   kirikGorselIdler: string[];
+  /** Hiçbir kartta/soruda kullanılmayan medya sayısı. */
+  oksuzSayisi: number;
 }) {
   const router = useRouter();
   const [bekle, gecis] = useTransition();
@@ -90,19 +100,28 @@ export default function Editor({
   const yayinda = egitim.durum === "yayin";
   const onaylayabilir = rol === "onaylayan" || rol === "yonetici";
 
-  /** Çift tıklama kilidi `useRef` ile — state kilidi yarışı kaybediyor. */
-  function calistir(is: () => Promise<void>) {
-    if (kilit.current) return;
-    kilit.current = true;
-    gecis(async () => {
-      try {
-        await is();
-      } finally {
-        kilit.current = false;
-        router.refresh();
-      }
-    });
-  }
+  /**
+   * Çift tıklama kilidi `useRef` ile — state kilidi yarışı kaybediyor.
+   *
+   * `useCallback`: bu iki yardımcı aşağıdaki bütün satır geri çağrılarının
+   * bağımlılığı. Her çizimde yeniden üretilselerdi geri çağrılar da yenilenir
+   * ve `memo` hiçbir satırı koruyamazdı.
+   */
+  const calistir = useCallback(
+    (is: () => Promise<void>) => {
+      if (kilit.current) return;
+      kilit.current = true;
+      gecis(async () => {
+        try {
+          await is();
+        } finally {
+          kilit.current = false;
+          router.refresh();
+        }
+      });
+    },
+    [gecis, router],
+  );
 
   /**
    * ALAN KAYDI — kilitsiz, bilerek.
@@ -114,15 +133,18 @@ export default function Editor({
    * ediyordu, yani veri kaybı ekranda görünmüyordu. Alan yamaları idempotent,
    * sırası bozulsa da aynı sonucu verir.
    */
-  function kaydet(is: () => Promise<void>) {
-    gecis(async () => {
-      try {
-        await is();
-      } finally {
-        router.refresh();
-      }
-    });
-  }
+  const kaydet = useCallback(
+    (is: () => Promise<void>) => {
+      gecis(async () => {
+        try {
+          await is();
+        } finally {
+          router.refresh();
+        }
+      });
+    },
+    [gecis, router],
+  );
 
   const yayinaHazir = sayfalar.length > 0;
   /** Yayındayken hiçbir içerik kontrolü çalışmaz (sunucu da reddeder). */
@@ -138,13 +160,126 @@ export default function Editor({
     [egitim, gosterilen, sorular, kirikGorselIdler],
   );
 
-  function anlikYaz(sayfaId: string, yama: Record<string, unknown>) {
-    setAnlik((a) => ({ ...a, [sayfaId]: { ...a[sayfaId], ...yama } }));
-  }
+  /* Alt metin, medyanın kendisine yazılıyor (karta değil) — aynı fotoğraf on
+     kartta kullanılıyorsa açıklaması on kez yazılmasın. Satırlara HARİTA
+     geçiliyor, dizinin kendisi değil: satır başına `find` çağırmak kırk kartta
+     kütüphane boyunca kırk tarama demekti. */
+  const altMetinler = useMemo(() => {
+    const h: Record<string, string> = {};
+    for (const m of medyalar) if (m.altMetin) h[m.id] = m.altMetin;
+    return h;
+  }, [medyalar]);
 
-  function medyaSil(id: string) {
-    calistir(() => medyaSilEylem(id, egitim.id));
-  }
+  /* ── satır geri çağrıları ───────────────────────────────────────────────
+     HEPSİ KARARLI (`useCallback`) ve hepsi KİMLİK alıyor. Satıra özel kapanış
+     yazmak daha kısa olurdu ama her çizimde yeni bir fonksiyon üretir ve
+     `SayfaSatiri`/`SoruSatiri` üzerindeki `memo` hiçbir işe yaramazdı: kart
+     metnine yazılan tek harf kırk satırı birden yeniden çizerdi (ölçüldü,
+     20–30 ms; tek satır 0,3–0,4 ms).
+
+     Güncel sayfa listesine REF üzerinden bakılıyor: `gosterilen`i bağımlılığa
+     koymak geri çağrıları her tuş vuruşunda yenilerdi — çözmeye çalıştığımız
+     sorunun ta kendisi. */
+  const gosterilenRef = useRef<Sayfa[]>(gosterilen);
+  gosterilenRef.current = gosterilen;
+
+  const sayfaSec = useCallback((sayfaId: string) => setSeciliId(sayfaId), []);
+
+  const anlikYaz = useCallback((sayfaId: string, yama: Record<string, unknown>) => {
+    setAnlik((a) => ({ ...a, [sayfaId]: { ...a[sayfaId], ...yama } }));
+  }, []);
+
+  const sayfaGuncelle = useCallback(
+    (sayfaId: string, yama: Record<string, unknown>) => kaydet(() => sayfaGuncelleEylem(egitim.id, sayfaId, yama)),
+    [kaydet, egitim.id],
+  );
+
+  const sayfaSil = useCallback(
+    (sayfaId: string) => {
+      const s = gosterilenRef.current.find((x) => x.id === sayfaId);
+      if (!s) return;
+      confirm(
+        { title: "Sayfa silinsin mi?", message: `"${s.baslik || KART_ETIKET[s.tip]}" kalıcı olarak silinir.`, danger: true },
+        () => calistir(() => sayfaSilEylem(egitim.id, sayfaId)),
+      );
+    },
+    [calistir, confirm, egitim.id],
+  );
+
+  const sayfaTasi = useCallback(
+    (sayfaId: string, yon: -1 | 1) => {
+      const liste = [...gosterilenRef.current];
+      const i = liste.findIndex((x) => x.id === sayfaId);
+      const hedef = i + yon;
+      if (i < 0 || hedef < 0 || hedef >= liste.length) return;
+      [liste[i], liste[hedef]] = [liste[hedef], liste[i]];
+      calistir(() => sayfalariSiralaEylem(egitim.id, liste.map((x) => x.id)));
+    },
+    [calistir, egitim.id],
+  );
+
+  const sayfaCogalt = useCallback(
+    (sayfaId: string) => calistir(() => kartCogaltEylem(egitim.id, sayfaId)),
+    [calistir, egitim.id],
+  );
+
+  const sayfaKopyala = useCallback(
+    (sayfaId: string, hedefId: string) =>
+      calistir(async () => {
+        await kartKopyalaEylem(egitim.id, sayfaId, hedefId);
+        show(`Kart "${hedefEgitimler.find((e) => e.id === hedefId)?.ad ?? "eğitime"}" kopyalandı`);
+      }),
+    [calistir, egitim.id, hedefEgitimler, show],
+  );
+
+  const soruGuncelle = useCallback(
+    (soruId: string, yama: Record<string, unknown>) =>
+      kaydet(() => soruGuncelleEylem(egitim.id, soruId, yama as Partial<Soru>)),
+    [kaydet, egitim.id],
+  );
+
+  const soruSil = useCallback(
+    (soruId: string) =>
+      confirm({ title: "Soru silinsin mi?", message: "Soru havuzdan kalıcı olarak çıkar.", danger: true }, () =>
+        calistir(() => soruSilEylem(egitim.id, soruId)),
+      ),
+    [calistir, confirm, egitim.id],
+  );
+
+  const medyaSil = useCallback(
+    (id: string) => calistir(() => medyaSilEylem(id, egitim.id)),
+    [calistir, egitim.id],
+  );
+
+  const altMetinYaz = useCallback(
+    (medyaId: string, altMetin: string) => kaydet(() => medyaAltMetinEylem(medyaId, altMetin, egitim.id)),
+    [kaydet, egitim.id],
+  );
+
+  const oksuzTemizle = useCallback(
+    () =>
+      calistir(async () => {
+        const silinen = await oksuzMedyalariTemizleEylem(egitim.id);
+        show(silinen > 0 ? `${silinen} kullanılmayan medya silindi` : "Silinecek kullanılmayan medya kalmamış");
+      }),
+    [calistir, egitim.id, show],
+  );
+
+  const pdfKartlari = useCallback(
+    async (kartlar: { gorselId: string; baslik: string }[]) => {
+      await sayfalariTopluEkleEylem(egitim.id, kartlar);
+      router.refresh();
+    },
+    [egitim.id, router],
+  );
+
+  const pptxKartlari = useCallback(
+    async (kartlar: { baslik: string; metin: string; gorselIdler: string[] }[]) => {
+      await pptxKartlariEkleEylem(egitim.id, kartlar);
+      router.refresh();
+    },
+    [egitim.id, router],
+  );
 
   return (
     <main className="bg-wash min-h-screen pb-24">
@@ -241,13 +376,7 @@ export default function Editor({
               </div>
 
               {sayfalar.length === 0 && !kilitli ? (
-                <PdfYukle
-                  egitimId={egitim.id}
-                  onBitti={async (kartlar) => {
-                    await sayfalariTopluEkleEylem(egitim.id, kartlar);
-                    router.refresh();
-                  }}
-                />
+                <IceriAktar onPdfKartlari={pdfKartlari} onPptxKartlari={pptxKartlari} />
               ) : null}
 
               <div className="mt-4 space-y-3">
@@ -259,32 +388,18 @@ export default function Editor({
                     toplam={gosterilen.length}
                     secili={secili?.id === s.id}
                     medyalar={medyalar}
+                    altMetinler={altMetinler}
                     hedefEgitimler={hedefEgitimler}
                     kilitli={kilitli}
-                    onSec={() => setSeciliId(s.id)}
-                    onAnlik={(yama) => anlikYaz(s.id, yama)}
-                    onGuncelle={(yama) => kaydet(() => sayfaGuncelleEylem(egitim.id, s.id, yama))}
+                    onSec={sayfaSec}
+                    onAnlik={anlikYaz}
+                    onGuncelle={sayfaGuncelle}
                     onMedyaSil={medyaSil}
-                    onCogalt={() => calistir(() => kartCogaltEylem(egitim.id, s.id))}
-                    onKopyala={(hedefId) =>
-                      calistir(async () => {
-                        await kartKopyalaEylem(egitim.id, s.id, hedefId);
-                        show(`Kart "${hedefEgitimler.find((e) => e.id === hedefId)?.ad ?? "eğitime"}" kopyalandı`);
-                      })
-                    }
-                    onSil={() =>
-                      confirm(
-                        { title: "Sayfa silinsin mi?", message: `"${s.baslik || KART_ETIKET[s.tip]}" kalıcı olarak silinir.`, danger: true },
-                        () => calistir(() => sayfaSilEylem(egitim.id, s.id)),
-                      )
-                    }
-                    onTasi={(yon) => {
-                      const yeni = [...gosterilen];
-                      const hedef = i + yon;
-                      if (hedef < 0 || hedef >= yeni.length) return;
-                      [yeni[i], yeni[hedef]] = [yeni[hedef], yeni[i]];
-                      calistir(() => sayfalariSiralaEylem(egitim.id, yeni.map((x) => x.id)));
-                    }}
+                    onAltMetin={altMetinYaz}
+                    onCogalt={sayfaCogalt}
+                    onKopyala={sayfaKopyala}
+                    onSil={sayfaSil}
+                    onTasi={sayfaTasi}
                   />
                 ))}
               </div>
@@ -300,16 +415,10 @@ export default function Editor({
               {sayfalar.length > 0 && !kilitli ? (
                 <details className="mt-4">
                   <summary className="cursor-pointer text-sm font-semibold text-muted hover:text-ink">
-                    Başka bir PDF ekle
+                    Başka bir sunum ya da PDF ekle
                   </summary>
                   <div className="mt-3">
-                    <PdfYukle
-                      egitimId={egitim.id}
-                      onBitti={async (kartlar) => {
-                        await sayfalariTopluEkleEylem(egitim.id, kartlar);
-                        router.refresh();
-                      }}
-                    />
+                    <IceriAktar onPdfKartlari={pdfKartlari} onPptxKartlari={pptxKartlari} />
                   </div>
                 </details>
               ) : null}
@@ -354,12 +463,9 @@ export default function Editor({
                     medyalar={medyalar}
                     kilitli={kilitli}
                     onMedyaSil={medyaSil}
-                    onGuncelle={(yama) => kaydet(() => soruGuncelleEylem(egitim.id, s.id, yama as Partial<Soru>))}
-                    onSil={() =>
-                      confirm({ title: "Soru silinsin mi?", message: "Soru havuzdan kalıcı olarak çıkar.", danger: true }, () =>
-                        calistir(() => soruSilEylem(egitim.id, s.id)),
-                      )
-                    }
+                    onAltMetin={altMetinYaz}
+                    onGuncelle={soruGuncelle}
+                    onSil={soruSil}
                   />
                 ))}
               </div>
@@ -372,6 +478,39 @@ export default function Editor({
                 ))}
               </div>
             </section>
+
+            {/* ── medya bakımı ────────────────────────────────────────────
+                Kart silinince dosya diskte kalıyor ve kütüphanede kullanımı
+                sıfır görünen bir kayda dönüşüyor. Bakım AYRI BİR EKRANA
+                konsaydı kimse açmaz, veri klasörü yıllar içinde şişerdi;
+                burada, içeriğin altında, yalnız temizlenecek bir şey VARSA
+                görünüyor. Kaç dosyanın gideceği önceden söyleniyor — silme
+                geri alınamaz. */}
+            {oksuzSayisi > 0 && !kilitli ? (
+              <section className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-white px-4 py-3">
+                <Icon name="image" size={16} className="text-muted" />
+                <p className="min-w-0 flex-1 text-sm">
+                  Kütüphanede <strong>{oksuzSayisi} medya</strong> hiçbir kartta ya da soruda kullanılmıyor.
+                  <span className="text-muted"> Silinen kartlardan geriye kalan dosyalar diskte yer tutar.</span>
+                </p>
+                <button
+                  onClick={() =>
+                    confirm(
+                      {
+                        title: "Kullanılmayan medyalar silinsin mi?",
+                        message: `${oksuzSayisi} dosya kütüphaneden ve diskten kalıcı olarak silinir. Bu işlem geri alınamaz. Kartlarda ya da sorularda kullanılan hiçbir görsele dokunulmaz.`,
+                        danger: true,
+                        confirmLabel: `${oksuzSayisi} dosyayı sil`,
+                      },
+                      oksuzTemizle,
+                    )
+                  }
+                  className="btn-ghost text-sm"
+                >
+                  <Icon name="trash" size={16} /> Temizle
+                </button>
+              </section>
+            ) : null}
 
             {/* ── yayına hazırlık ──
                 ENGELLEMEZ, SÖYLER: hazırlayan uyarılara rağmen yayınlayabilir.
@@ -469,7 +608,7 @@ export default function Editor({
           {/* `top-20`: başlık şeridi yapışkan (sticky) ve ~64px — önizleme
               onun altına yerleşmezse kaydırınca başlığın arkasına giriyor. */}
           <aside className={`xl:sticky xl:top-20 ${darSekme === "duzen" ? "hidden xl:block" : ""}`}>
-            <CanliOnizleme sayfa={secili} sira={seciliSira} toplam={gosterilen.length} />
+            <CanliOnizleme sayfa={secili} sira={seciliSira} toplam={gosterilen.length} altMetinler={altMetinler} />
             {secili ? (
               <p className="mt-2 px-1 text-xs text-muted">
                 Düzenlediğiniz kart burada gösterilir. Kiosk kartının kendisi çiziliyor — sahada göreceğiniz şey bu.
@@ -485,6 +624,7 @@ export default function Editor({
             egitim={egitim}
             sayfalar={gosterilen}
             sorular={sorular}
+            altMetinler={altMetinler}
             oturumId={`prova_${egitim.id}`}
             prova
             onCik={() => setProva(false)}
@@ -508,8 +648,38 @@ export default function Editor({
  */
 const BOSALABILIR = ["gorselId", "videoId", "metin", "metinKarsi"];
 
+/**
+ * Yama SUNUCUDAKİYLE AYNIYSA sayfanın KENDİSİ döner — yeni nesne değil.
+ *
+ * Bu satır olmadan `memo` bir süre sonra işe yaramaz hâle geliyordu: `anlik`
+ * haritasından kayıt hiç silinmiyor, dolayısıyla bir kez düzenlenmiş her sayfa
+ * sonsuza dek "yamalı" kalıyor ve her tuş vuruşunda yeni bir nesne üretiyordu.
+ * Kırk kartın hepsine dokunmuş bir hazırlayanda editör başladığı yere dönerdi.
+ * Kayıt sunucuya yazıldıktan sonra iki değer eşitlenir ve satır çizim dışında
+ * kalır — yamayı silmek gerekmez.
+ */
+function esitMi(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
 function birlestir(sayfa: Sayfa, yama?: Record<string, unknown>): Sayfa {
   if (!yama) return sayfa;
+
+  const kaynak = sayfa as unknown as Record<string, unknown>;
+  let farkli = false;
+  for (const alan of Object.keys(yama)) {
+    // Depoya `null` giden alanların tipteki karşılığı `undefined`.
+    const deger = yama[alan] === null && BOSALABILIR.includes(alan) ? undefined : yama[alan];
+    if (!esitMi(kaynak[alan], deger)) {
+      farkli = true;
+      break;
+    }
+  }
+  if (!farkli) return sayfa;
+
   const b: Record<string, unknown> = { ...sayfa, ...yama };
   for (const alan of BOSALABILIR) if (b[alan] === null) b[alan] = undefined;
   return b as unknown as Sayfa;
