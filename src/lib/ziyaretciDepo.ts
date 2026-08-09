@@ -1,7 +1,8 @@
 import "server-only";
 import { db, kimlik, simdi } from "./db";
-import { ayarOku, ayarYaz } from "./depo";
+import { ayarOku, ayarYaz, izBirak } from "./depo";
 import { ilerleme, type Ziyaretci, type ZiyaretciOturum, type ZiyaretciSoru } from "./ziyaretci";
+import { SAKLAMA_KAPALI, saklamaGunuTemizle, saklamaSiniri } from "./ziyaretciCikti";
 
 /**
  * ZİYARETÇİ DEFTERİ DEPOSU — `depo.ts`ten AYRI dosya, bilerek.
@@ -17,6 +18,7 @@ import { ilerleme, type Ziyaretci, type ZiyaretciOturum, type ZiyaretciSoru } fr
 type Satir = Record<string, unknown>;
 
 const VARSAYILAN_ANAHTAR = "ziyaretciVarsayilanEgitimler";
+const SAKLAMA_ANAHTAR = "ziyaretciSaklamaGun";
 
 /* ── satır ↔ nesne ────────────────────────────────────────────────────────── */
 
@@ -155,6 +157,70 @@ export function ziyaretciKaydet(veri: {
 
 export function ziyaretciSil(id: string): void {
   db().prepare("DELETE FROM ziyaretci WHERE id=?").run(id);
+}
+
+/**
+ * Dışa aktarım için tarih aralığı.
+ * `gun <= 0` → defterin tamamı. Liste ekranındaki `ziyaretcileriGetir`ten
+ * ayrı tutuluyor: orada varsayılan iki gün ve bu ekran kararı, çıktıya
+ * karışmamalı.
+ */
+export function ziyaretcileriAralikta(gun: number): Ziyaretci[] {
+  if (gun <= 0) {
+    return db()
+      .prepare("SELECT * FROM ziyaretci ORDER BY kayitZamani DESC")
+      .all()
+      .map((r) => ziyaretciden(r as Satir));
+  }
+  return ziyaretcileriGetir(gun);
+}
+
+/* ── saklama süresi (KVKK) ────────────────────────────────────────────────── */
+
+export function saklamaGunu(): number {
+  return saklamaGunuTemizle(ayarOku(SAKLAMA_ANAHTAR, String(SAKLAMA_KAPALI)));
+}
+
+export function saklamaGunuYaz(gun: number): number {
+  const temiz = saklamaGunuTemizle(gun);
+  ayarYaz(SAKLAMA_ANAHTAR, String(temiz));
+  return temiz;
+}
+
+/**
+ * Süresi dolmuş kaç kayıt var.
+ * Sayı EKRANDA yazılır: "eski kayıtlar silinecek" cümlesi üç kayıtla üç bin
+ * kaydı aynı gösteriyordu. Tüm defteri belleğe almadan sayılır.
+ */
+export function eskiSayisi(): number {
+  const sinir = saklamaSiniri(saklamaGunu(), simdi());
+  if (!sinir) return 0;
+  const r = db().prepare("SELECT COUNT(*) n FROM ziyaretci WHERE kayitZamani < ?").get(sinir) as { n: number };
+  return r.n;
+}
+
+/**
+ * Süresi dolmuş ziyaretçi kayıtlarını siler.
+ *
+ * ZİYARETÇİ OTURUMLARI DA GİDER: `ziyaretciOturum` tablosu ziyaretçiye
+ * `ON DELETE CASCADE` ile bağlı. "Adı sildik ama izlediklerinin kaydı duruyor"
+ * hâli KVKK açısından yarım bir silme olurdu.
+ *
+ * DENETİM İZİ SESSİZ SİLMEYE KARŞI: kaç kayıt, hangi sınırdan eski, hangi
+ * ayarla. İz olmadan "veriyi biz mi sildik, hiç mi girmedik" sorusunun cevabı
+ * yok. Silinecek bir şey yoksa iz de bırakılmaz — günlüğü boş satırla
+ * doldurmak izin kendisini okunmaz yapardı.
+ */
+export function eskileriTemizle(kim = "sistem"): { silinen: number; sinir: string } | null {
+  const gun = saklamaGunu();
+  const sinir = saklamaSiniri(gun, simdi());
+  if (!sinir) return null;
+
+  const r = db().prepare("DELETE FROM ziyaretci WHERE kayitZamani < ?").run(sinir);
+  if (r.changes === 0) return { silinen: 0, sinir };
+
+  izBirak(kim, `ziyaretçi saklama temizliği: ${r.changes} kayıt silindi (${gun} günden eski, sınır ${sinir.slice(0, 10)})`);
+  return { silinen: r.changes, sinir };
 }
 
 /* ── bilgilendirme oturumları ─────────────────────────────────────────────── */

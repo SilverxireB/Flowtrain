@@ -59,12 +59,22 @@ export const TRAIN_BOLUMLER: RehberBolum[] = [
               ),
             },
             {
-              baslik: "Personel dosyasını bırakın",
+              baslik: "Personel listesini getirin",
               metin: (
                 <>
-                  Veri klasörüne <code>personel.csv</code> koyun. Yolu <strong>Ayarlar</strong> sayfası birebir gösterir.
-                  Sütunlar: <code>sicil, ad, bölüm, hat, görev, amir, işe giriş</code>. Ayırıcı <code>;</code> ya da{" "}
-                  <code>,</code> olabilir, Excel&apos;in kaydettiği BOM&apos;lu dosya da okunur.
+                  İki yol var: veri klasörüne <code>personel.csv</code> koyun (yolu <strong>Ayarlar</strong> gösterir),
+                  ya da <strong>Personel</strong> sayfasından kurumun dışa aktarımını içe aktarın. Bir kayıt üç
+                  şeydir: <code>sicil</code>, <code>ad</code>, <code>maliyet merkezi</code>. Ayırıcı <code>;</code> ya
+                  da <code>,</code> olabilir, Excel&apos;in BOM&apos;lu dosyası da okunur.
+                </>
+              ),
+            },
+            {
+              baslik: "Maliyet merkezlerini eşleyin",
+              metin: (
+                <>
+                  <strong>Personel → Maliyet merkezi eşlemesi</strong>: her koda bir bölüm ve bir amir bağlayın.
+                  Bölüm ve amir elle yazılmaz, koddan türer.
                 </>
               ),
             },
@@ -81,10 +91,21 @@ export const TRAIN_BOLUMLER: RehberBolum[] = [
         />
 
         <Kutu tur="uyari" baslik="Amir hesabına sicil girmeyi unutmayın">
-          Ekip listesi, personel dosyasındaki <strong>amir</strong> sütunundan çıkar. Amir hesabına sicil girilmezse o
+          Ekip listesi, personel kaydındaki <strong>amir</strong> alanından çıkar. Amir hesabına sicil girilmezse o
           kişi giriş yapar ama ekranı boş görür — hiçbir hata da almaz. Ayarlar sayfasındaki &quot;amir sütunu
           doluluk&quot; satırı bunu size söyler.
         </Kutu>
+
+        <Baslik>Neden bölüm ve amir elle yazılmıyor</Baslik>
+        <p>
+          Kurumun sisteminde kişinin bölümü ayrı bir alan olarak durmaz; <strong>maliyet merkezi</strong> kodu onu
+          söyler. FlowTrain de bölümü ve amiri o koddan türetir. Elle de girilebilseydi iki gerçek yarışırdı: kurumdan
+          gelen her yeni liste, elle yapılan düzeltmeleri ezer ve kimse neyin doğru olduğunu bilemezdi.
+        </p>
+        <p>
+          Bir kişiyi <strong>amir</strong> yapmak için Personel sayfasından rolünü değiştirin; o kişi artık maliyet
+          merkezi eşlemesinde amir olarak seçilebilir ve kendi ekibini görür. Varsayılan rol operatördür.
+        </p>
 
         <Baslik>Sık karşılaşılanlar</Baslik>
         <Tablo
@@ -94,6 +115,7 @@ export const TRAIN_BOLUMLER: RehberBolum[] = [
             ["Türkçe harfler bozuk", "Dosya UTF-8 değil. Excel'de \"CSV UTF-8\" olarak kaydedin."],
             ["Yeni giren personel görünmüyor", "Dosya güncellendi ama okunmadı: Ayarlar → \"Personel dosyasını yeniden oku\"."],
             ["Tüm satırlar tek sütuna yapışmış", "Ayırıcı sorunudur; dosyayı olduğu gibi bırakın, FlowTrain ikisini de tanır."],
+            ["Kişinin bölümü boş", "O maliyet merkezinin eşlemesi tanımlı değil. Personel sayfasından tanımlayıp \"Tüm listeye uygula\" deyin."],
           ]}
         />
       </>
@@ -253,6 +275,69 @@ export const TRAIN_BOLUMLER: RehberBolum[] = [
   },
 
   {
+    id: "katalog",
+    kicker: "DÜZEN",
+    baslik: "Paketler ve QR etiketleri",
+    icerik: (
+      <>
+        <p>
+          Eğitim sayısı otuzu geçtiğinde liste tek başına yetmez. İki araç var: <strong>kategori</strong> (katalogda
+          süzer, panoda kırılım verir) ve <strong>paket</strong> (birlikte verilen eğitimleri tek ada bağlar).
+        </p>
+
+        <Baslik>Paket neden kuralı kolaylaştırır</Baslik>
+        <p>
+          Atama kuralını tek tek eğitimlere yazarsanız, oryantasyona altıncı eğitim eklendiği gün altı kuralı da elden
+          geçirmeniz gerekir — biri mutlaka unutulur ve o eğitim kimseye düşmez. Kural{" "}
+          <strong>pakete</strong> yazılırsa, pakete sonradan eklenen eğitim aynı kişilere kendiliğinden gider.
+        </p>
+        <p>
+          Paket silinirse kuralları da silinir; paketten çıkarılan eğitim o kuralla artık atanmaz. Boş pakete kural
+          yazılamaz — hiçbir şey atamayacağı hâlde &quot;yazdım&quot; hissi verirdi.
+        </p>
+
+        <Baslik>QR: eğitimi istasyonun başına götürmek</Baslik>
+        <p>
+          Her eğitimin bir QR etiketi var. Etiket hattaki istasyona asılır; işçi tabletle okutur ve doğrudan o eğitim
+          açılır — listede arayıp bulması gerekmez. İş başı eğitimi böylece makinenin başında, işin yapıldığı yerde
+          tamamlanır.
+        </p>
+        <Adimlar
+          items={[
+            {
+              baslik: "Adresi bir kez yazın",
+              metin: (
+                <>
+                  Ayarlar → <strong>Kurulumun ağ adresi</strong>. Tabletin tarayıcısından kurulumun göründüğü adresi
+                  yazın.
+                </>
+              ),
+            },
+            { baslik: "Etiketleri seçin", metin: "Eğitimler → QR etiketleri. Basılacak eğitimleri işaretleyin." },
+            { baslik: "Yazdırın ve asın", metin: "A4'e üçlü ızgarada çıkar. Etiket, ait olduğu makinenin yanına asılır." },
+          ]}
+        />
+
+        <Kutu tur="uyari" baslik="localhost yazmayın">
+          Ofis makinesinde çalışan tarayıcının adres çubuğundaki <code>localhost</code>, tablette &quot;tabletin
+          kendisi&quot; demektir. O adresle basılan etiketler hatta hiçbir şey açmaz. Kurulumun ağdaki gerçek adresini
+          yazın.
+        </Kutu>
+
+        <Baslik>Sık karşılaşılanlar</Baslik>
+        <Tablo
+          basliklar={["Durum", "Sebebi"]}
+          satirlar={[
+            ["Aynı kategori listede iki kez", "Yazım farkı. Kategori yazarken mevcut olanlardan seçin; sistem büyük/küçük harf farkını kendiliğinden birleştirir."],
+            ["QR okutuldu ama eğitim açılmadı", "O eğitim kişiye atanmamış olabilir, ya da eğitim taslakta. Taslak eğitim kimseye düşmez."],
+            ["Pakete kural yazılamıyor", "Paket boş. Önce üye eğitimleri ekleyin."],
+          ]}
+        />
+      </>
+    ),
+  },
+
+  {
     id: "takip",
     kicker: "TAKİP",
     baslik: "Pano, denetim ve kayıtlar",
@@ -278,11 +363,48 @@ export const TRAIN_BOLUMLER: RehberBolum[] = [
           beterdir.
         </p>
 
+        <Baslik>Kayıt defteri</Baslik>
+        <p>
+          Panonun cevapladığı soru &quot;kim geride&quot;; <strong>Kayıt defteri</strong>nin cevapladığı soru
+          &quot;bu kişi bunu ne zaman aldı&quot;. Denetimde açılan ekran budur: süzülür, CSV/PDF olarak indirilir,
+          kişi başına sertifika basılır.
+        </p>
+        <p>
+          Defterde <strong>düzenleme ve silme yoktur</strong>. Sonradan değiştirilebilen bir tamamlama kaydı denetimde
+          hiçbir şey kanıtlamaz — kaydın değeri, değiştirilememesinden gelir. Yanlış bir kayıt{" "}
+          <em>silinmez, düzeltilir</em>: doğru bilgiyle yeni bir kayıt girilir ve notuna hangi kaydı düzelttiği
+          yazılır. İki satır da defterde kalır, denetçi ikisini de görür.
+        </p>
+
+        <Baslik>Kioskta verilmeyen eğitimler</Baslik>
+        <p>
+          Her eğitim tablette tamamlanmaz; bir eğitmen otuz kişiye sınıfta anlatır. O kayıt da aynı deftere düşmeli,
+          yoksa panonun tamamlanma oranı gerçeği göstermez.
+        </p>
+        <Tablo
+          basliklar={["Yol", "Ne zaman", "Kaydın kaynağı"]}
+          satirlar={[
+            ["Kayıtlar → Sınıf eğitimi", "Eğitmen anlattı, katılım listesi var", "Sınıf eğitimi"],
+            ["Kayıtlar → Geçmiş aktarımı", "Başka sistemden gelen eski kayıtlar", "Dış aktarım"],
+          ]}
+        />
+        <p>
+          Her kaydın kaynağı defterde görünür: kioskta mı dönmüş, amir gözetiminde mi, sınıfta mı verilmiş, dışarıdan
+          mı gelmiş. Denetimde karıştırılmaz.
+        </p>
+
+        <Kutu tur="uyari" baslik="Canlıya geçerken İLK yapılacak iş">
+          Geçmiş kayıtları içe aktarmadan başlarsanız, ilk gün pano <strong>herkesi eksik gösterir</strong>: yıllardır
+          eğitimli olan fabrika, sisteme göre hiç eğitim almamıştır. Amirler yüzlerce sahte eksikle karşılaşır ve
+          ürüne olan güven ilk günden gider. Önce aktarın, sonra duyurun.
+        </Kutu>
+
         <Baslik>Kayıtlar ve yedek</Baslik>
         <p>
           Her tamamlama, veri klasöründeki <code>kayitlar.csv</code> dosyasına eklenir — bu dosya kurumun belgesidir,
           FlowTrain kaldırılsa bile elinizde kalır. Panodan indirilen CSV ise <strong>tam listedir</strong>: ekrandaki
-          süzgeç ne gizlerse gizlesin, denetim belgesi eksik çıkmaz.
+          süzgeç ne gizlerse gizlesin, denetim belgesi eksik çıkmaz. Kayıt defterinden indirilen çıktı süzülmüş
+          olabilir; o yüzden hangi süzgeçle alındığı belgenin başlığına yazılır.
         </p>
 
         <Kutu tur="not" baslik="Yedek almak = veri klasörünü kopyalamak">

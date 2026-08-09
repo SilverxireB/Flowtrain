@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Baslik from "@/components/Baslik";
 import Icon from "@/components/Icon";
 import KuralFormu from "./KuralFormu";
@@ -15,7 +16,9 @@ export default async function Atama() {
   const kisiler = await personelKaynagi().listele();
   const kurallar = depo.kurallariGetir();
   const egitimler = depo.egitimleriListele();
-  const egitimAdi = new Map(egitimler.map((e) => [e.id, e]));
+  const gruplar = depo.gruplariGetir();
+  const egitimKarti = new Map(egitimler.map((e) => [e.id, e]));
+  const grupKarti = new Map(gruplar.map((g) => [g.id, g]));
 
   /**
    * Süzgeç seçenekleri PERSONEL LİSTESİNDEN türer — elle liste tutulmaz.
@@ -25,9 +28,22 @@ export default async function Atama() {
   const secenek = (alan: "bolum" | "hat" | "gorev") =>
     [...new Set(kisiler.map((k) => k[alan]).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, "tr"));
 
+  const paketKuralSayisi = kurallar.filter((k) => k.grupId).length;
+
   return (
     <main className="bg-wash min-h-screen">
-      <Baslik ust="/" ustAd="Ana sayfa" baslik="Atama kuralları" rehberBolum="atama" not={`${kisiler.length} kişi listede`} />
+      <Baslik
+        ust="/"
+        ustAd="Ana sayfa"
+        baslik="Atama kuralları"
+        rehberBolum="atama"
+        not={`${kisiler.length} kişi listede`}
+        sag={
+          <Link href="/gruplar" className="btn-ghost text-sm">
+            <Icon name="folder" size={16} /> Eğitim paketleri
+          </Link>
+        }
+      />
 
       <div className="sayfa-govde space-y-8">
         {kisiler.length === 0 ? (
@@ -42,10 +58,13 @@ export default async function Atama() {
           <h2 className="font-semibold">Yeni kural</h2>
           <p className="mt-1 text-sm text-muted">
             Kişi kişi atama yapmayın. Kural yazarsanız listeye sonradan düşen personel{" "}
-            <strong className="text-ink">kendiliğinden</strong> kapsanır.
+            <strong className="text-ink">kendiliğinden</strong> kapsanır. Kuralı bir{" "}
+            <strong className="text-ink">pakete</strong> yazarsanız, pakete sonradan eklenen eğitim de kendiliğinden
+            kapsanır.
           </p>
           <KuralFormu
             egitimler={egitimler.map((e) => ({ id: e.id, ad: e.ad, yayinda: e.durum === "yayin" }))}
+            paketler={gruplar.map((g) => ({ id: g.id, ad: g.ad, egitimSayisi: g.egitimIdleri.length }))}
             bolumler={secenek("bolum")}
             hatlar={secenek("hat")}
             gorevler={secenek("gorev")}
@@ -53,7 +72,10 @@ export default async function Atama() {
         </section>
 
         <section>
-          <h2 className="eyebrow mb-3">Kurallar · {kurallar.length}</h2>
+          <h2 className="eyebrow mb-3">
+            Kurallar · {kurallar.length}
+            {paketKuralSayisi > 0 ? ` (${paketKuralSayisi} paket kuralı)` : ""}
+          </h2>
           {kurallar.length === 0 ? (
             <p className="card p-8 text-center text-muted">
               Henüz kural yok — yayındaki eğitimler kimseye atanmadı, kiosk&apos;ta hiçbir şey görünmez.
@@ -61,13 +83,22 @@ export default async function Atama() {
           ) : (
             <ul className="space-y-3">
               {kurallar.map((k) => {
-                const e = egitimAdi.get(k.egitimId);
+                const grup = k.grupId ? grupKarti.get(k.grupId) : undefined;
+                const uyeler = grup?.egitimIdleri ?? [];
+                const e = egitimKarti.get(k.egitimId);
                 return (
                   <KuralSatiri
                     key={k.id}
                     kural={k}
-                    egitimAdi={e?.ad ?? "(silinmiş eğitim)"}
-                    yayinda={e?.durum === "yayin"}
+                    paketMi={!!k.grupId}
+                    hedefAdi={k.grupId ? (grup?.ad ?? "(silinmiş paket)") : (e?.ad ?? "(silinmiş eğitim)")}
+                    uyeAdlari={uyeler.map((id) => egitimKarti.get(id)?.ad ?? "(silinmiş)")}
+                    // Paket kuralı, üyelerinden EN AZ BİRİ yayındaysa iş görür.
+                    yayinda={
+                      k.grupId
+                        ? uyeler.some((id) => egitimKarti.get(id)?.durum === "yayin")
+                        : e?.durum === "yayin"
+                    }
                     // ÖNİZLEME: kural kaç kişiyi kapsıyor. Kuralı yazarken
                     // sayıyı görmeyen kişi 400 kişilik bir eğitim atadığını
                     // ancak kiosk'ta kuyruk olunca fark eder.

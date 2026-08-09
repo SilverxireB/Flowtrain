@@ -4,6 +4,7 @@ import Icon from "@/components/Icon";
 import HesapYonetimi from "./HesapYonetimi";
 import Dugmeler from "./Dugmeler";
 import Pinler from "./Pinler";
+import TemelAdres from "./TemelAdres";
 import { kapi } from "@/lib/kimlik";
 import * as depo from "@/lib/depo";
 import { VERI_KLASORU } from "@/lib/db";
@@ -79,6 +80,7 @@ export default async function Ayarlar() {
           </div>
 
           <Dugmeler bekleyen={bekleyen} />
+          <TemelAdres mevcut={depo.ayarOku("temelAdres")} />
         </section>
 
         <section>

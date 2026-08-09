@@ -2,6 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
 import { kimlik, VERI_KLASORU } from "@/lib/db";
+import * as depo from "@/lib/depo";
 import { aktifHesap, yetkili } from "@/lib/kimlik";
 
 /** Kabul edilen türler — kapalı ağda çalıştığımız için liste dar tutulur. */
@@ -69,6 +70,23 @@ export async function POST(istek: Request) {
   // (boşluk, Türkçe karakter ve `../` sorunlarının tamamı burada biter).
   const id = `${kimlik("mdy")}.${uzanti}`;
   await writeFile(join(VERI_KLASORU, "medya", id), icerik);
+
+  /* KÜTÜPHANEYE YAZ — dosya adı kayıtta durur, çünkü `mdy_lz3k9a.jpg` hiç
+     kimseye "forklift mi kkd mi" demiyor ve hazırlayan her seferinde aynı
+     fotoğrafı yeniden yüklüyordu.
+
+     PDF'ten dönen sayfalar HARİÇ (`kutuphane=hayir`): kırk sayfalık bir sunum
+     kütüphaneye kırk tane `s7.jpg` doldurur, aradığı fotoğrafı bulmak
+     imkânsızlaşır. O görseller zaten kendi kartlarına bağlı. */
+  if (String(form.get("kutuphane") ?? "") !== "hayir") {
+    depo.medyaKaydet({
+      id,
+      ad: dosya.name.slice(0, 120),
+      tip: dosya.type,
+      boyut: dosya.size,
+      yukleyen: hesap?.kullanici ?? "",
+    });
+  }
 
   return NextResponse.json({ id, tur: dosya.type.startsWith("video") ? "video" : "gorsel" });
 }

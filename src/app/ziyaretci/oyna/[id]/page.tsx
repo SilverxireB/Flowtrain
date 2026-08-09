@@ -67,7 +67,10 @@ function Bos({ baslik, metin }: { baslik: string; metin: string }) {
           </span>
           <h1 className="mt-5 text-2xl font-extrabold">{baslik}</h1>
           <p className="mt-2 text-muted">{metin}</p>
-          <Link href="/ziyaretci" className="btn-ghost mt-6 text-sm">
+          {/* Kokpit ölçüsü DEĞİL: tablet ziyaretçinin elinde ve bu ekranı
+              gören kişi çoğu zaman onu masaya geri getiren görevli. Tek çıkış
+              düğmesi eldivenle de ıskalanmamalı. */}
+          <Link href="/ziyaretci" className="kiosk-btn-ghost mx-auto mt-8 max-w-xs">
             Kayıt masası
           </Link>
         </div>

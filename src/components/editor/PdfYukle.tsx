@@ -70,6 +70,10 @@ export default function PdfYukle({
 
         const form = new FormData();
         form.append("dosya", new File([parca], `s${n}.jpg`, { type: "image/jpeg" }));
+        // Kütüphaneye GİRMESİN: kırk sayfalık sunum kütüphaneyi kırk tane
+        // `s7.jpg` ile doldurur, yeniden kullanılacak fotoğraf aralarında
+        // kaybolur. Bu görseller zaten kendi kartlarına bağlı.
+        form.append("kutuphane", "hayir");
         const cevap = await fetch("/api/medya", { method: "POST", body: form });
         const sonuc = await cevap.json();
         if (!cevap.ok) throw new Error(sonuc.hata ?? "Yükleme başarısız.");

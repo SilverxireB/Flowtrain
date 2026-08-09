@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Logo from "@/components/Logo";
 import Icon from "@/components/Icon";
 import EgitimOyun, { type OyunSonucu } from "@/components/oyun/EgitimOyun";
+import KioskBekci from "@/components/oyun/KioskBekci";
 import { bilgilendirmeBaslatEylem, bilgilendirmeTamamlaEylem } from "../../eylemler";
 import type { Egitim, Sayfa } from "@/lib/tipler";
 
@@ -46,7 +47,16 @@ export default function Tablet({
     setMesgul(true);
     setHata(null);
 
-    const c = await bilgilendirmeBaslatEylem(ziyaretciId, siradaki.egitim.id);
+    /* Ağ koparsa "Başla" ölmemeli: eskiden sunucu eylemi reddedilince
+       `setMesgul(false)` satırına hiç gelinmiyor, düğme sonsuza kadar
+       "Açılıyor…" kalıyordu. */
+    let c: Awaited<ReturnType<typeof bilgilendirmeBaslatEylem>>;
+    try {
+      c = await bilgilendirmeBaslatEylem(ziyaretciId, siradaki.egitim.id);
+    } catch {
+      setMesgul(false);
+      return setHata("Bağlantı kurulamadı. Birkaç saniye sonra tekrar deneyin.");
+    }
     setMesgul(false);
     if (c.hata) return setHata(c.hata);
     setOynanan({ oturumId: c.oturumId!, adim: siradaki });
@@ -65,25 +75,31 @@ export default function Tablet({
   if (oynanan) {
     const kalanSonra = kalanlar.filter((a) => a.egitim.id !== oynanan.adim.egitim.id).length;
     return (
-      <EgitimOyun
-        key={oynanan.oturumId}
-        egitim={oynanan.adim.egitim}
-        sayfalar={oynanan.adim.sayfalar}
-        sorular={[]}
-        sinavHazir
-        oturumId={oynanan.oturumId}
-        kisiAdi={ziyaretciAdi}
-        imzaKipi="onay"
-        bitirEtiketi="Tamamla"
-        cikEtiketi={kalanSonra > 0 ? "Sıradaki bilgilendirme" : "Bitir"}
-        onBitir={bitir}
-        onCik={() => setOynanan(null)}
-      />
+      <>
+        {/* Ziyaretçi tableti de gün boyu açık kalır: ekran uyumasın, ağ
+            koptuğunda sebep yazsın. Bilgilendirme sırasında YENİLEME YOK. */}
+        <KioskBekci mesgul />
+        <EgitimOyun
+          key={oynanan.oturumId}
+          egitim={oynanan.adim.egitim}
+          sayfalar={oynanan.adim.sayfalar}
+          sorular={[]}
+          sinavHazir
+          oturumId={oynanan.oturumId}
+          kisiAdi={ziyaretciAdi}
+          imzaKipi="onay"
+          bitirEtiketi="Tamamla"
+          cikEtiketi={kalanSonra > 0 ? "Sıradaki bilgilendirme" : "Bitir"}
+          onBitir={bitir}
+          onCik={() => setOynanan(null)}
+        />
+      </>
     );
   }
 
   return (
     <main className="bg-wash grid min-h-screen place-items-center px-5 py-10">
+      <KioskBekci />
       <div className="w-full max-w-xl">
         <div className="mb-8 text-center">
           <Logo size="lg" />

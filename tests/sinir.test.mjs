@@ -117,8 +117,17 @@ kontrol(ayiriciGovde.length > 0, "ayiriciBul bulundu");
 kontrol(!/=>/.test(ayiriciGovde), "ayiriciBul kapanış içermiyor (küçültücü tuzağı)");
 
 /* ── 7. Dış servis yok ─────────────────────────────────────────────────────
-   Kapalı ağ kuralı: kodda dış alan adına giden bir istek olmamalı. */
-const disCagrilar = kaynaklar.filter((k) => /https?:\/\/(?!localhost|127\.0\.0\.1)[a-z0-9-]+\.[a-z]{2,}/i.test(k.metin));
+   Kapalı ağ kuralı: kodda dış alan adına giden bir istek olmamalı.
+
+   XML AD ALANLARI İSTİSNA: `xmlns="http://www.w3.org/2000/svg"` bir adres
+   değil, KİMLİKTİR — SVG'nin zorunlu parçası ve hiçbir tarayıcı onu indirmez.
+   İstisna AÇIKÇA yazılıyor: eskiden bu dize regex'e "w3" rakam içerdiği için
+   tesadüfen takılmıyordu, yani kural şans eseri geçiyordu. Şans, kuralın
+   kendisi değildir. */
+const AD_ALANI = /\b(?:xmlns|xmlns:[a-z]+)="https?:\/\/[^"]+"/gi;
+const disCagrilar = kaynaklar.filter((k) =>
+  /https?:\/\/(?!localhost|127\.0\.0\.1)[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}/i.test(k.metin.replace(AD_ALANI, "")),
+);
 kontrol(
   disCagrilar.length === 0,
   disCagrilar.length === 0

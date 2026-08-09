@@ -54,7 +54,18 @@ writeFileSync(
 );
 console.log(`Veri klasörü: ${veri}\n`);
 
-const sunucu = spawn("node_modules/.bin/next", ["start", "-p", String(PORT)], {
+/**
+ * Sunucu, Next'in JS giriş noktası NODE ile koşularak başlatılır.
+ *
+ * `node_modules/.bin/next` çağrılmıyordu: o yol Unix'te bir kabuk betiği,
+ * Windows'ta ise karşılığı `next.cmd`dir ve `spawn` uzantısız adı bulamayıp
+ * `ENOENT` atıyordu — sınav Windows'ta hiç koşamıyordu. Paketin kendi
+ * `dist/bin/next` dosyası her iki işletim sisteminde de aynı yerde duruyor,
+ * kabuk aracılığına da gerek kalmıyor (`shell: true` argümanları kabuğa
+ * ayrıştırtır, boşluklu yollarda ayrı bir tuzaktır).
+ */
+const nextGiris = join(process.cwd(), "node_modules", "next", "dist", "bin", "next");
+const sunucu = spawn(process.execPath, [nextGiris, "start", "-p", String(PORT)], {
   env: { ...process.env, FLOWTRAIN_DATA: veri, NODE_ENV: "production" },
   stdio: ["ignore", "pipe", "pipe"],
 });
@@ -155,8 +166,18 @@ try {
   await s.waitForTimeout(800);
   kontrol(await s.getByText("Doğru / Yanlış").first().isVisible(), "soru havuza eklendi");
 
-  /* Sınavdaki soru sayısını havuzla eşitle (varsayılan 5, havuzda 1 var). */
-  await s.click('button[aria-expanded]');
+  /* Sınavdaki soru sayısını havuzla eşitle (varsayılan 5, havuzda 1 var).
+
+     GERÇEK KULLANICI YOLU izleniyor: uyarının kendi bağlantısına tıklanıyor.
+     Böylece hem alan açılıyor hem de "sorunu gören kişi çözüme ulaşabiliyor
+     mu" sorusu sınavlanmış oluyor. Eskiden `button[aria-expanded]` ile
+     sayfadaki İLK katlanır düğme seçiliyordu; editöre yeni katlanır bölümler
+     eklendikçe sessizce yanlış düğmeye tıklamaya başladı. */
+  kontrol(
+    await s.getByRole("button", { name: "Sınav ayarlarını aç" }).isVisible(),
+    "havuz uyarısı çözüme bağlantı veriyor",
+  );
+  await s.getByRole("button", { name: "Sınav ayarlarını aç" }).click();
   await s.waitForTimeout(500);
   await s.getByLabel("Sınavdaki soru sayısı").fill("1");
   await s.getByLabel("Sınavdaki soru sayısı").blur();
@@ -184,7 +205,7 @@ try {
   await s.click('button:has-text("Dene")');
   await s.waitForTimeout(600);
   kontrol(await s.getByText("Prova — kayıt düşmez").isVisible(), "▶ Dene provayı açar ve kayıt düşmediğini söyler");
-  await s.locator('button[aria-label="Çık"]').click();
+  await s.locator('button[aria-label="Eğitimden çık"]').click();
   await s.waitForTimeout(400);
 
   /* 6. Yayınla */
@@ -203,7 +224,7 @@ try {
   await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
   kontrol(await s.getByText("4 kişi listede").isVisible(), "personel CSV'si okundu (4 kişi)");
 
-  await s.selectOption('select[name="egitimId"]', { label: "Yüksekte Çalışma" });
+  await s.selectOption('select[name="hedefId"]', { label: "Yüksekte Çalışma" });
   await s.getByRole("button", { name: "Kaynak", exact: true }).click();
   await s.click('button:has-text("Kuralı ekle")');
   await s.waitForTimeout(2000);
@@ -213,17 +234,22 @@ try {
   const kioskBaglam = await tarayici.newContext({ viewport: { width: 1024, height: 1366 } });
   const k = await kioskBaglam.newPage();
   k.on("pageerror", (e) => console.log(`  ⚠ kiosk hatası: ${e.message.slice(0, 120)}`));
+  /* Kiosk ÖNE ALINIYOR: asgari süre sayacı, sekme görünür değilken bilerek
+     durur ("telefonu cebe koyup beklemek izlemek değildir"). Kokpit sekmesi
+     açık kalınca kiosk arka planda sayılıyor ve sayaç hiç işlemiyordu — ürün
+     doğru davranıyor, sınav gerçek tabletin durumunu taklit etmiyordu. */
+  await k.bringToFront();
 
   await k.goto(`${ADRES}/kiosk`, { waitUntil: "networkidle" });
   kontrol(k.url().endsWith("/kiosk"), "kiosk giriş istemez (oturumsuz açılır)");
 
   /* Listede olmayan sicil reddedilmeli. */
-  await k.fill('input[aria-label="Sicil numarası"]', "7777");
+  await k.fill('#kiosk-sicil', "7777");
   await k.click('button:has-text("Devam")');
   await k.waitForTimeout(1500);
   kontrol(await k.getByText(/personel listesinde bulunamadı/).isVisible(), "tanınmayan sicil reddedilir");
 
-  await k.fill('input[aria-label="Sicil numarası"]', "1001");
+  await k.fill('#kiosk-sicil', "1001");
   await k.click('button:has-text("Devam")');
   await k.waitForTimeout(1500);
   kontrol(await k.getByText("Ali Yılmaz").isVisible(), "sicil tanındı, kişi karşılandı");
@@ -232,7 +258,7 @@ try {
   /* Montaj bölümündeki kişiye bu eğitim DÜŞMEMELİ. */
   await k.click('button:has-text("Bitir")');
   await k.waitForTimeout(500);
-  await k.fill('input[aria-label="Sicil numarası"]', "1003");
+  await k.fill('#kiosk-sicil', "1003");
   await k.click('button:has-text("Devam")');
   await k.waitForTimeout(1500);
   kontrol(await k.getByText("Bekleyen eğitiminiz yok").isVisible(), "kapsam dışı bölüm eğitimi görmez");
@@ -240,7 +266,7 @@ try {
   /* 9. Eğitimi tamamla */
   await k.click('button:has-text("Bitir")');
   await k.waitForTimeout(500);
-  await k.fill('input[aria-label="Sicil numarası"]', "1001");
+  await k.fill('#kiosk-sicil', "1001");
   await k.click('button:has-text("Devam")');
   await k.waitForTimeout(1500);
   await k.click('button:has-text("Başla")');
@@ -259,7 +285,7 @@ try {
   await k.waitForTimeout(1200);
   kontrol(await k.getByText(/Soru 1\/1/).isVisible(), "içerik bitince sınav başlar");
 
-  await k.getByRole("button", { name: /Doğru/ }).first().click();
+  await k.getByRole("radio", { name: /Doğru/ }).first().click();
   await k.waitForTimeout(400);
   await k.locator("button.kiosk-btn-primary").first().click(); // Bitir
   await k.waitForTimeout(1200);
@@ -285,9 +311,9 @@ try {
   /* YANLIŞ TARİH OTURUMU YAKAR: PIN'i olmayan kişide sayaç tutacak bir satır
      yok, dolayısıyla açık kalan bir oturumda tarih sınırsız denenebilirdi.
      Kişi baştan başlar; iptal oturumlar deneme hakkını yemez. */
-  await k.click('button[aria-label="Çık"]');
+  await k.click('button[aria-label="Eğitimden çık"]');
   await k.waitForTimeout(800);
-  await k.fill('input[aria-label="Sicil numarası"]', "1001");
+  await k.fill('#kiosk-sicil', "1001");
   await k.click('button:has-text("Devam")');
   await k.waitForTimeout(1500);
   kontrol(await k.getByText("Yüksekte Çalışma").isVisible(), "iptal oturum deneme hakkını yakmaz");
@@ -297,7 +323,7 @@ try {
   await k.waitForTimeout(2500);
   await k.locator("button.kiosk-btn-primary").first().click();
   await k.waitForTimeout(1200);
-  await k.getByRole("button", { name: /Doğru/ }).first().click();
+  await k.getByRole("radio", { name: /Doğru/ }).first().click();
   await k.waitForTimeout(400);
   await k.locator("button.kiosk-btn-primary").first().click();
   await k.waitForTimeout(1200);
@@ -331,14 +357,14 @@ try {
   await s.waitForTimeout(2000);
 
   await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
-  await s.selectOption('select[name="egitimId"]', { label: "İkinci Eğitim" });
+  await s.selectOption('select[name="hedefId"]', { label: "İkinci Eğitim" });
   await s.getByRole("button", { name: "Kaynak", exact: true }).click();
   await s.click('button:has-text("Kuralı ekle")');
   await s.waitForTimeout(2000);
 
   await k.click('button:has-text("Bitir")');
   await k.waitForTimeout(500);
-  await k.fill('input[aria-label="Sicil numarası"]', "1001");
+  await k.fill('#kiosk-sicil', "1001");
   await k.click('button:has-text("Devam")');
   await k.waitForTimeout(1500);
   await k.click('button:has-text("Başla")');
@@ -370,7 +396,7 @@ try {
   /* Aynı kişi aynı eğitimi tekrar göremez. */
   await k.click('button:has-text("Bitir")');
   await k.waitForTimeout(500);
-  await k.fill('input[aria-label="Sicil numarası"]', "1001");
+  await k.fill('#kiosk-sicil', "1001");
   await k.click('button:has-text("Devam")');
   await k.waitForTimeout(1500);
   kontrol(await k.getByText("Bekleyen eğitiminiz yok").isVisible(), "geçilen eğitim tekrar listelenmez");

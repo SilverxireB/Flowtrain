@@ -12,9 +12,11 @@ export const dynamic = "force-dynamic";
 /** `enAz: null` = giriş yeter (ziyaretçi masası her rolde açılır). */
 const YUZEYLER: { yol: string; ad: string; not: string; ikon: IconName; enAz: Rol | null }[] = [
   { yol: "/egitimler", ad: "Eğitimler", not: "Hazırla, sınavını kur, yayınla", ikon: "book", enAz: "hazirlayan" },
+  { yol: "/gruplar", ad: "Eğitim paketleri", not: "Birlikte verilen eğitimleri tek ada bağla", ikon: "folder", enAz: "hazirlayan" },
   { yol: "/atama", ad: "Atama kuralları", not: "Kim, ne zamana kadar", ikon: "target", enAz: "hazirlayan" },
   { yol: "/ekibim", ad: "Ekibim", not: "Eksikleri gör, yanında tamamlat", ikon: "users", enAz: "amir" },
   { yol: "/ziyaretci", ad: "Ziyaretçiler", not: "Kaydet, bilgilendir, içeri al", ikon: "userPlus", enAz: null },
+  { yol: "/kayitlar", ad: "Kayıt defteri", not: "Tüm tamamlamalar, CSV/PDF, sertifika", ikon: "receipt", enAz: "hazirlayan" },
   { yol: "/pano", ad: "Pano", not: "Tamamlama, gecikenler, anomali", ikon: "chart", enAz: "hazirlayan" },
   { yol: "/personel", ad: "Personel", not: "Kayıtlar, maliyet merkezi eşlemesi, OPM aktarımı", ikon: "list", enAz: "yonetici" },
   { yol: "/ayarlar", ad: "Ayarlar", not: "Hesaplar, adaptörler, denetim izi", ikon: "settings", enAz: "yonetici" },

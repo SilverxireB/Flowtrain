@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Icon from "@/components/Icon";
 import Kart from "./Kart";
-import { puanla, sinaviKur, soruDogruMu, tohumla } from "@/lib/sinav";
-import { beklenenSure } from "@/lib/anomali";
+import { puanla, sinaviKur, tohumla } from "@/lib/sinav";
+import { yanlisAciklamalari, type YanlisAciklama } from "@/lib/kioskAkis";
 import type { Egitim, Sayfa, Soru } from "@/lib/tipler";
 
 /**
@@ -35,6 +35,20 @@ export interface OyunSonucu {
   iseGiris?: string;
 }
 
+/**
+ * Sunucunun bitişte döndürdüğü cevap.
+ *
+ * `yanlislar` SINAV KAPANDIKTAN SONRA gelir ve yalnız kişinin KENDİ yanlış
+ * yaptığı soruların açıklamasını taşır — cevap anahtarı değil. Sırası önemli:
+ * açıklama cevaptan önce inseydi sınav kendi cevabını söylerdi.
+ */
+export interface BitisCevabi {
+  hata?: string;
+  puan?: number;
+  gecti?: boolean;
+  yanlislar?: YanlisAciklama[];
+}
+
 export default function EgitimOyun({
   egitim,
   sayfalar,
@@ -48,6 +62,7 @@ export default function EgitimOyun({
   imzaKipi = "pin",
   bitirEtiketi,
   cikEtiketi,
+  otoCikSn,
   onBitir,
   onCik,
 }: {
@@ -77,7 +92,16 @@ export default function EgitimOyun({
   iseGirisSorulacak?: boolean;
   /** `sorular` zaten sunucuda seçilip karıştırıldıysa istemci yeniden kurmaz. */
   sinavHazir?: boolean;
-  onBitir?: (sonuc: OyunSonucu) => Promise<{ hata?: string; puan?: number; gecti?: boolean } | void>;
+  /**
+   * Sonuç ekranı kaç saniye sonra kendiliğinden kapansın (kiosk).
+   *
+   * DOKUNUŞ SAYISI: sonuçtaki "Bitir", kiosk akışının DÖRDÜNCÜ dokunuşuydu ve
+   * teslim ölçütü üçtür. Basılmadığında ekran zaten kişisel bilgiyle sıradaki
+   * insanı bekliyordu. Ziyaretçi tabletinde verilmez: orada ekranı okuyan
+   * kişinin acelesi yok ve tableti masaya geri veren o.
+   */
+  otoCikSn?: number;
+  onBitir?: (sonuc: OyunSonucu) => Promise<BitisCevabi | void>;
   onCik?: () => void;
 }) {
   const [asama, setAsama] = useState<Asama>("icerik");
@@ -92,6 +116,7 @@ export default function EgitimOyun({
   const [iseGiris, setIseGiris] = useState("");
   const [hata, setHata] = useState<string | null>(null);
   const [sonuc, setSonuc] = useState<{ puan: number; gecti: boolean } | null>(null);
+  const [yanlislar, setYanlislar] = useState<YanlisAciklama[]>([]);
   const kilit = useRef(false);
 
   /* Gerçek oturumda sınav SUNUCUDA kurulur (tohum = oturum kimliği) ve buraya
@@ -104,6 +129,8 @@ export default function EgitimOyun({
 
   const sayfa = sayfalar[indeks];
   const sonSayfa = indeks >= sayfalar.length - 1;
+  /** Sonuç ekranında okunacak bir açıklama var mı (geri sayımı uzatır). */
+  const okunacakVar = yanlislar.some((y) => (y.aciklama ?? "").trim() !== "");
 
   /* Asgari süre sayacı. Sekme arkaya atılırsa sayaç durur: telefonu cebe
      koyup beklemek "izlemek" değildir. */
@@ -162,8 +189,11 @@ export default function EgitimOyun({
     else if (prova) {
       // Provada cevap anahtarı elimizde (hazırlayan zaten yetkili) — puanı
       // burada hesaplamak sunucuya hiç dokunmadan sonucu göstermeyi sağlar.
+      // Açıklama listesi de aynı yerden çıkar: hazırlayan yazdığı açıklamayı
+      // işçinin göreceği yerde, göreceği biçimde görmeli.
       const p = puanla(sinavSorulari as Soru[], cevaplar);
       setSonuc({ puan: p.puan, gecti: p.puan >= egitim.gecmeNotu });
+      setYanlislar(yanlisAciklamalari(sinavSorulari, p.yanlisSoruIdleri));
       setAsama("sonuc");
     } else setAsama("imza");
   }
@@ -182,18 +212,33 @@ export default function EgitimOyun({
     }
 
     kilit.current = true;
-    // Puan BURADA hesaplanmaz: gerçek oturumda cevap anahtarı istemcide yok
-    // ve sonuç kurumun eğitim kaydına yazılıyor — sunucu karar verir.
-    const cevap = await onBitir?.({
-      sayfaSureleri: sureler,
-      cevaplar,
-      pin,
-      iseGiris: iseGirisSorulacak ? iseGiris : undefined,
-    });
+
+    /* AĞ KOPARSA KİLİT AÇILMALI.
+       Sunucu eylemi ağ kesildiğinde REDDEDİLİR (throw). Eskiden `await`
+       doğrudan yazılıydı: hata fırlayınca `kilit.current = false` satırına hiç
+       gelinmiyor, kiosk "Onayla ve bitir" düğmesi sessizce ölüyordu — işçi
+       basıyor, hiçbir şey olmuyordu ve tek çare tableti yeniden başlatmaktı.
+       Yarım oturum sunucuda AÇIK kalır (bitiş damgası yok) ve iki saat sonra
+       `eskiOturumlariKapat` onu iptal eder; deneme hakkı yanmaz. */
+    let cevap: BitisCevabi | void;
+    try {
+      // Puan BURADA hesaplanmaz: gerçek oturumda cevap anahtarı istemcide yok
+      // ve sonuç kurumun eğitim kaydına yazılıyor — sunucu karar verir.
+      cevap = await onBitir?.({
+        sayfaSureleri: sureler,
+        cevaplar,
+        pin,
+        iseGiris: iseGirisSorulacak ? iseGiris : undefined,
+      });
+    } catch {
+      kilit.current = false;
+      return setHata("Bağlantı kurulamadı. Ekranı kapatmayın, tekrar deneyin.");
+    }
     kilit.current = false;
 
     if (!cevap || cevap.hata) return setHata(cevap?.hata ?? "Kayıt tamamlanamadı, tekrar deneyin.");
     setSonuc({ puan: cevap.puan ?? 0, gecti: !!cevap.gecti });
+    setYanlislar(cevap.yanlislar ?? []);
     setAsama("sonuc");
   }
 
@@ -210,8 +255,17 @@ export default function EgitimOyun({
           </span>
         ) : null}
         {onCik ? (
-          <button onClick={onCik} className="btn-icon" aria-label="Çık">
-            <Icon name="close" size={20} />
+          /* 72px'lik dokunma hedefi — eldivenle. Kokpitin `.btn-icon`ı 36px
+             ve burada ıskalanıyordu; buradaki sadeleştirme görünümde değil
+             HEDEFTE: kutu büyük, çizgi hâlâ ince. */
+          <button
+            onClick={onCik}
+            aria-label="Eğitimden çık"
+            className="inline-grid h-[72px] w-[72px] shrink-0 place-items-center rounded-2xl text-muted
+              transition-colors hover:bg-line/60 hover:text-ink
+              focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft"
+          >
+            <Icon name="close" size={26} />
           </button>
         ) : null}
       </div>
@@ -226,6 +280,11 @@ export default function EgitimOyun({
             ) : null}
           </div>
           <div className="sticky bottom-0 -mx-5 border-t border-line bg-white/90 px-5 py-4 backdrop-blur">
+            {/* Sayaç saniye saniye seslendirilemez (ekran okuyucu boğulur);
+                yalnız kapının AÇILDIĞI an duyurulur. */}
+            <p aria-live="polite" className="sr-only">
+              {ileriAcik ? "İleri düğmesi açıldı." : ""}
+            </p>
             <button onClick={ileri} disabled={!ileriAcik} className="kiosk-btn-primary">
               {videoBekliyor ? (
                 <>
@@ -259,17 +318,39 @@ export default function EgitimOyun({
         <>
           <Ilerleme simdi={soruIndeks + 1} toplam={sinavSorulari.length} etiket="Soru" />
           <div className="flex-1 py-6">
-            <h2 className="text-2xl font-extrabold leading-tight sm:text-3xl">{soru.metin}</h2>
+            <h2 id={`soru-${soru.id}`} className="text-2xl font-extrabold leading-tight sm:text-3xl">
+              {soru.metin}
+            </h2>
+            {/* SORU GÖRSELİ — "hangisi doğru duruş" tipi sorular metinle
+                sorulamıyor. Şıkların ÜSTÜNDE durur: cevabı verirken görselin
+                ekranda kalması gerekiyor, kaydırmayla değil. */}
+            {soru.gorselId ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`/api/medya/${soru.gorselId}`}
+                alt="Soru görseli"
+                className="mt-5 max-h-[34vh] w-full rounded-2xl border border-line object-contain"
+              />
+            ) : null}
             {cokluSecim ? (
               <p className="mt-2 text-sm font-semibold text-muted">Birden fazla şık işaretleyebilirsiniz.</p>
             ) : null}
-            <div className="mt-6 space-y-3">
+            {/* Tek seçimlik soru RADYO grubudur, çoklu seçim ONAY KUTUSU
+                grubudur. Hepsi `aria-pressed` ile "basılı düğme" olarak
+                duyuruluyordu; ekran okuyucu kullanan kişi kaç şıktan kaçını
+                seçebileceğini hiç duymuyordu. */}
+            <div
+              role={cokluSecim ? "group" : "radiogroup"}
+              aria-labelledby={`soru-${soru.id}`}
+              className="mt-6 space-y-3"
+            >
               {soru.secenekler.map((s, i) => (
                 <button
                   key={i}
                   onClick={() => secenegeBas(i)}
                   className={`kiosk-secenek ${secili.includes(i) ? "kiosk-secenek-secili" : ""}`}
-                  aria-pressed={secili.includes(i)}
+                  role={cokluSecim ? "checkbox" : "radio"}
+                  aria-checked={secili.includes(i)}
                 >
                   <span
                     className={`grid h-8 w-8 shrink-0 place-items-center ${
@@ -367,7 +448,7 @@ export default function EgitimOyun({
       ) : null}
 
       {asama === "sonuc" && sonuc ? (
-        <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
+        <div className="flex flex-1 flex-col items-center py-10 text-center">
           <span
             className={`grid h-24 w-24 place-items-center rounded-full ${
               sonuc.gecti ? "bg-iyi/10 text-iyi-dark" : "bg-brand-soft text-brand"
@@ -398,9 +479,18 @@ export default function EgitimOyun({
               Eğitimi tekrar izleyip yeniden deneyebilirsiniz. Deneme hakkınız: {egitim.denemeHakki}
             </p>
           ) : null}
+
+          <Aciklamalar yanlislar={yanlislar} />
+
           {onCik ? (
             <button onClick={onCik} className="kiosk-btn-primary mt-10 max-w-xs">
               {cikEtiketi ?? "Bitir"}
+              {/* Okunacak açıklama varsa geri sayım UZAR. Ekranı kişinin
+                  gözünün önünden 20 saniyede çekmek, "neden yanlıştı"
+                  kutusunu hiç okutmamakla aynı şey olurdu. */}
+              {otoCikSn ? (
+                <GeriSayim saniye={okunacakVar ? otoCikSn * 3 : otoCikSn} onBitti={onCik} />
+              ) : null}
             </button>
           ) : null}
         </div>
@@ -409,17 +499,92 @@ export default function EgitimOyun({
   );
 }
 
+/**
+ * "NEDEN YANLIŞTI" KUTUSU — sınavın öğrettiği tek yer.
+ *
+ * CEVAPTAN SONRA: liste yalnız sonuç ekranında çizilir, sınav kapandıktan ve
+ * puan sunucuda hesaplandıktan sonra. Soru sırasında gösterilseydi sınav kendi
+ * cevabını söylerdi.
+ *
+ * DOĞRU ŞIK YAZILMIYOR, AÇIKLAMA YAZILIYOR: "cevap B idi" bir sonraki denemede
+ * ezberlenecek bir harf üretir; "yağ döküntüsüne bez atmak buharı tutmaz"
+ * cümlesi ise kuralı öğretir. Açıklama girilmemiş soruda sessiz kalırız —
+ * uydurma bir metin yazmaktansa hiçbir şey yazmamak dürüst.
+ */
+function Aciklamalar({ yanlislar }: { yanlislar: YanlisAciklama[] }) {
+  const aciklamali = yanlislar.filter((y) => (y.aciklama ?? "").trim() !== "");
+  if (aciklamali.length === 0) return null;
+
+  return (
+    <section className="mt-10 w-full max-w-xl text-left">
+      <h3 className="flex items-center gap-2 text-lg font-bold">
+        <Icon name="help" size={20} className="text-accent" />
+        Bunları gözden geçirin
+      </h3>
+      <ul className="mt-4 space-y-3">
+        {aciklamali.map((y) => (
+          <li key={y.soruId} className="rounded-2xl border border-line bg-white p-5">
+            <p className="font-bold leading-snug">{y.metin}</p>
+            <p className="mt-2 whitespace-pre-line leading-relaxed text-ink/90">{y.aciklama}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * Sonuç ekranı geri sayımı (yalnız kiosk).
+ *
+ * SEKME ARKADAYSA SAYMAZ: aynı kural içerik sayacında da var. Kiosk uykuya
+ * girip uyandığında ekranı bir anda sıfırlamak, o sırada yaklaşan kişiye
+ * "kayıt olmadı" izlenimi verirdi.
+ */
+function GeriSayim({ saniye, onBitti }: { saniye: number; onBitti: () => void }) {
+  const [kalan, setKalan] = useState(saniye);
+  const bitti = useRef(onBitti);
+  bitti.current = onBitti;
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      setKalan((k) => (k > 0 ? k - 1 : 0));
+    }, 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  /* Çıkış AYRI ETKİDE: `setKalan` güncelleyicisinin içinden ebeveynin durumunu
+     değiştirmek çizim sırasında yan etki demek. React bunu uyarıyla karşılar
+     ve iki kez çizilen geliştirme kipinde çıkışı İKİ KEZ tetikliyordu. */
+  useEffect(() => {
+    if (kalan === 0) bitti.current();
+  }, [kalan]);
+
+  return <span className="ml-2 text-base font-semibold opacity-70">({kalan})</span>;
+}
+
 function Ilerleme({ simdi, toplam, etiket }: { simdi: number; toplam: number; etiket: string }) {
+  const yuzde = Math.round((simdi / toplam) * 100);
   return (
     <div>
       <div className="flex items-center justify-between text-sm font-semibold text-muted">
         <span>
           {etiket} {simdi}/{toplam}
         </span>
-        <span>{Math.round((simdi / toplam) * 100)}%</span>
+        <span aria-hidden>{yuzde}%</span>
       </div>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-line">
-        <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${(simdi / toplam) * 100}%` }} />
+      {/* Çubuk RENKTEN ibaret olmamalı: yüzde metni görene, `progressbar`
+          rolü ekran okuyucuya söylüyor. */}
+      <div
+        role="progressbar"
+        aria-label={`${etiket} ilerlemesi`}
+        aria-valuemin={0}
+        aria-valuemax={toplam}
+        aria-valuenow={simdi}
+        aria-valuetext={`${toplam} ${etiket.toLocaleLowerCase("tr")}dan ${simdi}. ${etiket.toLocaleLowerCase("tr")}`}
+        className="mt-2 h-2 overflow-hidden rounded-full bg-line"
+      >
+        <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${yuzde}%` }} />
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import Baslik from "@/components/Baslik";
 import Icon from "@/components/Icon";
 import KayitFormu from "./KayitFormu";
 import ZiyaretciSatiri from "./ZiyaretciSatiri";
+import Cikti from "./Cikti";
 import { kapiGirisli } from "@/lib/kimlik";
 import * as depo from "@/lib/depo";
 import * as zdepo from "@/lib/ziyaretciDepo";
@@ -20,6 +21,14 @@ export const dynamic = "force-dynamic";
  */
 export default async function Ziyaretciler() {
   kapiGirisli("/ziyaretci");
+
+  /* SAKLAMA TEMİZLİĞİ BURADA KOŞAR.
+     Kapalı ağda zamanlanmış görev (cron) yok — kutu tek başına duruyor ve
+     kimse ona bakmıyor. Ziyaretçi listesi günde onlarca kez açılıyor;
+     temizliği buraya bağlamak, ayrı bir hizmet istemeden süreyi gerçekten
+     işletmenin en ucuz yolu. Ayar kapalıysa hiçbir şey yapmaz, silinecek
+     kayıt yoksa denetim izine de bir şey yazmaz. */
+  zdepo.eskileriTemizle();
 
   const sorular = zdepo.sorulariGetir();
   const yayindakiler = depo.yayindakiEgitimler();
@@ -79,6 +88,8 @@ export default async function Ziyaretciler() {
             kapali={kurulumEksik}
           />
         </section>
+
+        <Cikti />
 
         <section>
           <h2 className="eyebrow mb-3">Bugün bekleyenler · {acik.length}</h2>

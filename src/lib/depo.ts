@@ -67,7 +67,9 @@ function sorudan(r: Satir): Soru {
 function kuraldan(r: Satir): Kural {
   return {
     id: r.id as string,
-    egitimId: r.egitimId as string,
+    // Paket kuralında NULL — tip boyunca boş dizeye düşürülür ki her çağıran
+    // ayrı ayrı null denetimi yazmasın; `if (k.egitimId)` ikisini de kapsar.
+    egitimId: (r.egitimId as string) ?? "",
     grupId: (r.grupId as string) ?? undefined,
     kosul: JSON.parse(r.kosul as string),
     sonTarih: (r.sonTarih as string) ?? undefined,
@@ -354,7 +356,7 @@ export function kuralEkle(veri: Omit<Kural, "id">): Kural {
   const k: Kural = { id: kimlik("krl"), ...veri };
   db()
     .prepare("INSERT INTO kural (id,egitimId,grupId,kosul,sonTarih,aktif) VALUES (?,?,?,?,?,?)")
-    .run(k.id, k.egitimId, k.grupId ?? null, JSON.stringify(k.kosul), k.sonTarih ?? null, k.aktif ? 1 : 0);
+    .run(k.id, k.egitimId || null, k.grupId ?? null, JSON.stringify(k.kosul), k.sonTarih ?? null, k.aktif ? 1 : 0);
   return k;
 }
 
@@ -364,7 +366,7 @@ export function kuralGuncelle(id: string, yama: Partial<Kural>): void {
   const k = { ...kuraldan(mevcut), ...yama };
   db()
     .prepare("UPDATE kural SET egitimId=?, grupId=?, kosul=?, sonTarih=?, aktif=? WHERE id=?")
-    .run(k.egitimId, k.grupId ?? null, JSON.stringify(k.kosul), k.sonTarih ?? null, k.aktif ? 1 : 0, id);
+    .run(k.egitimId || null, k.grupId ?? null, JSON.stringify(k.kosul), k.sonTarih ?? null, k.aktif ? 1 : 0, id);
 }
 
 /**
@@ -746,6 +748,49 @@ export function medyaKullanimi(id: string): number {
     .get(id, id, `%"${id}"%`) as { n: number };
   const q = db().prepare("SELECT COUNT(*) n FROM soru WHERE gorselId=?").get(id) as { n: number };
   return s.n + q.n;
+}
+
+/**
+ * Tüm medyaların kullanım sayısı — TEK sorguda.
+ *
+ * Kütüphane ekranı her görsel için ayrı `medyaKullanimi` çağırıyordu; birkaç
+ * yüz görselde sorun değil ama kütüphane bir kez binleri görünce ekran açılışı
+ * bini aşkın sorguya bağlanır. Referanslar bellekte sayılıyor: kaynak üç
+ * sütunda (tekil görsel, video, JSON dizi) dağınık, SQL ile toplamak
+ * okunmaz bir sorgu üretirdi.
+ */
+export function medyaKullanimlariGetir(): Record<string, number> {
+  const sayac: Record<string, number> = {};
+  const say = (id: unknown) => {
+    if (typeof id === "string" && id) sayac[id] = (sayac[id] ?? 0) + 1;
+  };
+
+  for (const r of db().prepare("SELECT gorselId, videoId, gorselIdler FROM sayfa").all() as Satir[]) {
+    say(r.gorselId);
+    say(r.videoId);
+    // gorselIdler'in ilki gorselId ile AYNI kayıttır (editör ikisini birlikte
+    // yazıyor); iki kez saymamak için tekil alanla eşleşen atlanır.
+    for (const g of JSON.parse((r.gorselIdler as string) ?? "[]") as string[]) {
+      if (g !== r.gorselId) say(g);
+    }
+  }
+  for (const r of db().prepare("SELECT gorselId FROM soru").all() as Satir[]) say(r.gorselId);
+  return sayac;
+}
+
+/**
+ * Hiçbir kartta/soruda geçmeyen medya kimlikleri.
+ *
+ * Kart silinince `data/medya/` altındaki dosya diskte kalıyor ve kütüphanede
+ * kullanımı sıfır görünen bir kayda dönüşüyor. Silmeyi çekirdek YAPMAZ —
+ * dosyayı kaldırmak geri alınamaz ve kararı insan verir; burada yalnız liste
+ * üretilir, temizlik düğmesi ekranın işidir.
+ */
+export function oksuzMedyalar(): string[] {
+  const kullanim = medyaKullanimlariGetir();
+  return medyalariGetir()
+    .filter((m) => !kullanim[m.id])
+    .map((m) => m.id);
 }
 
 /* ── maliyet merkezi eşlemesi ─────────────────────────────────────────────── */

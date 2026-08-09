@@ -2,6 +2,7 @@
 
 import type { Sayfa } from "@/lib/tipler";
 import Icon from "@/components/Icon";
+import { gorselIzgaraSinifi, gorselYukseklikSinifi, kartGorselleri } from "./gorseller";
 
 /**
  * İÇERİK KARTI — kiosk'ta gösterilen tek sayfa.
@@ -11,9 +12,13 @@ import Icon from "@/components/Icon";
  * verildiğinde başlar — burada kötü yapma imkânı yok.
  *
  * Punto ve boşluklar KİOSK için: ayakta, bir metre uzaktan, eldivenle.
+ *
+ * ÇOKLU GÖRSEL: yerleşim kararı `gorseller.ts`te (saf, sınavlı). Burada
+ * yalnız çizilir — kaç görselin nasıl dizileceğini bileşenin içine gömmek,
+ * kiosk düzeninin bozulup bozulmadığını sınavla korunamaz hâle getirirdi.
  */
 export default function Kart({ sayfa }: { sayfa: Sayfa }) {
-  const gorsel = sayfa.gorselId ? `/api/medya/${sayfa.gorselId}` : null;
+  const gorseller = kartGorselleri(sayfa);
 
   if (sayfa.tip === "yapYapma") {
     return (
@@ -23,7 +28,7 @@ export default function Kart({ sayfa }: { sayfa: Sayfa }) {
           <Sutun renk="iyi" ikon="check" baslik="Yap" metin={sayfa.metin} />
           <Sutun renk="brand" ikon="close" baslik="Yapma" metin={sayfa.metinKarsi} />
         </div>
-        {gorsel ? <Gorsel src={gorsel} /> : null}
+        <Gorseller idler={gorseller} baslik={sayfa.baslik} />
       </div>
     );
   }
@@ -42,7 +47,7 @@ export default function Kart({ sayfa }: { sayfa: Sayfa }) {
             <p className="mt-4 whitespace-pre-line text-lg leading-relaxed text-ink/90">{sayfa.metin}</p>
           ) : null}
         </div>
-        {gorsel ? <Gorsel src={gorsel} /> : null}
+        <Gorseller idler={gorseller} baslik={sayfa.baslik} />
       </div>
     );
   }
@@ -65,7 +70,7 @@ export default function Kart({ sayfa }: { sayfa: Sayfa }) {
             </li>
           ))}
         </ol>
-        {gorsel ? <Gorsel src={gorsel} /> : null}
+        <Gorseller idler={gorseller} baslik={sayfa.baslik} />
       </div>
     );
   }
@@ -104,7 +109,7 @@ export default function Kart({ sayfa }: { sayfa: Sayfa }) {
       {sayfa.metin ? (
         <p className="mt-5 whitespace-pre-line text-xl leading-relaxed text-ink/90">{sayfa.metin}</p>
       ) : null}
-      {gorsel ? <Gorsel src={gorsel} /> : null}
+      <Gorseller idler={gorseller} baslik={sayfa.baslik} />
     </div>
   );
 }
@@ -113,9 +118,32 @@ function Baslik({ metin }: { metin: string }) {
   return <h2 className="text-3xl font-extrabold leading-tight sm:text-4xl">{metin}</h2>;
 }
 
-function Gorsel({ src }: { src: string }) {
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt="" className="mt-6 w-full rounded-2xl border border-line object-contain" />;
+/**
+ * Kartın görselleri.
+ *
+ * ALT METNİ BOŞ BIRAKILMIYOR: görsel burada süs değil, çoğu zaman kuralın
+ * kendisi (doğru kaldırma duruşu, doğru KKD). Ekran okuyucu kullanan kişiye
+ * "resim" bile denmemesi, sayfanın yarısının yok sayılması demekti. Çekirdekte
+ * görsel başına açıklama alanı yok; en azından kartın başlığına ve sıraya
+ * bağlıyoruz (istek: `docs/istek-D.md`).
+ */
+function Gorseller({ idler, baslik }: { idler: string[]; baslik: string }) {
+  if (idler.length === 0) return null;
+  const yukseklik = gorselYukseklikSinifi(idler.length);
+
+  return (
+    <div className={gorselIzgaraSinifi(idler.length)}>
+      {idler.map((id, i) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={id}
+          src={`/api/medya/${id}`}
+          alt={idler.length > 1 ? `${baslik} — görsel ${i + 1}/${idler.length}` : `${baslik} — görsel`}
+          className={`w-full rounded-2xl border border-line object-contain ${yukseklik}`}
+        />
+      ))}
+    </div>
+  );
 }
 
 function Sutun({

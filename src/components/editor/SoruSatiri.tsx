@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Icon from "@/components/Icon";
+import MedyaSecici from "@/components/editor/MedyaSecici";
 import OtoMetin from "@/components/editor/OtoMetin";
+import type { MedyaOzet } from "@/lib/editorMedya";
 import { SORU_ETIKET, type Soru } from "@/lib/tipler";
 
 /**
@@ -17,18 +20,26 @@ export default function SoruSatiri({
   soru,
   sira,
   zor,
+  istatistik,
+  medyalar,
   onGuncelle,
   onSil,
+  onMedyaSil,
   kilitli,
 }: {
   soru: Soru;
   sira: number;
   zor: boolean;
+  /** Bu soru kaç kez soruldu, kaçında yanlış yapıldı. */
+  istatistik?: { deneme: number; yanlis: number };
+  medyalar: MedyaOzet[];
   /** Yayındaki eğitim salt okunur — sunucu da reddeder. */
   kilitli?: boolean;
-  onGuncelle: (yama: Partial<Soru>) => void;
+  onGuncelle: (yama: Record<string, unknown>) => void;
   onSil: () => void;
+  onMedyaSil: (id: string) => void;
 }) {
+  const [secici, setSecici] = useState(false);
   const cokluSecim = soru.tip === "cokluSecim";
   const sabitSecenek = soru.tip === "dogruYanlis";
 
@@ -61,13 +72,23 @@ export default function SoruSatiri({
     });
   }
 
+  const yanlisOrani = istatistik && istatistik.deneme > 0 ? Math.round((istatistik.yanlis / istatistik.deneme) * 100) : null;
+
   return (
     <div className={`card p-4 ${zor ? "border-orta/50" : ""}`}>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-line text-xs font-bold text-muted">
           {sira}
         </span>
         <span className="chip text-xs">{SORU_ETIKET[soru.tip]}</span>
+        {/* SAYIYI GÖSTER, YORUMU AYRI TUT: "%38 yanlış" ölçüdür, "anlatım
+            yetersiz" yorumdur. İkisi tek rozette birleşince az denemeli bir
+            soru da suçlanmış görünüyordu. */}
+        {yanlisOrani !== null && istatistik ? (
+          <span className="chip text-xs text-muted" title="Bu sorunun sınavlardaki geçmişi">
+            <Icon name="chart" size={14} /> {istatistik.deneme} denemede %{yanlisOrani} yanlış
+          </span>
+        ) : null}
         {zor ? (
           <span className="chip border-orta/40 bg-orta/10 text-xs text-orta-dark" title="Bu soruyu çoğunluk yanlış yapıyor">
             <Icon name="warning" size={14} /> Anlatım yetersiz olabilir
@@ -130,6 +151,61 @@ export default function SoruSatiri({
         <button onClick={secenekEkle} disabled={kilitli} className="btn-ghost mt-3 text-sm">
           <Icon name="plus" size={16} /> Şık ekle
         </button>
+      ) : null}
+
+      {/* ── açıklama ────────────────────────────────────────────────────────
+          SINAV ÖĞRETMENİN YERİNE GEÇER: yanlış cevaplayan kişi neyi kaçırdığını
+          orada öğrenmezse ikinci denemede aynı şıkka basar. İki cümle yeter —
+          uzun açıklama kioskta okunmuyor. */}
+      <label className="mt-4 block">
+        <span className="mb-1.5 block text-xs font-semibold text-muted">
+          Yanlış cevaplayana gösterilecek açıklama (isteğe bağlı)
+        </span>
+        <OtoMetin
+          disabled={kilitli}
+          defaultValue={soru.aciklama ?? ""}
+          onBlur={(e) => e.target.value !== (soru.aciklama ?? "") && onGuncelle({ aciklama: e.target.value })}
+          rows={2}
+          placeholder="Doğrusu neden doğru? Tek cümle."
+          className="input-base"
+        />
+      </label>
+
+      {/* ── soru görseli ────────────────────────────────────────────────────
+          "Bu fotoğraftaki hangi davranış yanlış?" sorusu metinle sorulamıyordu;
+          soru görseli olmayınca hazırlayan soruyu kartın içine yazıyordu ve
+          sınav diye bir şey kalmıyordu. */}
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button onClick={() => setSecici(true)} disabled={kilitli} className="btn-ghost text-sm">
+          <Icon name="image" size={16} /> {soru.gorselId ? "Görseli değiştir" : "Soru görseli ekle"}
+        </button>
+        {soru.gorselId ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/api/medya/${soru.gorselId}`} alt="" className="h-14 rounded-lg border border-line object-cover" />
+            <button
+              onClick={() => onGuncelle({ gorselId: null })}
+              disabled={kilitli}
+              className="btn-icon hover:text-brand"
+              aria-label="Soru görselini kaldır"
+            >
+              <Icon name="close" size={16} />
+            </button>
+          </>
+        ) : null}
+      </div>
+
+      {secici ? (
+        <MedyaSecici
+          tur="gorsel"
+          medyalar={medyalar}
+          onMedyaSil={onMedyaSil}
+          onKapat={() => setSecici(false)}
+          onSec={(id) => {
+            setSecici(false);
+            onGuncelle({ gorselId: id });
+          }}
+        />
       ) : null}
     </div>
   );

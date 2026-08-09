@@ -20,6 +20,12 @@ Türkçe UI, İngilizce kod. Kapsam: `docs/KAPSAM.md`.
    karışık soru havuzu, asgari süre, panoda anomali). Satılan şey kayıttır.
 6. FlowMeter/Sign/Pulse kodu buraya **kopyalanır, bağlanmaz.** Bu repo başka
    hiçbir ürüne bağımlı değildir.
+7. **KAYIT DÜZENLENMEZ, SİLİNMEZ.** Tamamlama kaydında Edit/Delete YOKTUR —
+   düzenlenebilir bir kayıt denetimde değersizdir. Yanlış kayıt yeni bir kayıt
+   ve `Oturum.notlar` ile düzeltilir, iz denetim defterinde kalır.
+8. **YENİ NPM PAKETİ EKLENMEZ.** Kapalı ağ ürününde her bağımlılık taşınacak
+   yüktür; CSV, QR, PDF gibi işler kendi kodumuzla yazılır (`src/lib/csv.ts`
+   bunun örneğidir).
 
 ## Tasarım Sistemi
 
@@ -33,7 +39,25 @@ büyük punto, az seçenek. Onaylar `ConfirmDialog` ile (native `confirm` yok).
 ## Mimari Notlar
 
 - **Depo SQLite** — JSON dosya deposu bu hacimde (kişi × eğitim × deneme)
-  yetmez. Veri klasörü = yedek yeri; `.gitignore`'da `data/`.
+  yetmez. Veri klasörü = yedek yeri. `data/` GEÇİCİ olarak repoda izleniyor
+  (dummy veriyle çalışılıyor, makineler arası taşınsın diye); **canlıya
+  alınırken `.gitignore`daki iki satır geri açılacak.**
+- **Adaptörün yönetilebilir yüzü:** `PersonelKaynagi.yonetim` (opsiyonel).
+  Bugün CSV dosyasını yönetiyor (`adaptorlar/csvPersonelYonetim.ts`), `/personel`
+  ekranı yalnız bu YETENEĞİ tanır. OPM webservice'i tek yönlü okursa alan boş
+  kalır ve ekran kendini salt okunur gösterir — ekran adaptörü SORMAZ.
+- **Maliyet merkezi = bölüm + amir.** OPM kaydı üç şeydir: sicil, ad, maliyet
+  merkezi. Bölüm ve amir `mmEsleme` tablosundan TÜRETİLİR, elle yazılmaz —
+  iki gerçek yarışırsa her dış aktarım el emeğini ezer. Eşleme VERİDİR:
+  fabrika kendi kodlarını bağlar, yazılımcı gerekmez.
+- **Eğitim paketi (`grup`)** — atama kuralı tek eğitime YA DA pakete yazılır.
+  `depo.kurallariCozulmus()` paket kurallarını üyelerine açar; `kurallar.ts`
+  saf mantık olarak kalır ve paketten haberi olmaz. Pakete sonradan eklenen
+  eğitim, kural yeniden yazılmadan kapsanır.
+- **`Oturum.kaynak`** kaydın nereden doğduğunu söyler: `kiosk · amir · sinif ·
+  aktarim`. Sınıf eğitimi ve dış aktarım kayıtları ekranda kart döndürmeden
+  `depo.oturumKaydet()` ile yazılır — her eğitim kioskta verilmez, ama kayıt
+  aynı deftere düşer.
 - **Realtime SSE** (Firebase yok — kapalı ağ).
 - Kiosk dayanıklılığı Sign'dan gelir: Wake Lock, donma bekçisi, gece reload.
 - `Oturum.senkron` alanı kaydın dış hedefe gidip gitmediğini tutar; başarısız
@@ -46,9 +70,12 @@ büyük punto, az seçenek. Onaylar `ConfirmDialog` ile (native `confirm` yok).
 | `/` | Hub — role göre açılan kartlar | girişli |
 | `/kurulum` `/giris` | ilk yönetici · kokpit girişi | — |
 | `/egitimler(/[id])` | liste · editör (PDF kapısı, kartlar, sorular, ▶ Dene) | hazırlayan |
-| `/atama` | kural motoru (bölüm/hat/görev/işe giriş/tekrar) | hazırlayan |
+| `/gruplar` | eğitim paketleri — üyeler, sıra | hazırlayan |
+| `/atama` | kural motoru (bölüm/hat/görev/işe giriş/tekrar); hedef eğitim ya da paket | hazırlayan |
 | `/ekibim` | amir tableti — eksikler, gözetimli oturum | amir |
+| `/kayitlar` | kayıt defteri — süzgeç, CSV/PDF, sınıf kaydı, sertifika. **Edit/Delete YOK** | hazırlayan |
 | `/pano` | tamamlanma, bölüm kırılımı, anomali, CSV | hazırlayan |
+| `/personel` | sicil · ad · maliyet merkezi · rol; MM eşlemesi, dış aktarım | yönetici |
 | `/ayarlar` | kurulumun gerçeği, hesaplar, denetim izi | yönetici |
 | `/ziyaretci` | ziyaretçi kayıt masası + günün listesi | girişli (rol aranmaz) |
 | `/ziyaretci/sorular` | kayıt soruları, şık → bilgilendirme eşlemesi, varsayılanlar | girişli |

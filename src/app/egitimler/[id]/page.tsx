@@ -1,5 +1,9 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { notFound } from "next/navigation";
 import Editor from "./Editor";
+import { VERI_KLASORU } from "@/lib/db";
+import { kartGorselleri, type MedyaOzet } from "@/lib/editorMedya";
 import { kapi } from "@/lib/kimlik";
 import * as depo from "@/lib/depo";
 import { zorSorular } from "@/lib/sinav";
@@ -11,17 +15,58 @@ export default function EgitimEditoru({ params }: { params: { id: string } }) {
   const egitim = depo.egitimGetir(params.id);
   if (!egitim) notFound();
 
+  const sayfalar = depo.sayfalariGetir(params.id);
   const sorular = depo.sorulariGetir(params.id);
+  const istatistik = depo.soruIstatistikleri(params.id);
+
+  /* Kütüphane satırları kullanım sayısıyla gelir: "sil" düğmesine basmadan
+     ÖNCE "bu görsel 3 kartta kullanılıyor" denebilsin diye. Silme anında
+     sorulsaydı cevabı beklemek için ayrı bir gidiş dönüş gerekirdi. */
+  const medyalar: MedyaOzet[] = depo
+    .medyalariGetir()
+    .map((m) => ({ ...m, kullanim: depo.medyaKullanimi(m.id) }));
+
+  /* KIRIK MEDYA yalnız sunucuda görülebilir: tarayıcı bir görselin diskte
+     olmadığını ancak istek atıp 404 alınca anlar, o da yayına hazırlık
+     listesini ağa bağımlı yapardı. */
+  const kirikGorselIdler: string[] = [];
+  for (const id of medyaKimlikleri(sayfalar, sorular)) {
+    if (!existsSync(join(VERI_KLASORU, "medya", id.replace(/[^a-zA-Z0-9._-]/g, "")))) kirikGorselIdler.push(id);
+  }
 
   return (
     <Editor
       egitim={egitim}
-      sayfalar={depo.sayfalariGetir(params.id)}
+      sayfalar={sayfalar}
       sorular={sorular}
       rol={hesap.rol}
       /* İÇERİK KALİTE SİNYALİ: çoğunluğun yanlış yaptığı soru, kötü İNSAN
          değil kötü SAYFA demektir. Hazırlayan bunu yüzüne görmezse düzeltmez. */
-      zorSoruIdleri={zorSorular(depo.soruIstatistikleri(params.id)).map((z) => z.soruId)}
+      zorSoruIdleri={zorSorular(istatistik).map((z) => z.soruId)}
+      istatistik={istatistik}
+      medyalar={medyalar}
+      kategoriler={depo.kategorileriGetir()}
+      /* Kart YALNIZ taslağa kopyalanır: yayındakine kart eklemek, kayıtların
+         atıf yaptığı sürümü sessizce değiştirirdi. */
+      hedefEgitimler={depo
+        .egitimleriListele()
+        .filter((e) => e.id !== params.id && e.durum === "taslak")
+        .map((e) => ({ id: e.id, ad: e.ad }))}
+      kirikGorselIdler={kirikGorselIdler}
     />
   );
+}
+
+/** Bu eğitimin kartlarında ve sorularında geçen tüm medya kimlikleri (tekil). */
+function medyaKimlikleri(
+  sayfalar: ReturnType<typeof depo.sayfalariGetir>,
+  sorular: ReturnType<typeof depo.sorulariGetir>,
+): string[] {
+  const kume = new Set<string>();
+  for (const s of sayfalar) {
+    for (const g of kartGorselleri(s)) kume.add(g);
+    if (s.videoId) kume.add(s.videoId);
+  }
+  for (const q of sorular) if (q.gorselId) kume.add(q.gorselId);
+  return [...kume];
 }

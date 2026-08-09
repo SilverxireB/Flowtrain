@@ -146,6 +146,40 @@ export async function sorulariSiralaEylem(sirali: string[]): Promise<void> {
   revalidatePath("/ziyaretci/sorular");
 }
 
+/* ── saklama süresi (KVKK) ────────────────────────────────────────────────── */
+
+/**
+ * Saklama süresini yazar ve HEMEN uygular.
+ *
+ * Ayarı kaydedip temizliği bir sonraki sayfa açılışına bırakmak, "90 gün"
+ * dedikten sonra listede duran eski kayıtları görüp ayarın çalışmadığını
+ * düşündürüyordu. Silme geri alınamaz olduğu için ekranda onay isteniyor
+ * (`ConfirmDialog`), o kapı istemci tarafında.
+ */
+export async function saklamaAyarlaEylem(gun: number): Promise<{ gun: number; silinen: number }> {
+  const hesap = kapiGirisli("/ziyaretci/sorular");
+  const temiz = zdepo.saklamaGunuYaz(gun);
+  depo.izBirak(
+    hesap.kullanici,
+    temiz === 0
+      ? "ziyaretçi saklama süresi kapatıldı (sınırsız)"
+      : `ziyaretçi saklama süresi ${temiz} gün olarak ayarlandı`,
+  );
+
+  const sonuc = zdepo.eskileriTemizle(hesap.kullanici);
+  revalidatePath("/ziyaretci/sorular");
+  revalidatePath("/ziyaretci");
+  return { gun: temiz, silinen: sonuc?.silinen ?? 0 };
+}
+
+export async function saklamaTemizleEylem(): Promise<{ silinen: number }> {
+  const hesap = kapiGirisli("/ziyaretci/sorular");
+  const sonuc = zdepo.eskileriTemizle(hesap.kullanici);
+  revalidatePath("/ziyaretci/sorular");
+  revalidatePath("/ziyaretci");
+  return { silinen: sonuc?.silinen ?? 0 };
+}
+
 export async function varsayilanEgitimleriYazEylem(idler: string[]): Promise<void> {
   const hesap = kapiGirisli("/ziyaretci/sorular");
   zdepo.varsayilanEgitimleriYaz(idler);

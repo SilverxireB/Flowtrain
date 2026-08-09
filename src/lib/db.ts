@@ -62,14 +62,25 @@ CREATE TABLE IF NOT EXISTS soru (
 );
 CREATE INDEX IF NOT EXISTS ix_soru_egitim ON soru(egitimId);
 
+/* egitimId NULL OLABİLİR: pakete yazılan kuralda mantıken tek bir eğitim
+   yoktur, grupId sütunu doludur. NOT NULL olsaydı paket kuralı bir üye
+   eğitime "çapalanmak" zorunda kalır ve o eğitim silindiğinde CASCADE
+   kuralı da sessizce götürürdü. İkisinden biri dolu olmalı. */
 CREATE TABLE IF NOT EXISTS kural (
   id TEXT PRIMARY KEY,
-  egitimId TEXT NOT NULL REFERENCES egitim(id) ON DELETE CASCADE,
+  egitimId TEXT REFERENCES egitim(id) ON DELETE CASCADE,
+  grupId TEXT REFERENCES grup(id) ON DELETE CASCADE,
   kosul TEXT NOT NULL,
   sonTarih TEXT,
-  aktif INTEGER NOT NULL DEFAULT 1
+  aktif INTEGER NOT NULL DEFAULT 1,
+  CHECK (egitimId IS NOT NULL OR grupId IS NOT NULL)
 );
 CREATE INDEX IF NOT EXISTS ix_kural_egitim ON kural(egitimId);
+/* ix_kural_grup BURADA DEĞİL, göçten SONRA kuruluyor: var olan bir kurulumda
+   CREATE TABLE IF NOT EXISTS boş geçer ve tabloda henüz grupId sütunu yoktur.
+   İndeks burada olsaydı "no such column: grupId" ile PATLAR, exec tüm betiği
+   yarıda keser ve ALTINDAKİ tablolar (grup, medya, mmEsleme) hiç oluşmazdı.
+   Yeni kurulumda görünmeyen, yalnız YÜKSELTMEDE çıkan bir hata. */
 
 CREATE TABLE IF NOT EXISTS oturum (
   id TEXT PRIMARY KEY,
@@ -259,10 +270,6 @@ function gocleriUygula(d: Database.Database): void {
     "ALTER TABLE egitim ADD COLUMN sureDk INTEGER",
     "ALTER TABLE egitim ADD COLUMN egitmen TEXT",
 
-    /* Kural artık tek eğitime YA DA bir pakete yazılabilir. egitimId eski
-       kayıtlarda dolu kalır; ikisinden biri doludur. */
-    "ALTER TABLE kural ADD COLUMN grupId TEXT",
-
     /* Oturumun nereden geldiği: kiosk · amir tableti · sınıf · dış aktarım.
        `cihaz` serbest metindi ve rapor süzgeci ona güvenemiyordu. */
     "ALTER TABLE oturum ADD COLUMN kaynak TEXT NOT NULL DEFAULT 'kiosk'",
@@ -283,6 +290,68 @@ function gocleriUygula(d: Database.Database): void {
     } catch {
       /* sütun zaten var */
     }
+  }
+
+  kuralTablosunuTazele(d);
+
+  // Sütunu göç garanti ettikten SONRA: şemanın içinde olsaydı var olan
+  // kurulumda betiği yarıda keserdi (yukarıdaki nota bkz).
+  d.exec("CREATE INDEX IF NOT EXISTS ix_kural_grup ON kural(grupId)");
+}
+
+/**
+ * `kural.egitimId`i NULL kabul eder hâle getirir (paket kuralları için).
+ *
+ * SQLite sütun kısıtını `ALTER` ile gevşetemez; tablo yeniden kurulur. Eski
+ * kurulumlarda paket kuralı bir üye eğitime çapalanmıştı — bu göç o çapaları
+ * da temizler, çünkü çapa eğitimi silinseydi `ON DELETE CASCADE` paket
+ * kuralını da sessizce götürürdü.
+ *
+ * Yalnız GEREKİYORSA çalışır: sütun zaten NULL kabul ediyorsa hiçbir şey
+ * yapılmaz, yoksa her açılışta tablo boşuna yeniden kurulurdu.
+ */
+function kuralTablosunuTazele(d: Database.Database): void {
+  const sutunlar = d.pragma("table_info(kural)") as { name: string; notnull: number }[];
+  const egitimIdSutunu = sutunlar.find((s) => s.name === "egitimId");
+  if (!egitimIdSutunu || egitimIdSutunu.notnull === 0) return;
+
+  /* KAYNAK SÜTUN VAR MI DİYE BAKILIYOR. Eski kurulumların bir kısmında kural
+     tablosunda grupId hiç yok; sorguya körlemesine yazılsaydı "no such column"
+     ile patlar, yarım kalan göç yeni tabloyu geride bırakır ve bir sonraki
+     açılışta "table kural_yeni already exists" derdi. */
+  const grupIdVar = sutunlar.some((s) => s.name === "grupId");
+  const grupIfadesi = grupIdVar ? "NULLIF(grupId,'')" : "NULL";
+  const egitimIfadesi = grupIdVar
+    ? "CASE WHEN grupId IS NOT NULL AND grupId <> '' THEN NULL ELSE egitimId END"
+    : "egitimId";
+
+  // Yabancı anahtar denetimi kapalıyken yapılır: tablo bir an için DROP edilir
+  // ve açık denetim ara durumda kuralları silerdi.
+  d.pragma("foreign_keys = OFF");
+  try {
+    // Yarım kalmış bir denemeden artakalmış olabilir.
+    d.exec("DROP TABLE IF EXISTS kural_yeni");
+    // TEK İŞLEM: ortada kesilirse tablo eski hâline döner, yarım şema kalmaz.
+    d.transaction(() => {
+      d.exec(`
+        CREATE TABLE kural_yeni (
+          id TEXT PRIMARY KEY,
+          egitimId TEXT REFERENCES egitim(id) ON DELETE CASCADE,
+          grupId TEXT REFERENCES grup(id) ON DELETE CASCADE,
+          kosul TEXT NOT NULL,
+          sonTarih TEXT,
+          aktif INTEGER NOT NULL DEFAULT 1,
+          CHECK (egitimId IS NOT NULL OR grupId IS NOT NULL)
+        );
+        INSERT INTO kural_yeni (id,egitimId,grupId,kosul,sonTarih,aktif)
+          SELECT id, ${egitimIfadesi}, ${grupIfadesi}, kosul, sonTarih, aktif FROM kural;
+        DROP TABLE kural;
+        ALTER TABLE kural_yeni RENAME TO kural;
+        CREATE INDEX IF NOT EXISTS ix_kural_egitim ON kural(egitimId);
+      `);
+    })();
+  } finally {
+    d.pragma("foreign_keys = ON");
   }
 }
 

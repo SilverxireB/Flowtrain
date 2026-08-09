@@ -1,41 +1,15 @@
 import { jsPDF } from "jspdf";
+import { PDF_FONT as FONT, yaziTipiGom } from "./pdfYaziTipi";
 
 /**
  * Pano PDF'i — denetim toplantısına götürülecek özet sayfa.
  *
  * CSV denetim BELGESİdir (tam liste, Excel'de süzülür); PDF ise okunacak
- * ÖZETtir. İkisi aynı şey değil, o yüzden ikisi de var.
+ * ÖZETtir. İkisi aynı şey değil, o yüzden ikisi de var. Satır satır kayıt
+ * listesi için kayıt defterinin kendi PDF'i vardır (`kayitPdf.ts`).
  *
- * TÜRKÇE YAZI TİPİ GÖMÜLÜR: jsPDF'in yerleşik Helvetica'sı Latin-1'dir,
- * `ş ğ İ ı` karakterlerini basmaz — gömmezsek rapor "Yüksekte Çalıma" der ve
- * kimse hatayı bize değil kendi bilgisayarına yorar. Yazı tipi kendi
- * sunucumuzdan gelir (`public/fonts`), dış ağ istemez.
+ * Yazı tipi gömme üç belgede ortak: `pdfYaziTipi.ts`.
  */
-const FONT = "Jakarta";
-
-async function yaziTipiGom(doc: jsPDF): Promise<boolean> {
-  try {
-    const yukle = async (yol: string) => {
-      const c = await fetch(yol);
-      if (!c.ok) throw new Error(String(c.status));
-      const b = new Uint8Array(await c.arrayBuffer());
-      let s = "";
-      for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
-      return btoa(s);
-    };
-    const [duz, kalin] = await Promise.all([
-      yukle("/fonts/PlusJakartaSans-Regular.ttf"),
-      yukle("/fonts/PlusJakartaSans-Bold.ttf"),
-    ]);
-    doc.addFileToVFS("PlusJakartaSans-Regular.ttf", duz);
-    doc.addFont("PlusJakartaSans-Regular.ttf", FONT, "normal");
-    doc.addFileToVFS("PlusJakartaSans-Bold.ttf", kalin);
-    doc.addFont("PlusJakartaSans-Bold.ttf", FONT, "bold");
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export interface PanoOzeti {
   toplam: number;
@@ -43,6 +17,12 @@ export interface PanoOzeti {
   oran: number;
   durumlar: { etiket: string; sayi: number }[];
   bolumler: { ad: string; toplam: number; acik: number }[];
+  /** Kategori kırılımı — "hangi tür eğitimde geriyiz". */
+  kategoriler: { ad: string; toplam: number; acik: number }[];
+  /** YASAL ZORUNLU eğitimler ayrı sayılır: denetimin baktığı sayı budur. */
+  zorunlu: { toplam: number; acik: number; oran: number };
+  /** Aylık tamamlanma seyri (eski → yeni). */
+  aylar: { etiket: string; gecti: number; kaldi: number }[];
   gecikenler: { ad: string; sicil: string; egitim: string; sonTarih: string }[];
 }
 
@@ -86,6 +66,18 @@ export async function panoPdfIndir(ozet: PanoOzeti, tarih: string): Promise<void
 
   doc.setFontSize(10);
   doc.text(ozet.durumlar.map((d) => `${d.etiket}: ${d.sayi}`).join("   ·   "), KENAR, y);
+  y += 16;
+
+  /* ZORUNLU EĞİTİM SATIRI ÖZETİN İÇİNDE, EN ÜSTTE: denetçi genel orana değil
+     bu orana bakar. Aşağıya bir bölüme gömülseydi toplantıda kimse görmezdi. */
+  doc.setTextColor(24, 24, 27);
+  doc.text(
+    ozet.zorunlu.toplam === 0
+      ? "Yasal zorunlu eğitim ataması yok."
+      : `Yasal zorunlu eğitimler: %${ozet.zorunlu.oran} tamam · ${ozet.zorunlu.acik} eksik / ${ozet.zorunlu.toplam}`,
+    KENAR,
+    y,
+  );
   y += 26;
 
   // ── bölümler ──
@@ -115,6 +107,38 @@ export async function panoPdfIndir(ozet: PanoOzeti, tarih: string): Promise<void
     y += 15;
   }
   y += 12;
+
+  // ── kategoriler ──
+  if (ozet.kategoriler.length > 0) {
+    baslikYaz("Kategoriler");
+    for (const k of ozet.kategoriler) {
+      sayfaKontrol();
+      doc.setTextColor(24, 24, 27);
+      doc.text(k.ad.slice(0, 44), KENAR, y);
+      doc.setTextColor(120, 113, 108);
+      doc.text(k.acik > 0 ? `${k.acik} eksik / ${k.toplam}` : `tamam (${k.toplam})`, KENAR + GENIS, y, {
+        align: "right",
+      });
+      y += 15;
+    }
+    y += 12;
+  }
+
+  // ── aylık seyir ──
+  if (ozet.aylar.some((a) => a.gecti + a.kaldi > 0)) {
+    baslikYaz("Aylık tamamlanma");
+    for (const a of ozet.aylar) {
+      sayfaKontrol();
+      doc.setTextColor(24, 24, 27);
+      doc.text(a.etiket, KENAR, y);
+      doc.setTextColor(120, 113, 108);
+      doc.text(a.gecti + a.kaldi === 0 ? "—" : `${a.gecti} geçti · ${a.kaldi} kaldı`, KENAR + GENIS, y, {
+        align: "right",
+      });
+      y += 15;
+    }
+    y += 12;
+  }
 
   // ── gecikenler ──
   baslikYaz(`Geciken ve eksikler (${ozet.gecikenler.length})`);

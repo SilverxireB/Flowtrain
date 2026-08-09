@@ -6,6 +6,7 @@ import { kisininBekleyenleri } from "@/lib/atamaServis";
 import { aktifHesap } from "@/lib/kimlik";
 import { kimlik } from "@/lib/db";
 import { puanla, sinaviKur, tohumla } from "@/lib/sinav";
+import { yanlisAciklamalari, type YanlisAciklama } from "@/lib/kioskAkis";
 import type { Egitim, Sayfa, Soru } from "@/lib/tipler";
 
 /**
@@ -136,6 +137,15 @@ export interface TamamlamaSonucu {
   hata?: string;
   puan?: number;
   gecti?: boolean;
+  /**
+   * Yanlış cevaplanan soruların açıklamaları — SINAV KAPANDIKTAN SONRA.
+   *
+   * Cevap anahtarı DEĞİL: hangi şıkkın doğru olduğu yine gönderilmiyor, yalnız
+   * hazırlayanın yazdığı "neden yanlış" metni gidiyor. Kişinin kendi
+   * yanlışını öğrenmesi, ezberlenecek bir harf öğrenmesinden başka bir şey;
+   * sınav bir ceza değil, öğretme anıdır.
+   */
+  yanlislar?: YanlisAciklama[];
 }
 
 export async function oturumTamamla(
@@ -222,7 +232,11 @@ export async function oturumTamamla(
   const kapali = depo.oturumGetir(oturumId)!;
   depo.senkronIsaretle(oturumId, (await kaydiGonder(kapali)) ? "gonderildi" : "hata");
 
-  return { puan: sinavVar ? p.puan : 100, gecti };
+  return {
+    puan: sinavVar ? p.puan : 100,
+    gecti,
+    yanlislar: yanlisAciklamalari(sorulan, p.yanlisSoruIdleri),
+  };
 }
 
 /**

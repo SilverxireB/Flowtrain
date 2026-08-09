@@ -6,6 +6,7 @@ import { cikisYap, girisYap, guvenliYol, kapi, kurulumGerekli } from "@/lib/kiml
 import * as depo from "@/lib/depo";
 import { kaydiGonder, personelKaynagi } from "@/lib/adaptorlar";
 import { SABLONLAR } from "@/lib/sablonlar";
+import { nrm } from "@/lib/arama";
 import type { KartTipi, Soru, SoruTipi } from "@/lib/tipler";
 
 /* ── kimlik ───────────────────────────────────────────────────────────────── */
@@ -186,6 +187,21 @@ function taslakMi(egitimId: string): boolean {
   return depo.egitimGetir(egitimId)?.durum !== "yayin";
 }
 
+/**
+ * Kategori serbest metindir ama "İSG" / "isg" / "ısg" ÜÇ AYRI kategori olmamalı:
+ * katalog süzgeci üç satır gösterir, hazırlayan hangisinin doğru olduğunu
+ * bilemez ve rapor kırılımı bölünür.
+ *
+ * Yazarken mevcut bir kategoriye Türkçe duyarsız eşleşiyorsa ONUN yazımına
+ * çekilir. Eşleşme yoksa kullanıcının yazdığı aynen kalır — yeni kategori
+ * açmak yasak değil, kazara açmak engelleniyor.
+ */
+function kategoriyiYaklastir(girilen: string): string {
+  const temiz = girilen.trim().replace(/\s+/g, " ");
+  if (!temiz) return "";
+  return depo.kategorileriGetir().find((k) => nrm(k) === nrm(temiz)) ?? temiz;
+}
+
 export async function egitimGuncelleEylem(id: string, yama: Record<string, unknown>): Promise<void> {
   const ben = kapi("hazirlayan", `/egitimler/${id}`);
   if (!taslakMi(id)) return;
@@ -193,6 +209,7 @@ export async function egitimGuncelleEylem(id: string, yama: Record<string, unkno
   for (const alan of HAZIRLAYAN_ALANLARI) {
     if (yama[alan] !== undefined) suzulmus[alan] = yama[alan];
   }
+  if (typeof suzulmus.kategori === "string") suzulmus.kategori = kategoriyiYaklastir(suzulmus.kategori);
   depo.egitimGuncelle(id, suzulmus);
   depo.izBirak(ben.kullanici, `eğitim güncelledi: ${id}`);
   revalidatePath(`/egitimler/${id}`);
