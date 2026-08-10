@@ -418,7 +418,7 @@ export default function Defter({
                   <td className="px-2 py-2.5 text-right">
                     <button
                       onClick={() => setSecili(k)}
-                      className="btn-ghost px-2 py-1 text-xs"
+                      className="btn-ghost dokunma-44 px-2 py-1 text-xs"
                       aria-label={`${k.sicil} · ${k.egitimAdi} kaydını aç`}
                     >
                       <Icon name="eye" size={14} />

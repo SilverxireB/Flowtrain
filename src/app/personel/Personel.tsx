@@ -139,7 +139,7 @@ export default function Personel({
                     {duzenlenebilir ? (
                       <button
                         onClick={() => setDuzenlenen(k)}
-                        className="btn-ghost px-2 py-1 text-xs"
+                        className="btn-ghost dokunma-44 px-2 py-1 text-xs"
                         aria-label={`${k.ad || k.sicil} kaydını düzenle`}
                       >
                         <Icon name="pencil" size={14} />

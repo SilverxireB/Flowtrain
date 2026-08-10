@@ -328,7 +328,7 @@ function Baslik({
       <button
         type="button"
         onClick={() => bas(sutun)}
-        className={`inline-flex items-center gap-1 hover:text-ink ${secili ? "text-ink" : ""}`}
+        className={`dokunma-44 inline-flex items-center gap-1 hover:text-ink ${secili ? "text-ink" : ""}`}
       >
         {etiket}
         {secili ? <Icon name={ters ? "down" : "up"} size={12} /> : null}

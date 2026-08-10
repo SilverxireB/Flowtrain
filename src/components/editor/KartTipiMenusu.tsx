@@ -97,7 +97,7 @@ function Panel({
               type="button"
               onClick={() => onSec(t)}
               aria-current={secili === t}
-              className={`block w-full rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${
+              className={`dokunma-44 block w-full rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${
                 secili === t ? "bg-accent-soft" : ""
               }`}
             >
@@ -179,7 +179,7 @@ export function KartTipiRozeti({
         aria-haspopup="menu"
         onClick={() => setAcik((a) => !a)}
         title="Kart tipini değiştir"
-        className="chip text-xs transition-colors hover:border-accent hover:text-ink disabled:cursor-not-allowed"
+        className="chip dokunma-44 text-xs transition-colors hover:border-accent hover:text-ink disabled:cursor-not-allowed"
       >
         {KART_ETIKET[tip]}
         {kilitli ? null : <Icon name="down" size={12} />}

@@ -177,7 +177,16 @@ export default function EgitimOyun({
   }, [asama, sayfa]);
 
   const videoBekliyor = sayfa?.tip === "video" && !!sayfa.videoId && !videoBitti;
-  const ileriAcik = kalan <= 0 && !videoBekliyor;
+  /**
+   * PROVADA SÜRE KAPISI YOK.
+   *
+   * Asgari süre ve video kapısı İŞÇİ için var: kart okunmadan geçilmesin.
+   * Yazan kişi eğitimi almıyor, DÜZENİ kontrol ediyor — onu her kartta 6 saniye
+   * bekletmek on üç kartlık bir eğitimi gözden geçirmeyi dakikalara çıkarıyordu
+   * ve insan provaya hiç girmiyordu. Provada kayıt zaten düşmüyor, dolayısıyla
+   * beklemenin koruduğu bir şey de yok.
+   */
+  const ileriAcik = prova || (kalan <= 0 && !videoBekliyor);
 
   const ileri = useCallback(() => {
     if (!ileriAcik) return;
@@ -186,6 +195,11 @@ export default function EgitimOyun({
       if (sinavSorulari.length === 0 && prova) setSonuc({ puan: 0, gecti: true });
     } else setIndeks((i) => i + 1);
   }, [ileriAcik, sonSayfa, sinavSorulari.length, prova]);
+
+  /* GERİ YALNIZ PROVADA: işçi kartlar arasında ileri geri gezerse süre ölçümü
+     ve "okundu" kapısı anlamını yitirir. Yazan kişi için tersi doğru —
+     düzelttiği karta dönemeden prova işe yaramıyor. */
+  const geri = useCallback(() => setIndeks((i) => Math.max(0, i - 1)), []);
 
   const soru = sinavSorulari[soruIndeks];
   const secili = soru ? (cevaplar[soru.id] ?? []) : [];
@@ -311,12 +325,25 @@ export default function EgitimOyun({
             <p aria-live="polite" className="sr-only">
               {ileriAcik ? "İleri düğmesi açıldı." : ""}
             </p>
-            <button onClick={ileri} disabled={!ileriAcik} className="kiosk-btn-primary">
-              {videoBekliyor ? (
+            {/* Provada iki yönlü gezinme: düzelttiği karta dönemeyen bir prova
+                yazan kişinin işine yaramıyor. Kioskta GERİ YOK. */}
+            <div className={prova ? "flex items-center gap-3" : ""}>
+              {prova ? (
+                <button
+                  onClick={geri}
+                  disabled={indeks === 0}
+                  aria-label="Önceki kart"
+                  className="kiosk-btn-ikon shrink-0"
+                >
+                  <Icon name="chevronLeft" size={26} />
+                </button>
+              ) : null}
+              <button onClick={ileri} disabled={!ileriAcik} className="kiosk-btn-primary">
+              {videoBekliyor && !prova ? (
                 <>
                   <Icon name="play" size={22} /> Videoyu sonuna kadar izleyin
                 </>
-              ) : kalan > 0 ? (
+              ) : kalan > 0 && !prova ? (
                 <>
                   <Icon name="hourglass" size={22} /> {kalan} sn
                 </>
@@ -335,7 +362,15 @@ export default function EgitimOyun({
                   <Icon name="chevronRight" size={22} />
                 </>
               )}
-            </button>
+              </button>
+            </div>
+            {/* Provada asgari süre bilgi olarak kalır — kapı değil ama
+                hazırlayan işçinin ne kadar bekleyeceğini bilmeli. */}
+            {prova && sayfa.asgariSure > 0 ? (
+              <p className="mt-2 text-center text-xs text-muted">
+                Kioskta bu kart en az {sayfa.asgariSure} sn açık kalır. Provada beklemezsiniz.
+              </p>
+            ) : null}
           </div>
         </>
       ) : null}

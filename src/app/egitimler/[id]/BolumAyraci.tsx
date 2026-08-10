@@ -49,7 +49,7 @@ function BolumAyraciIc({
           }}
           placeholder="Bölüm adı — ör. Acil durum"
           aria-label="Bölüm başlığı"
-          className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-bold uppercase tracking-[0.1em] text-ink placeholder:font-semibold placeholder:normal-case placeholder:tracking-normal placeholder:text-muted focus:outline-none focus:ring-0"
+          className="min-w-0 flex-1 border-0 bg-transparent px-0 py-2.5 text-sm font-bold uppercase tracking-[0.1em] text-ink placeholder:font-semibold placeholder:normal-case placeholder:tracking-normal placeholder:text-muted focus:outline-none focus:ring-0"
         />
         {kilitli ? null : (
           <button
@@ -76,7 +76,12 @@ function BolumAyraciIc({
     <button
       type="button"
       onClick={() => setYeni(true)}
-      className="absolute -top-3 left-8 z-10 inline-flex items-center gap-1 rounded-full border border-line bg-white px-2 py-0.5 text-[11px] font-semibold text-muted opacity-0 transition-opacity hover:text-accent-dark focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 group-hover:opacity-100"
+      /* DOKUNMATİKTE HEP GÖRÜNÜR. `opacity-0` + `group-hover` fareli ekranda
+         araya girmeyen zarif bir çözüm, ama telefonda hover diye bir şey yok:
+         düğme hiç görünmüyordu, yani kartların arasına bölüm başlığı eklemek
+         telefonda ULAŞILAMAZ bir özellikti. Fareli ekranda eski davranış
+         (üstüne gelince belirir) olduğu gibi duruyor. */
+      className="dokunma-44 absolute -top-3 left-8 z-10 inline-flex items-center gap-1 rounded-full border border-line bg-white px-2 py-1 text-[11px] font-semibold text-muted transition-opacity hover:text-accent-dark focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
     >
       <Icon name="plus" size={12} /> Bölüm başlığı
     </button>

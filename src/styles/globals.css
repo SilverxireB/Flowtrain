@@ -125,11 +125,38 @@ body {
   }
 
   .btn-icon {
-    @apply inline-grid place-items-center w-9 h-9 shrink-0 rounded-lg
+    @apply relative inline-grid place-items-center w-9 h-9 shrink-0 rounded-lg
       text-muted hover:text-ink hover:bg-line/60 transition-colors
       active:bg-line active:text-ink
       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40
       disabled:opacity-30 disabled:hover:bg-transparent;
+  }
+
+  /* DOKUNMA HEDEFİ 44px — GÖRÜNÜM DEĞİŞMEDEN.
+     Kokpitteki simge düğmeleri 36px, tablo satırlarındaki düzenle düğmeleri
+     32×24, sıralama başlıkları 16px yüksekliğindeydi; parmakla ıskalanıyor,
+     yanlış satır açılıyordu. Kutuyu büyütmek masaüstü düzenini bozardı, o
+     yüzden büyüyen şey görünmez isabet alanı: kutu olduğu yerde kalır, hedef
+     her yönde en az 44px olur. */
+  .dokunma-44 {
+    @apply relative;
+  }
+
+  /* YALNIZ DİKEYDE büyür. Yatayda da büyütmek yan yana duran simge
+     düğmelerinin (araç çubuğu, satır sonu eylemleri) görünmez alanlarını üst
+     üste bindirir ve DOM'da sonra gelen komşusu öndekinin dokunuşunu çalar —
+     44px uğruna düğmeyi büsbütün tıklanamaz yapmak kötü bir takas. Ölçülen
+     kusurların hepsi zaten yükseklikteydi (16px, 23px, 24px, 27px). */
+  .dokunma-44::after,
+  .btn-icon::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 44px;
+    transform: translateY(-50%);
   }
 
   /* DOKUNULUR YÜZEY — tıklanabilir kart ya da liste satırı.

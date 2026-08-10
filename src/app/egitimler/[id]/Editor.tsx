@@ -9,6 +9,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import EgitimOyun from "@/components/oyun/EgitimOyun";
 import CanliOnizleme from "@/components/editor/CanliOnizleme";
+import OnizlemeSeridi from "@/components/editor/OnizlemeSeridi";
 import SayfaSatiri from "@/components/editor/SayfaSatiri";
 import SoruSatiri from "@/components/editor/SoruSatiri";
 import TanimBolumu from "@/components/editor/TanimBolumu";
@@ -99,7 +100,7 @@ export default function Editor({
   const [ayarlarAcik, setAyarlarAcik] = useState(false);
   const soruSayisiRef = useRef<HTMLInputElement>(null);
   const [seciliId, setSeciliId] = useState<string | null>(null);
-  const [darSekme, setDarSekme] = useState<"duzen" | "onizleme">("duzen");
+  const [seritAcik, setSeritAcik] = useState(false);
   /** Dar/orta ekranda harita çekmecesi açık mı? Geniş ekranda rayda duruyor. */
   const [haritaAcik, setHaritaAcik] = useState(false);
   /** Sürüklenen kart ve bırakılacak ARALIK (0..n) — ikisi de çizim için. */
@@ -237,7 +238,6 @@ export default function Editor({
    */
   const kartaGit = useCallback((sayfaId: string, odakla: boolean) => {
     setSeciliId(sayfaId);
-    setDarSekme("duzen");
     setHaritaAcik(false);
     requestAnimationFrame(() => {
       const el = document.getElementById(kartDomKimligi(sayfaId));
@@ -525,20 +525,12 @@ export default function Editor({
         {gosterilen.length > 0 ? <p className="mt-2 px-1 text-[11px] leading-snug text-muted">{KISAYOL_NOTU}</p> : null}
       </aside>
 
-      <div className="sayfa-govde">
-        {/* DAR EKRANDA SEKME: önizleme editörün altına yığılsaydı hazırlayan
-            yazdığı kartı görmek için her seferinde aşağı kaydırırdı; yan yana
-            sığmadığı yerde ikisinden BİRİ görünür.
-            Harita düğmesi rayın görünmediği HER genişlikte duruyor. */}
+      {/* Alttaki önizleme şeridi yapışkan: son alan onun ALTINDA kalmasın diye
+          o kadar pay bırakılır. Şerit açıkken pay büyür. Geniş ekranda şerit
+          hiç çizilmiyor, pay da yok. */}
+      <div className={`sayfa-govde ${seritAcik ? "pb-[52vh]" : "pb-24"} xl:pb-8`}>
+        {/* Harita düğmesi rayın görünmediği HER genişlikte duruyor. */}
         <div className="mb-5 flex flex-wrap items-center gap-3 min-[1760px]:hidden">
-          <div className="inline-flex gap-1 rounded-full border border-line bg-white p-1 xl:hidden">
-            <SekmeDugmesi etkin={darSekme === "duzen"} onBas={() => setDarSekme("duzen")}>
-              <Icon name="pencil" size={15} /> Düzenle
-            </SekmeDugmesi>
-            <SekmeDugmesi etkin={darSekme === "onizleme"} onBas={() => setDarSekme("onizleme")}>
-              <Icon name="monitor" size={15} /> Önizleme
-            </SekmeDugmesi>
-          </div>
           <button onClick={() => setHaritaAcik(true)} className="btn-ghost text-sm" aria-expanded={haritaAcik}>
             <Icon name="list" size={16} /> Kart haritası
             {gosterilen.length > 0 ? <span className="font-normal text-muted">{gosterilen.length}</span> : null}
@@ -546,7 +538,7 @@ export default function Editor({
         </div>
 
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_26rem] xl:items-start">
-          <div className={`space-y-8 ${darSekme === "onizleme" ? "hidden xl:block" : ""}`}>
+          <div className="space-y-8">
             {yayinda ? (
               /* Yayındaki eğitim bir KAYITTIR: tamamlanmış oturumlar "sürüm N"e
                  atıf yapıyor. İçeriği yerinde değiştirmek, insanların kayıtta
@@ -794,7 +786,7 @@ export default function Editor({
             <section>
               <button
                 onClick={() => setAyarlarAcik((a) => !a)}
-                className="flex w-full items-center justify-between rounded-xl px-1 py-2 text-left"
+                className="dokunma-44 flex w-full items-center justify-between rounded-xl px-1 py-2 text-left"
                 aria-expanded={ayarlarAcik}
               >
                 <span className="eyebrow">Sınav ayarları (gelişmiş)</span>
@@ -873,8 +865,9 @@ export default function Editor({
           </div>
 
           {/* `top-20`: başlık şeridi yapışkan (sticky) ve ~64px — önizleme
-              onun altına yerleşmezse kaydırınca başlığın arkasına giriyor. */}
-          <aside className={`xl:sticky xl:top-20 ${darSekme === "duzen" ? "hidden xl:block" : ""}`}>
+              onun altına yerleşmezse kaydırınca başlığın arkasına giriyor.
+              DAR EKRANDA ÇİZİLMEZ: orada aynı önizleme alttaki şeritte durur. */}
+          <aside className="hidden xl:sticky xl:top-20 xl:block">
             <CanliOnizleme sayfa={secili} sira={seciliSira} toplam={gosterilen.length} altMetinler={altMetinler} />
             {secili ? (
               <p className="mt-2 px-1 text-xs text-muted">
@@ -884,6 +877,16 @@ export default function Editor({
           </aside>
         </div>
       </div>
+
+      {/* Dar ekranın önizlemesi: seçili kartı izler, yazdıkça dolar. */}
+      <OnizlemeSeridi
+        sayfa={secili}
+        sira={seciliSira}
+        toplam={gosterilen.length}
+        altMetinler={altMetinler}
+        acik={seritAcik}
+        onAcikDegisti={setSeritAcik}
+      />
 
       {/* ── HARİTA ÇEKMECESİ ──────────────────────────────────────────────
           Rayın sığmadığı genişliklerde harita ÇEKMECEYE düşüyor: editörün
@@ -1007,19 +1010,6 @@ function birlestir(sayfa: Sayfa, yama?: Record<string, unknown>): Sayfa {
   return b as unknown as Sayfa;
 }
 
-function SekmeDugmesi({ etkin, onBas, children }: { etkin: boolean; onBas: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onBas}
-      aria-pressed={etkin}
-      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-        etkin ? "bg-accent text-white" : "text-muted hover:text-ink"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
 
 function Sayi({
   etiket,

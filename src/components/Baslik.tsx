@@ -44,7 +44,7 @@ export default function Baslik({
           </Link>
         ) : null}
 
-        <Link href="/" className="shrink-0" aria-label="FlowTrain ana sayfa">
+        <Link href="/" className="dokunma-44 shrink-0" aria-label="FlowTrain ana sayfa">
           <Logo size="sm" />
         </Link>
 

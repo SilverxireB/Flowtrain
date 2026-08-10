@@ -171,6 +171,7 @@ for (const yol of dosyalar("src/app/api", "route.ts")) {
 
 /* ══ 4. SAHTECİLİK ÖNLEMLERİ — oynatıcı değişti, yeniden ölçülüyor ═════════ */
 const oyun = oku("src/components/oyun/EgitimOyun.tsx");
+const editor = oku("src/app/egitimler/[id]/Editor.tsx");
 const kioskEylem = oku("src/app/kiosk/eylemler.ts");
 const kioskEkran = oku("src/app/kiosk/Kiosk.tsx");
 
@@ -200,7 +201,14 @@ kontrol(/sorular: GizliSoru\[\]/.test(kioskEylem), "oyun verisi gizli soru tipin
 
 /* 4d. ASGARİ SÜRE. İstemci kapısı: süre dolmadan İleri açılmaz ve sekme
    arkadayken sayaç DURUR ("telefonu cebe koyup beklemek izlemek değildir"). */
-kontrol(/const ileriAcik = kalan <= 0 && !videoBekliyor/.test(oyun), "asgari süre dolmadan İleri açılmıyor");
+kontrol(
+  /const ileriAcik = prova \|\| \(kalan <= 0 && !videoBekliyor\)/.test(oyun),
+  "asgari süre dolmadan İleri açılmıyor (kapıyı YALNIZ prova atlar)",
+);
+/* Provanın kapıyı atlaması güvenlik açığı DEĞİL: prova hiçbir şey yazmaz
+   (`provaRef.current` erken döner, sunucuya oturum açılmaz) ve editöre
+   zaten yetkili kişi giriyor. Kapı, KAYIT ÜRETEN yolu korumak için var. */
+kontrol(/if \(provaRef\.current\) return;/.test(editor), "prova sunucuya hiçbir şey yazmıyor");
 kontrol(/disabled=\{!ileriAcik\}/.test(oyun), "İleri düğmesi kapıya bağlı");
 kontrol(
   /if \(document\.visibilityState !== "visible"\) return;/.test(oyun),
