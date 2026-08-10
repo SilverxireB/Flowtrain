@@ -13,7 +13,9 @@
     "pdf-isci": "node scripts/pdf-isci.mjs",
     "postinstall": "npm run pdf-isci",
     "e2e": "node tests/uctan-uca.mjs",
-    "kur": "node scripts/kur.mjs"
+    "kur": "node scripts/kur.mjs",
+    "veri": "node scripts/veri-hazirla.mjs",
+    "yuk": "node scripts/yuk.mjs"
   },
   "dependencies": {
     "@types/better-sqlite3": "^9.6.0",

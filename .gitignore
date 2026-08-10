@@ -5,13 +5,14 @@ build/
 *.tsbuildinfo
 next-env.d.ts
 
-# GEÇİCİ: dummy veriyle çalışıyoruz, veri repoya giriyor ki makineler arası taşınsın.
-# CANLIYA ALIRKEN aşağıdaki iki satırın başındaki # kaldırılacak — gerçek personel
-# verisi repoya ASLA girmemeli.
+# GEÇİCİ: dummy veriyle çalışıyoruz, veri repoya TAMAMEN giriyor ki makineler
+# arası taşınsın — veritabanının yan dosyaları (-wal/-shm) dahil, hiçbir şey
+# elenmiyor.
+#
+# CANLIYA ALIRKEN aşağıdaki iki satırın başındaki # kaldırılacak — gerçek
+# personel verisi repoya ASLA girmemeli (bkz. docs/CANLIYA-GECIS.md).
 # data/
 # veri/
-data/flowtrain.db-shm
-data/flowtrain.db-wal
 
 .env
 .env.local

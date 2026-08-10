@@ -69,6 +69,11 @@ yanlış rakam gösterir ve bir daha kimse ona güvenmez.
 - [ ] Veri klasörünün yolu biliniyor (Ayarlar gösterir).
 - [ ] **Yedek = o klasörü kopyalamak.** Günlük kopyalama planlandı ve bir
       kez geri yükleme denendi. Denenmemiş yedek, yedek değildir.
+- [ ] **Kopyalamadan önce `npm run veri`** (ya da servisi durdur). SQLite
+      yazdıklarını bir süre `flowtrain.db-wal` dosyasında tutar; yalnız
+      `.db` kopyalanırsa son saatlerin kaydı yedekte OLMAZ ve bunu kimse
+      fark etmez. Klasörün tamamını kopyalıyorsanız da bu adım işi
+      sağlama alır.
 
 ## G. Devir
 

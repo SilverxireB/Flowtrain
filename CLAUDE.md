@@ -42,6 +42,12 @@ büyük punto, az seçenek. Onaylar `ConfirmDialog` ile (native `confirm` yok).
   yetmez. Veri klasörü = yedek yeri. `data/` GEÇİCİ olarak repoda izleniyor
   (dummy veriyle çalışılıyor, makineler arası taşınsın diye); **canlıya
   alınırken `.gitignore`daki iki satır geri açılacak.**
+- **WAL TUZAĞI — veriyi taşımadan önce `npm run veri`.** SQLite yazdıklarını
+  bir süre `.db`ye değil `flowtrain.db-wal`e koyuyor. `git status` tertemiz
+  görünürken günün çalışması hâlâ WAL'de olabilir; başka makineye geçen kişi
+  saatler öncesini bulur. Bir kez oldu: `.db` sabahtan kalmışken WAL 210 KB'a
+  çıkmıştı. Betik WAL'i `.db`ye katlar ve boşaltamazsa **hata verir** —
+  yarım hazırlık, hiç hazırlamamaktan beterdir.
 - **Adaptörün yönetilebilir yüzü:** `PersonelKaynagi.yonetim` (opsiyonel).
   Bugün CSV dosyasını yönetiyor (`adaptorlar/csvPersonelYonetim.ts`), `/personel`
   ekranı yalnız bu YETENEĞİ tanır. OPM webservice'i tek yönlü okursa alan boş
