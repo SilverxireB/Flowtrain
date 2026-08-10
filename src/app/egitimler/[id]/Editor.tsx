@@ -12,6 +12,7 @@ import CanliOnizleme from "@/components/editor/CanliOnizleme";
 import OnizlemeSeridi from "@/components/editor/OnizlemeSeridi";
 import SayfaSatiri from "@/components/editor/SayfaSatiri";
 import SoruSatiri from "@/components/editor/SoruSatiri";
+import SoruOnerici from "@/components/editor/SoruOnerici";
 import TanimBolumu from "@/components/editor/TanimBolumu";
 import YayinKontrol, { YayinRozeti, kartSorunlu, yayinKontrolu } from "@/components/editor/YayinKontrol";
 import { KartEkleMenusu } from "@/components/editor/KartTipiMenusu";
@@ -30,6 +31,7 @@ import {
   sayfaSilEylem,
   sayfalariSiralaEylem,
   sayfalariTopluEkleEylem,
+  onerilenSorulariEkleEylem,
   soruEkleEylem,
   soruGuncelleEylem,
   soruSilEylem,
@@ -727,6 +729,18 @@ export default function Editor({
                     onSil={soruSil}
                   />
                 ))}
+              </div>
+
+              {/* ÖNERİ ÖNCE, BOŞ SORU SONRA: hazırlayan buraya geldiğinde
+                  kartları çoktan yazmış oluyor. Yedi boş soru düğmesiyle
+                  karşılamak, iş bitmişken işi baştan başlatmak gibiydi. */}
+              <div className="mt-4">
+                <SoruOnerici
+                  sayfalar={gosterilen}
+                  mevcutSorular={sorular}
+                  kilitli={kilitli}
+                  onEkle={(secilenler) => calistir(() => onerilenSorulariEkleEylem(egitim.id, secilenler))}
+                />
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">

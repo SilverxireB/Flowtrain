@@ -366,6 +366,29 @@ export async function soruEkleEylem(egitimId: string, tip: SoruTipi): Promise<vo
   revalidatePath(`/egitimler/${egitimId}`);
 }
 
+/**
+ * ÖNERİLEN SORULARI TOPLU EKLER.
+ *
+ * Öneri sunucuda yeniden ÜRETİLMEZ, istemciden gelen gövde de körlemesine
+ * yazılmaz: kart tipi ve şık sayısı gibi kabuk kuralları burada da geçerli
+ * (`soruEkle` şıkları olduğu gibi alır). İstemci yalnız hazırlayanın ONAYLADIĞI
+ * önerileri gönderir; hazırlayan zaten bu eğitimi düzenleme yetkisine sahip,
+ * yani buradan geçen içerik elle yazılabilecek içerikle aynı sınıfta.
+ */
+export async function onerilenSorulariEkleEylem(
+  egitimId: string,
+  sorular: { tip: SoruTipi; metin: string; secenekler: string[]; dogru: number[] }[],
+): Promise<void> {
+  const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
+  if (!taslakMi(egitimId)) return;
+  for (const s of sorular) {
+    if (!s.metin.trim()) continue;
+    depo.soruEkle(egitimId, { tip: s.tip, metin: s.metin, secenekler: s.secenekler, dogru: s.dogru });
+  }
+  depo.izBirak(ben.kullanici, `kartlardan ${sorular.length} soru ekledi: ${egitimId}`);
+  revalidatePath(`/egitimler/${egitimId}`);
+}
+
 export async function soruGuncelleEylem(egitimId: string, id: string, yama: Partial<Soru>): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
   if (!taslakMi(egitimId)) return;
