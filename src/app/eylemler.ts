@@ -317,6 +317,27 @@ export async function sayfalariTopluEkleEylem(
   revalidatePath(`/egitimler/${egitimId}`);
 }
 
+/**
+ * YAPIŞTIRILAN METİNDEN TOPLU KART.
+ *
+ * Bölme İSTEMCİDE yapılır ve sonucu hazırlayan panelde görüp onaylar; buraya
+ * yalnız onaylananlar gelir. Sunucu metni yeniden bölmez — bölseydi ekranda
+ * onaylanan ile yazılan farklı olabilirdi ("gördüğüm bu değildi").
+ */
+export async function metinKartlariEkleEylem(
+  egitimId: string,
+  kartlar: { tip: KartTipi; baslik: string; metin: string }[],
+): Promise<void> {
+  const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
+  if (!taslakMi(egitimId)) return;
+  for (const k of kartlar) {
+    if (!k.baslik.trim() && !k.metin.trim()) continue;
+    depo.sayfaEkle(egitimId, { tip: k.tip, baslik: k.baslik, metin: k.metin });
+  }
+  depo.izBirak(ben.kullanici, `yapıştırılan metinden ${kartlar.length} kart ekledi: ${egitimId}`);
+  revalidatePath(`/egitimler/${egitimId}`);
+}
+
 export async function sayfaGuncelleEylem(egitimId: string, id: string, yama: Record<string, unknown>): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
   if (!taslakMi(egitimId)) return;

@@ -13,6 +13,7 @@ import OnizlemeSeridi from "@/components/editor/OnizlemeSeridi";
 import SayfaSatiri from "@/components/editor/SayfaSatiri";
 import SoruSatiri from "@/components/editor/SoruSatiri";
 import SoruOnerici from "@/components/editor/SoruOnerici";
+import MetinYapistir from "@/components/editor/MetinYapistir";
 import TanimBolumu from "@/components/editor/TanimBolumu";
 import YayinKontrol, { YayinRozeti, kartSorunlu, yayinKontrolu } from "@/components/editor/YayinKontrol";
 import { KartEkleMenusu } from "@/components/editor/KartTipiMenusu";
@@ -31,6 +32,7 @@ import {
   sayfaSilEylem,
   sayfalariSiralaEylem,
   sayfalariTopluEkleEylem,
+  metinKartlariEkleEylem,
   onerilenSorulariEkleEylem,
   soruEkleEylem,
   soruGuncelleEylem,
@@ -669,8 +671,14 @@ export default function Editor({
                   düğme sırası iki satıra taşıp içerik listesini aşağı itiyordu;
                   gruplu panel tek düğmeye iniyor ve tipin ne işe yaradığını da
                   yazıyor. Aynı panel satırdaki tip rozetinde de koşuyor. */}
-              <div className="mt-4">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 <KartEkleMenusu kilitli={kilitli} onEkle={(t) => calistir(() => sayfaEkleEylem(egitim.id, t))} />
+                {/* Kimse sıfırdan başlamıyor: elindeki talimatı yapıştırıp
+                    kartlara bölmek, kart kart yazmaktan çok daha hızlı. */}
+                <MetinYapistir
+                  kilitli={kilitli}
+                  onEkle={(kartlar) => calistir(() => metinKartlariEkleEylem(egitim.id, kartlar))}
+                />
               </div>
 
               {sayfalar.length > 0 && !kilitli ? (
