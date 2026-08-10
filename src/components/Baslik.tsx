@@ -30,14 +30,21 @@ export default function Baslik({
     <header className="border-b border-line bg-white/70 backdrop-blur sticky top-0 z-30">
       {/* Şerit gövdeyle AYNI kapta: farklı genişlikteyken başlık ile içerik
           birbirini tutmuyor, sayfa değiştikçe her şey kayıyordu. */}
-      <div className="sayfa-kap flex items-center gap-3 py-3">
+      {/* DAR EKRANDA SARAR — telefondaki karmaşanın kök sebebi buydu.
+          Şerit tek satırdı ve sağdaki eylem grubu `shrink-0` olduğu için
+          daralabilen tek öğe logo kalıyordu: "TRAIN" yazısı ortadan kesiliyor,
+          dahası şerit viewport'u aşınca SAYFANIN TAMAMI genişliyordu (390px
+          telefonda düzen 485-520px'e çıkıp içerik dar bir şeride sıkışıyor,
+          sağda kocaman boşluk kalıyordu). Tablolar zaten kendi kaplarında
+          kayıyordu; ekranı bozan tablolar değil, başlığın taşmasıydı. */}
+      <div className="sayfa-kap flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
         {ust ? (
           <Link href={ust} className="btn-icon" aria-label={ustAd ? `${ustAd} sayfasına dön` : "Geri"}>
             <Icon name="chevronLeft" size={20} />
           </Link>
         ) : null}
 
-        <Link href="/" aria-label="FlowTrain ana sayfa">
+        <Link href="/" className="shrink-0" aria-label="FlowTrain ana sayfa">
           <Logo size="sm" />
         </Link>
 
@@ -50,7 +57,9 @@ export default function Baslik({
           <div className="flex-1" />
         )}
 
-        <div className="flex shrink-0 items-center gap-2">
+        {/* Sarınca sağa yaslı ikinci satır olur; tek satıra sığdığında hiçbir
+            şey değişmez (`flex-wrap` yalnız yer kalmayınca kırar). */}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           {sag}
           <RehberAc bolum={rehberBolum} />
         </div>

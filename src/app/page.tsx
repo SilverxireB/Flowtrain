@@ -62,7 +62,7 @@ export default function Hub({ searchParams }: { searchParams: { yetki?: string }
             sağda kocaman boşluk kalıyordu. */}
         <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {acik.map((y) => (
-            <Link key={y.yol} href={y.yol} className="card flex items-start gap-3 p-5 transition hover:border-accent">
+            <Link key={y.yol} href={y.yol} className="card dokunulur flex items-start gap-3 p-5 hover:border-accent">
               <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
                 <Icon name={y.ikon} size={20} />
               </span>

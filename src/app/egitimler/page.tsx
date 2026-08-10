@@ -96,7 +96,7 @@ export default async function Egitimler() {
           <div className="mt-3 grid gap-2 sm:grid-cols-3">
             {SABLONLAR.map((s) => (
               <form key={s.id} action={sablondanAcEylem.bind(null, s.id)}>
-                <button className="card w-full p-4 text-left transition hover:border-accent" type="submit">
+                <button className="card dokunulur w-full p-4 text-left hover:border-accent" type="submit">
                   <span className="block font-semibold">{s.ad}</span>
                   <span className="mt-1 block text-xs text-muted">{s.not}</span>
                 </button>

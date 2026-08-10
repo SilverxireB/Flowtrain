@@ -222,12 +222,12 @@ export default function Defter({
             />
           </label>
 
-          <label className="shrink-0">
+          <label className="min-w-0 max-w-full">
             <span className="sr-only">Eğitim süzgeci</span>
             <select
               value={suzgec.egitimId}
               onChange={(e) => degistir({ egitimId: e.target.value })}
-              className="input-base w-auto"
+              className="input-base w-auto max-w-full"
             >
               <option value="">Tüm eğitimler</option>
               {egitimler.map((e) => (
@@ -238,12 +238,12 @@ export default function Defter({
             </select>
           </label>
 
-          <label className="shrink-0">
+          <label className="min-w-0 max-w-full">
             <span className="sr-only">Bölüm süzgeci</span>
             <select
               value={suzgec.bolum}
               onChange={(e) => degistir({ bolum: e.target.value })}
-              className="input-base w-auto"
+              className="input-base w-auto max-w-full"
             >
               <option value="">Tüm bölümler</option>
               {bolumler.map((b) => (
@@ -254,12 +254,12 @@ export default function Defter({
             </select>
           </label>
 
-          <label className="shrink-0">
+          <label className="min-w-0 max-w-full">
             <span className="sr-only">Kaynak süzgeci</span>
             <select
               value={suzgec.kaynak}
               onChange={(e) => degistir({ kaynak: e.target.value as OturumKaynagi | "" })}
-              className="input-base w-auto"
+              className="input-base w-auto max-w-full"
             >
               <option value="">Tüm kaynaklar</option>
               {(Object.keys(KAYNAK_ETIKET) as OturumKaynagi[]).map((k) => (
@@ -270,12 +270,12 @@ export default function Defter({
             </select>
           </label>
 
-          <label className="shrink-0">
+          <label className="min-w-0 max-w-full">
             <span className="sr-only">Sonuç süzgeci</span>
             <select
               value={suzgec.sonuc}
               onChange={(e) => degistir({ sonuc: e.target.value as SonucSuzgeci })}
-              className="input-base w-auto"
+              className="input-base w-auto max-w-full"
             >
               <option value="">Tüm sonuçlar</option>
               {SONUC_SECENEKLERI.map((s) => (
@@ -286,7 +286,7 @@ export default function Defter({
             </select>
           </label>
 
-          <span className="flex shrink-0 items-center gap-2 text-sm text-muted">
+          <span className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-muted">
             <Icon name="calendar" size={16} />
             <input
               type="date"
