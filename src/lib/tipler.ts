@@ -4,9 +4,34 @@
 // TANIMAZ. Personel `Kisi` olarak gelir, tamamlama `Oturum` olarak çıkar;
 // ikisinin nereden gelip nereye gittiği adaptörlerin işidir.
 
-export type KartTipi = 'kural' | 'yapYapma' | 'adim' | 'uyari' | 'video'
+export type KartTipi =
+  | 'kural'
+  | 'yapYapma'
+  | 'adim'
+  | 'uyari'
+  | 'video'
+  | 'kontrolListesi'
+  | 'karsilastirma'
+  | 'vaka'
+  | 'onceSonra'
+  | 'sayiVurgu'
 
-export type SoruTipi = 'coktanSecmeli' | 'dogruYanlis' | 'cokluSecim'
+/**
+ * Soru tipleri.
+ *
+ * DÖRT YENİ TİP DE ŞIKLARDAN SEÇİLİR, hiçbirinde yazı yazılmaz. Kiosk eldivenle
+ * kullanılıyor: klavyeyle boşluk doldurtmak, en çok öğreten soruyu en az
+ * cevaplanan soru yapardı. `bosluk` bu yüzden "cümleyi tamamlayan şıkkı seç"
+ * biçiminde çalışır.
+ */
+export type SoruTipi =
+  | 'coktanSecmeli'
+  | 'dogruYanlis'
+  | 'cokluSecim'
+  | 'bosluk'
+  | 'siralama'
+  | 'eslestirme'
+  | 'gorselIsaret'
 
 /**
  * TEK KAYNAK: editördeki düğmeler, kiosk'taki çizim ve rehberdeki referans
@@ -19,6 +44,11 @@ export const KART_ETIKET: Record<KartTipi, string> = {
   adim: 'Adım adım',
   uyari: 'Tehlike uyarısı',
   video: 'Video',
+  kontrolListesi: 'Kontrol listesi',
+  karsilastirma: 'Karşılaştırma tablosu',
+  vaka: 'Vaka / olay',
+  onceSonra: 'Önce — sonra',
+  sayiVurgu: 'Sayı vurgusu',
 }
 
 export const KART_ACIKLAMA: Record<KartTipi, string> = {
@@ -27,12 +57,31 @@ export const KART_ACIKLAMA: Record<KartTipi, string> = {
   adim: 'Numaralı adımlar — her satır bir adım.',
   uyari: 'Sabit kırmızı düzen. YALNIZ gerçek tehlike için; her sayfa kırmızıysa kırmızı hiçbir şey anlatmaz.',
   video: 'Yerel diskteki video. İlk izlemede ileri sarılamaz.',
+  kontrolListesi: 'İşaretlenecek maddeler — vardiya başı kontrolleri gibi. Her satır bir madde.',
+  karsilastirma: 'İki kolonlu tablo. İlk satır sütun başlıklarıdır: `Doğru | Yanlış`.',
+  vaka: 'Gerçek bir olay ve ondan çıkan ders. Kural anlatmak yerine kuralın NEDEN var olduğunu gösterir.',
+  onceSonra: 'İki görsel yan yana: bozuk hâli ve düzeltilmiş hâli.',
+  sayiVurgu: 'Büyük rakamlar. `3 sn | düşme süresi` gibi; her satır bir rakam.',
 }
 
 export const SORU_ETIKET: Record<SoruTipi, string> = {
   coktanSecmeli: 'Çoktan seçmeli',
   dogruYanlis: 'Doğru / Yanlış',
   cokluSecim: 'Çoklu seçim',
+  bosluk: 'Boşluk doldurma',
+  siralama: 'Sıralama',
+  eslestirme: 'Eşleştirme',
+  gorselIsaret: 'Görselde işaretleme',
+}
+
+export const SORU_ACIKLAMA: Record<SoruTipi, string> = {
+  coktanSecmeli: 'Tek doğru şık.',
+  dogruYanlis: 'İki şık, biri doğru.',
+  cokluSecim: 'Birden çok doğru. Eksik işaretleme yarım puan almaz.',
+  bosluk: 'Cümlede `___` bırakın; kişi boşluğu dolduran şıkkı seçer.',
+  siralama: 'Şıkları DOĞRU sırada yazın; kişiye karışık gösterilir ve sıralaması istenir.',
+  eslestirme: 'Her satır bir çift: `sol | sağ`. Kişi solu sağla eşler.',
+  gorselIsaret: 'Görsel üzerinde bölgeler tanımlanır; kişi tehlikeli olanı işaretler.',
 }
 
 export type EgitimDurumu = 'taslak' | 'yayin'
@@ -55,6 +104,11 @@ export const ASGARI_SURE_VARSAYILAN: Record<KartTipi, number> = {
   adim: 10,
   uyari: 8,
   video: 0, // videoda süreyi videonun kendisi belirler
+  kontrolListesi: 12,
+  karsilastirma: 14, // iki kolonu karşılaştırmak okumaktan yavaştır
+  vaka: 16, // anlatı; acele okunursa dersi geçer
+  onceSonra: 10,
+  sayiVurgu: 6, // rakam bir bakışta okunur
 }
 
 export interface Egitim {

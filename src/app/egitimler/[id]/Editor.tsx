@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Baslik from "@/components/Baslik";
@@ -12,8 +12,12 @@ import CanliOnizleme from "@/components/editor/CanliOnizleme";
 import SayfaSatiri from "@/components/editor/SayfaSatiri";
 import SoruSatiri from "@/components/editor/SoruSatiri";
 import TanimBolumu from "@/components/editor/TanimBolumu";
-import YayinKontrol, { YayinRozeti, yayinKontrolu } from "@/components/editor/YayinKontrol";
-import type { MedyaOzet } from "@/lib/editorMedya";
+import YayinKontrol, { YayinRozeti, kartSorunlu, yayinKontrolu } from "@/components/editor/YayinKontrol";
+import { KartEkleMenusu } from "@/components/editor/KartTipiMenusu";
+import BolumAyraci from "./BolumAyraci";
+import KartHaritasi, { type HaritaSatiri } from "./KartHaritasi";
+import type { BolumHaritasi } from "./bolumler";
+import { kartGorselleri, type MedyaOzet } from "@/lib/editorMedya";
 import { KART_ETIKET, SORU_ETIKET, type Egitim, type KartTipi, type Sayfa, type Soru, type SoruTipi } from "@/lib/tipler";
 import type { Rol } from "@/lib/depo";
 import {
@@ -32,6 +36,7 @@ import {
   yayinlaEylem,
 } from "@/app/eylemler";
 import {
+  bolumBasligiEylem,
   kartCogaltEylem,
   kartKopyalaEylem,
   medyaAltMetinEylem,
@@ -67,6 +72,7 @@ export default function Editor({
   hedefEgitimler,
   kirikGorselIdler,
   oksuzSayisi,
+  bolumler,
 }: {
   egitim: Egitim;
   sayfalar: Sayfa[];
@@ -82,6 +88,8 @@ export default function Editor({
   kirikGorselIdler: string[];
   /** Hiçbir kartta/soruda kullanılmayan medya sayısı. */
   oksuzSayisi: number;
+  /** sayfaId → o kartın ÜSTÜNDE başlayan bölümün adı. Yalnız editörde görünür. */
+  bolumler: BolumHaritasi;
 }) {
   const router = useRouter();
   const [bekle, gecis] = useTransition();
@@ -92,6 +100,11 @@ export default function Editor({
   const soruSayisiRef = useRef<HTMLInputElement>(null);
   const [seciliId, setSeciliId] = useState<string | null>(null);
   const [darSekme, setDarSekme] = useState<"duzen" | "onizleme">("duzen");
+  /** Dar/orta ekranda harita çekmecesi açık mı? Geniş ekranda rayda duruyor. */
+  const [haritaAcik, setHaritaAcik] = useState(false);
+  /** Sürüklenen kart ve bırakılacak ARALIK (0..n) — ikisi de çizim için. */
+  const [surukleId, setSurukleId] = useState<string | null>(null);
+  const [birakIndeks, setBirakIndeks] = useState<number | null>(null);
   /* Kaydedilmemiş tuş vuruşları. Sunucuya yazmak alandan çıkınca olur; bu
      harita YALNIZ önizlemeyi besler, yoksa yazarken yan taraf donuk kalırdı. */
   const [anlik, setAnlik] = useState<Record<string, Record<string, unknown>>>({});
@@ -160,6 +173,24 @@ export default function Editor({
     [egitim, gosterilen, sorular, kirikGorselIdler],
   );
 
+  /* HARİTA SATIRLARI. Her tuş vuruşunda yeniden kuruluyor ve bu İSTENEN
+     davranış: başlığı yazarken haritadaki satır da anında düzeliyor, yani
+     "(başlıksız)" uyarısı düzeltilir düzeltilmez kayboluyor. Satırlar
+     kağıt gibi hafif (üç metin + bir simge), `SayfaSatiri` gibi değil. */
+  const kirikKume = useMemo(() => new Set(kirikGorselIdler), [kirikGorselIdler]);
+  const haritaSatirlari = useMemo<HaritaSatiri[]>(
+    () =>
+      gosterilen.map((s, i) => ({
+        id: s.id,
+        sira: i + 1,
+        tip: s.tip,
+        baslik: ilkSatir(s.baslik),
+        sorunlu: kartSorunlu(s, kirikKume),
+        bolum: bolumler[s.id],
+      })),
+    [gosterilen, kirikKume, bolumler],
+  );
+
   /* Alt metin, medyanın kendisine yazılıyor (karta değil) — aynı fotoğraf on
      kartta kullanılıyorsa açıklaması on kez yazılmasın. Satırlara HARİTA
      geçiliyor, dizinin kendisi değil: satır başına `find` çağırmak kırk kartta
@@ -183,7 +214,89 @@ export default function Editor({
   const gosterilenRef = useRef<Sayfa[]>(gosterilen);
   gosterilenRef.current = gosterilen;
 
+  /* Klavye kısayolu ve bırakma hesabı ÇİZİM DIŞINDA çalışıyor (belge
+     dinleyicisi, `dragend`). Durumu bağımlılığa koymak dinleyiciyi her tuş
+     vuruşunda söküp takardı; ref güncel değeri taşır, kimlik sabit kalır. */
+  const seciliIdRef = useRef<string | null>(null);
+  const surukleIdRef = useRef<string | null>(null);
+  surukleIdRef.current = surukleId;
+  const birakIndeksRef = useRef<number | null>(null);
+  birakIndeksRef.current = birakIndeks;
+  const provaRef = useRef(false);
+  provaRef.current = prova;
+  const haritaAcikRef = useRef(false);
+  haritaAcikRef.current = haritaAcik;
+
   const sayfaSec = useCallback((sayfaId: string) => setSeciliId(sayfaId), []);
+
+  /**
+   * Karta ATLA: seç, görünür yap, istenirse ilk alanına odaklan.
+   *
+   * Odak bir sonraki çizim turunda aranıyor: dar ekranda "Önizleme" sekmesi
+   * açıkken kart listesi DOM'da hiç yok, bu tıklamayla geliyor.
+   */
+  const kartaGit = useCallback((sayfaId: string, odakla: boolean) => {
+    setSeciliId(sayfaId);
+    setDarSekme("duzen");
+    setHaritaAcik(false);
+    requestAnimationFrame(() => {
+      const el = document.getElementById(kartDomKimligi(sayfaId));
+      if (!el) return;
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      // `preventScroll`: odak kendi başına kaydırsaydı kartı ekranın kenarına
+      // yapıştırırdı; ortalamayı üstteki satır yapıyor.
+      if (odakla) el.querySelector<HTMLElement>("input, textarea")?.focus({ preventScroll: true });
+    });
+  }, []);
+
+  /* Haritadan tıklanan kart ODAKLANIR da: harita zaten "şu kartı düzenleyeceğim"
+     demenin kısa yolu; kartı ekrana getirip imleci hazırlayana bir tık daha
+     attırmak yolun yarısında bırakmak olurdu. */
+  const haritadanSec = useCallback((sayfaId: string) => kartaGit(sayfaId, true), [kartaGit]);
+
+  /* ── sürükle-bırak sıralama ─────────────────────────────────────────────
+     Kütüphane yok: HTML5 `draggable` yetiyor. TUTAMAK var, kartın tamamı
+     sürüklenmiyor — kart gövdesi metin alanlarıyla dolu ve sürüklenebilir bir
+     kutuda metin seçmek imkânsızlaşıyor. ▲▼ düğmeleri DURUYOR: sürükleme
+     dokunmatikte ve klavyede tek başına yeterli değil. */
+  const surukleBasla = useCallback((sayfaId: string) => setSurukleId(sayfaId), []);
+
+  const surukleBitir = useCallback(() => {
+    setSurukleId(null);
+    setBirakIndeks(null);
+  }, []);
+
+  /* `dragover` saniyede onlarca kez tetikleniyor; aynı aralık için durum
+     yazmak kırk satırı boşuna yeniden çizerdi. */
+  const birakYeri = useCallback((indeks: number) => setBirakIndeks((e) => (e === indeks ? e : indeks)), []);
+
+  const birak = useCallback(() => {
+    const kaynak = surukleIdRef.current;
+    const aralik = birakIndeksRef.current;
+    setSurukleId(null);
+    setBirakIndeks(null);
+    if (!kaynak || aralik === null) return;
+
+    const idler = gosterilenRef.current.map((x) => x.id);
+    const nereden = idler.indexOf(kaynak);
+    if (nereden < 0) return;
+    // Kart önce listeden çıkıyor: kendi üstündeki aralığa bırakılırsa hedef
+    // indeks bir kayar.
+    const nereye = aralik > nereden ? aralik - 1 : aralik;
+    if (nereye === nereden) return;
+
+    const yeni = [...idler];
+    yeni.splice(nereden, 1);
+    yeni.splice(nereye, 0, kaynak);
+    // TEK YAZIM. Sırayı adım adım yazmak, yarıda kalan bir istekte listeyi
+    // bozuk bir sırayla bırakırdı.
+    calistir(() => sayfalariSiralaEylem(egitim.id, yeni));
+  }, [calistir, egitim.id]);
+
+  const bolumYaz = useCallback(
+    (sayfaId: string, baslik: string) => kaydet(() => bolumBasligiEylem(egitim.id, sayfaId, baslik)),
+    [kaydet, egitim.id],
+  );
 
   const anlikYaz = useCallback((sayfaId: string, yama: Record<string, unknown>) => {
     setAnlik((a) => ({ ...a, [sayfaId]: { ...a[sayfaId], ...yama } }));
@@ -216,6 +329,26 @@ export default function Editor({
       calistir(() => sayfalariSiralaEylem(egitim.id, liste.map((x) => x.id)));
     },
     [calistir, egitim.id],
+  );
+
+  /**
+   * Ctrl+↑/↓ ile sıralama — TEK dinleyici, satır başına kapanış değil.
+   *
+   * Sürükleme klavyeyle yapılamaz; ▲▼ düğmeleri var ama metin alanında
+   * yazarken fareye uzanmak gerekiyordu. Hangi kartın taşınacağı odaktan,
+   * `data-kart` niteliğiyle bulunuyor — satır başına geri çağrı üretmek
+   * `SayfaSatiri` sarmalayıcılarını her çizimde tazelerdi.
+   */
+  const listeTus = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (!e.ctrlKey || e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+      const kap = (e.target as HTMLElement).closest<HTMLElement>("[data-kart]");
+      const id = kap?.dataset.kart;
+      if (!id) return;
+      e.preventDefault();
+      sayfaTasi(id, e.key === "ArrowUp" ? -1 : 1);
+    },
+    [sayfaTasi],
   );
 
   const sayfaCogalt = useCallback(
@@ -281,6 +414,42 @@ export default function Editor({
     [egitim.id, router],
   );
 
+  seciliIdRef.current = secili?.id ?? null;
+
+  /**
+   * KARTLAR ARASI ATLAMA — Alt+↑/↓.
+   *
+   * Kırk kartlık eğitimde bir sonraki karta geçmenin en yavaş yolu fareyle
+   * kaydırmaktı. Kısayol BELGE seviyesinde: hazırlayan o an hangi alanda
+   * yazıyor olursa olsun çalışmalı, yoksa "önce listeye tıkla" adımı geri
+   * gelirdi. Alt tek başına hiçbir metin alanında anlam taşımıyor.
+   *
+   * Esc çekmeceyi kapatır. Prova (▶ Dene) açıkken kısayol susuyor: orada
+   * ekranda editör değil kiosk var.
+   */
+  useEffect(() => {
+    function tusla(e: KeyboardEvent) {
+      if (e.key === "Escape" && haritaAcikRef.current) {
+        setHaritaAcik(false);
+        return;
+      }
+      if (!e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+      if (provaRef.current) return;
+
+      const liste = gosterilenRef.current;
+      if (liste.length === 0) return;
+      e.preventDefault();
+
+      const su = liste.findIndex((s) => s.id === seciliIdRef.current);
+      const adim = e.key === "ArrowUp" ? -1 : 1;
+      const hedef = su < 0 ? 0 : Math.min(liste.length - 1, Math.max(0, su + adim));
+      kartaGit(liste[hedef].id, true);
+    }
+    document.addEventListener("keydown", tusla);
+    return () => document.removeEventListener("keydown", tusla);
+  }, [kartaGit]);
+
   return (
     <main className="bg-wash min-h-screen pb-24">
       <Baslik
@@ -324,17 +493,56 @@ export default function Editor({
         }
       />
 
+      {/* ── KART HARİTASI RAYI ────────────────────────────────────────────
+          ÜÇÜNCÜ SÜTUN AÇILMADI, KENAR BOŞLUĞU KULLANILDI. Kokpitin genişliği
+          `.sayfa-kap` ile 80rem'de sabit (globals.css); ekran ne kadar büyürse
+          büyüsün içerik 1280px'te kalıyor. Haritayı ızgaraya üçüncü sütun
+          olarak koymak, 1920px'lik bir ekranda bile editörü ~200px daraltıp
+          iki yanda duran boşluğa hiç dokunmamak demekti — yani asıl işin
+          yapıldığı sütundan çalıp boşluğa bakmak. Ray o boşlukta duruyor:
+          editör ve önizleme bugünkü genişliklerini AYNEN koruyor.
+          Boşluğun yetmediği her yerde harita çekmeceye düşüyor (aşağıda).
+
+          `left` KABIN SOL KENARINA GÖRE hesaplanıyor (`50vw - 53.5rem`), ekranın
+          soluna yapıştırılmıyor: 2560px'lik bir monitörde sabit `left` rayı
+          içerikten yarım ekran uzağa düşürür, göz o mesafeyi her seferinde
+          kat etmek zorunda kalırdı. Alt sınır 0.75rem — eşik genişlikte rayı
+          ekran dışına taşırmamak için. */}
+      <aside className="fixed left-[max(0.75rem,calc(50vw_-_53.5rem))] top-24 z-30 hidden max-h-[calc(100vh_-_8rem)] w-48 overflow-y-auto rounded-2xl border border-line bg-white p-2 shadow-sm min-[1760px]:block">
+        <h2 className="eyebrow mb-1 px-1">Kart haritası</h2>
+        <KartHaritasi
+          satirlar={haritaSatirlari}
+          seciliId={secili?.id ?? null}
+          kilitli={kilitli}
+          surukleId={surukleId}
+          birakIndeks={birakIndeks}
+          onSec={haritadanSec}
+          onSurukleBasla={surukleBasla}
+          onSurukleBitir={surukleBitir}
+          onBirakYeri={birakYeri}
+          onBirak={birak}
+        />
+        {gosterilen.length > 0 ? <p className="mt-2 px-1 text-[11px] leading-snug text-muted">{KISAYOL_NOTU}</p> : null}
+      </aside>
+
       <div className="sayfa-govde">
         {/* DAR EKRANDA SEKME: önizleme editörün altına yığılsaydı hazırlayan
             yazdığı kartı görmek için her seferinde aşağı kaydırırdı; yan yana
-            sığmadığı yerde ikisinden BİRİ görünür. */}
-        <div className="mb-5 inline-flex gap-1 rounded-full border border-line bg-white p-1 xl:hidden">
-          <SekmeDugmesi etkin={darSekme === "duzen"} onBas={() => setDarSekme("duzen")}>
-            <Icon name="pencil" size={15} /> Düzenle
-          </SekmeDugmesi>
-          <SekmeDugmesi etkin={darSekme === "onizleme"} onBas={() => setDarSekme("onizleme")}>
-            <Icon name="monitor" size={15} /> Önizleme
-          </SekmeDugmesi>
+            sığmadığı yerde ikisinden BİRİ görünür.
+            Harita düğmesi rayın görünmediği HER genişlikte duruyor. */}
+        <div className="mb-5 flex flex-wrap items-center gap-3 min-[1760px]:hidden">
+          <div className="inline-flex gap-1 rounded-full border border-line bg-white p-1 xl:hidden">
+            <SekmeDugmesi etkin={darSekme === "duzen"} onBas={() => setDarSekme("duzen")}>
+              <Icon name="pencil" size={15} /> Düzenle
+            </SekmeDugmesi>
+            <SekmeDugmesi etkin={darSekme === "onizleme"} onBas={() => setDarSekme("onizleme")}>
+              <Icon name="monitor" size={15} /> Önizleme
+            </SekmeDugmesi>
+          </div>
+          <button onClick={() => setHaritaAcik(true)} className="btn-ghost text-sm" aria-expanded={haritaAcik}>
+            <Icon name="list" size={16} /> Kart haritası
+            {gosterilen.length > 0 ? <span className="font-normal text-muted">{gosterilen.length}</span> : null}
+          </button>
         </div>
 
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_26rem] xl:items-start">
@@ -379,37 +587,96 @@ export default function Editor({
                 <IceriAktar onPdfKartlari={pdfKartlari} onPptxKartlari={pptxKartlari} />
               ) : null}
 
-              <div className="mt-4 space-y-3">
+              {/* SARMALAYICI KATMAN: sürükleme tutamağı, bölüm ayracı ve
+                  bırakma çizgisi burada. `SayfaSatiri`nin kendisine hiç
+                  dokunulmuyor — o satır kart hattının dosyası. */}
+              <div className="mt-4 space-y-3" onKeyDown={listeTus}>
                 {gosterilen.map((s, i) => (
-                  <SayfaSatiri
+                  <div
                     key={s.id}
-                    sayfa={s}
-                    sira={i + 1}
-                    toplam={gosterilen.length}
-                    secili={secili?.id === s.id}
-                    medyalar={medyalar}
-                    altMetinler={altMetinler}
-                    hedefEgitimler={hedefEgitimler}
-                    kilitli={kilitli}
-                    onSec={sayfaSec}
-                    onAnlik={anlikYaz}
-                    onGuncelle={sayfaGuncelle}
-                    onMedyaSil={medyaSil}
-                    onAltMetin={altMetinYaz}
-                    onCogalt={sayfaCogalt}
-                    onKopyala={sayfaKopyala}
-                    onSil={sayfaSil}
-                    onTasi={sayfaTasi}
-                  />
+                    id={kartDomKimligi(s.id)}
+                    data-kart={s.id}
+                    className="group relative"
+                    onDragOver={(e) => {
+                      if (!surukleId) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      const kutu = e.currentTarget.getBoundingClientRect();
+                      birakYeri(e.clientY < kutu.top + kutu.height / 2 ? i : i + 1);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      birak();
+                    }}
+                  >
+                    {/* Bırakma çizgisi MUTLAK: akışa girseydi imlecin altındaki
+                        kart her kıpırdanışta kayar, hedef titrerdi. */}
+                    {birakIndeks === i ? (
+                      <span aria-hidden className="absolute -top-1.5 left-0 right-0 z-10 h-0.5 rounded bg-accent" />
+                    ) : null}
+                    {i === gosterilen.length - 1 && birakIndeks === gosterilen.length ? (
+                      <span aria-hidden className="absolute -bottom-1.5 left-0 right-0 z-10 h-0.5 rounded bg-accent" />
+                    ) : null}
+
+                    <BolumAyraci sayfaId={s.id} baslik={bolumler[s.id]} kilitli={kilitli} onYaz={bolumYaz} />
+
+                    <div className="flex items-start gap-1">
+                      <div
+                        draggable={!kilitli}
+                        onDragStart={(e) => {
+                          // Firefox veri konmadan sürüklemeyi başlatmıyor.
+                          e.dataTransfer.setData("text/plain", s.id);
+                          e.dataTransfer.effectAllowed = "move";
+                          const kart = document.getElementById(kartDomKimligi(s.id));
+                          if (kart) e.dataTransfer.setDragImage(kart, 24, 24);
+                          surukleBasla(s.id);
+                        }}
+                        onDragEnd={surukleBitir}
+                        title="Sürükleyerek taşıyın · klavyede Ctrl+↑/↓"
+                        className={`mt-4 shrink-0 rounded-md p-0.5 ${
+                          kilitli
+                            ? "opacity-20"
+                            : `text-muted hover:bg-line/60 hover:text-ink ${surukleId === s.id ? "cursor-grabbing" : "cursor-grab"}`
+                        }`}
+                      >
+                        <Icon name="grip" size={16} />
+                      </div>
+                      <div className={`min-w-0 flex-1 ${surukleId === s.id ? "opacity-40" : ""}`}>
+                        <SayfaSatiri
+                          sayfa={s}
+                          sira={i + 1}
+                          toplam={gosterilen.length}
+                          secili={secili?.id === s.id}
+                          medyalar={medyalar}
+                          altMetinler={altMetinler}
+                          hedefEgitimler={hedefEgitimler}
+                          kilitli={kilitli}
+                          onSec={sayfaSec}
+                          onAnlik={anlikYaz}
+                          onGuncelle={sayfaGuncelle}
+                          onMedyaSil={medyaSil}
+                          onAltMetin={altMetinYaz}
+                          onCogalt={sayfaCogalt}
+                          onKopyala={sayfaKopyala}
+                          onSil={sayfaSil}
+                          onTasi={sayfaTasi}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                {(Object.keys(KART_ETIKET) as KartTipi[]).map((t) => (
-                  <button key={t} disabled={kilitli} onClick={() => calistir(() => sayfaEkleEylem(egitim.id, t))} className="btn-ghost text-sm">
-                    <Icon name="plus" size={16} /> {KART_ETIKET[t]}
-                  </button>
-                ))}
+              {gosterilen.length > 1 ? (
+                <p className="mt-3 px-1 text-xs text-muted">{KISAYOL_NOTU}</p>
+              ) : null}
+
+              {/* ON TİP ON DÜĞME DEĞİLDİR. Kart tipi beşten ona çıkınca düz
+                  düğme sırası iki satıra taşıp içerik listesini aşağı itiyordu;
+                  gruplu panel tek düğmeye iniyor ve tipin ne işe yaradığını da
+                  yazıyor. Aynı panel satırdaki tip rozetinde de koşuyor. */}
+              <div className="mt-4">
+                <KartEkleMenusu kilitli={kilitli} onEkle={(t) => calistir(() => sayfaEkleEylem(egitim.id, t))} />
               </div>
 
               {sayfalar.length > 0 && !kilitli ? (
@@ -618,6 +885,45 @@ export default function Editor({
         </div>
       </div>
 
+      {/* ── HARİTA ÇEKMECESİ ──────────────────────────────────────────────
+          Rayın sığmadığı genişliklerde harita ÇEKMECEYE düşüyor: editörün
+          yanında kalıcı bir sütun açsaydı, zaten dar olan düzenleme alanını
+          bir de o bölerdi. Kart seçilince kendiliğinden kapanıyor — açık
+          kalan bir panel, atladığı kartın üstünü örterdi. */}
+      {haritaAcik ? (
+        <div className="fixed inset-0 z-50 min-[1760px]:hidden">
+          <button
+            type="button"
+            onClick={() => setHaritaAcik(false)}
+            aria-label="Kart haritasını kapat"
+            className="absolute inset-0 h-full w-full cursor-default bg-ink/30"
+          />
+          <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-white">
+            <div className="flex items-center gap-2 border-b border-line px-4 py-3">
+              <h2 className="eyebrow flex-1">Kart haritası</h2>
+              <button onClick={() => setHaritaAcik(false)} className="btn-icon" aria-label="Kapat">
+                <Icon name="close" size={16} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3">
+              <KartHaritasi
+                satirlar={haritaSatirlari}
+                seciliId={secili?.id ?? null}
+                kilitli={kilitli}
+                surukleId={surukleId}
+                birakIndeks={birakIndeks}
+                onSec={haritadanSec}
+                onSurukleBasla={surukleBasla}
+                onSurukleBitir={surukleBitir}
+                onBirakYeri={birakYeri}
+                onBirak={birak}
+              />
+            </div>
+            <p className="border-t border-line px-4 py-3 text-xs leading-snug text-muted">{KISAYOL_NOTU}</p>
+          </div>
+        </div>
+      ) : null}
+
       {prova ? (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-paper">
           <EgitimOyun
@@ -647,6 +953,22 @@ export default function Editor({
  * Boşaltılan alanlar depoya `null` gidiyor; tipte karşılığı `undefined`.
  */
 const BOSALABILIR = ["gorselId", "videoId", "metin", "metinKarsi"];
+
+/** Kısayollar TEK yerde yazılı — ray, çekmece ve liste altı aynı metni gösterir. */
+const KISAYOL_NOTU = "Alt+↑/↓ önceki/sonraki karta gider · Ctrl+↑/↓ odaktaki kartı taşır.";
+
+/** Kart satırının DOM kimliği — haritadan atlarken bununla bulunuyor. */
+function kartDomKimligi(sayfaId: string): string {
+  return `kart-${sayfaId}`;
+}
+
+/** Başlığın ilk satırı; harita sütunu dar, ikinci satırın yeri yok. */
+function ilkSatir(metin: string): string {
+  const temiz = metin.trim();
+  const kesme = temiz.indexOf("\n");
+  return (kesme === -1 ? temiz : temiz.slice(0, kesme)).slice(0, 80);
+}
+
 
 /**
  * Yama SUNUCUDAKİYLE AYNIYSA sayfanın KENDİSİ döner — yeni nesne değil.

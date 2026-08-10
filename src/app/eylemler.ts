@@ -7,6 +7,7 @@ import * as depo from "@/lib/depo";
 import { kaydiGonder, personelKaynagi, sonKayitGonderimHatasi } from "@/lib/adaptorlar";
 import { SABLONLAR } from "@/lib/sablonlar";
 import { nrm } from "@/lib/arama";
+import { bolumAnahtari, bolumleriCoz } from "@/app/egitimler/[id]/bolumler";
 import type { KartTipi, Soru, SoruTipi } from "@/lib/tipler";
 
 /* ── kimlik ───────────────────────────────────────────────────────────────── */
@@ -229,7 +230,25 @@ export async function egitimGuncelleEylem(id: string, yama: Record<string, unkno
 
 export async function egitimKopyalaEylem(id: string): Promise<void> {
   const ben = kapi("hazirlayan", "/egitimler");
-  const yeni = depo.egitimKopyala(id, ben.kullanici);
+
+  /* BÖLÜM BAŞLIKLARI DA TAŞINIR. Başlıklar sayfa KİMLİĞİNE bağlı ve kopyanın
+     sayfaları yeni kimlikler alıyor; eşleme olmadan kopya, kırk kartı
+     bölümsüz bir liste olarak açılırdı. Geçen yılın kopyasını almanın bütün
+     sebebi düzeni de devralmak. */
+  const esleme = new Map<string, string>();
+  const yeni = depo.egitimKopyala(id, ben.kullanici, esleme);
+  if (yeni) {
+    const eski = bolumleriCoz(depo.ayarOku(bolumAnahtari(id)));
+    const tasinan: Record<string, string> = {};
+    for (const [eskiId, baslik] of Object.entries(eski)) {
+      const yeniId = esleme.get(eskiId);
+      if (yeniId) tasinan[yeniId] = baslik;
+    }
+    if (Object.keys(tasinan).length > 0) {
+      depo.ayarYaz(bolumAnahtari(yeni.id), JSON.stringify(tasinan));
+    }
+  }
+
   depo.izBirak(ben.kullanici, `eğitim kopyaladı: ${id}`);
   if (yeni) redirect(`/egitimler/${yeni.id}`);
 }
@@ -321,15 +340,29 @@ export async function sayfalariSiralaEylem(egitimId: string, sirali: string[]): 
 
 /* ── soru ─────────────────────────────────────────────────────────────────── */
 
+/**
+ * Yeni sorunun başlangıç şıkları — TİPE GÖRE.
+ *
+ * Hepsine `["", ""]` vermek yeni tiplerde anlamsız bir başlangıç üretiyordu:
+ * eşleştirmede ayraçsız iki boş satır, görselde işaretlemede ise ayrıştırılamayan
+ * iki "bölge". Editör bunları temizlemek zorunda kalıyordu; başlangıcı doğru
+ * vermek daha ucuz.
+ */
+function baslangicSiklari(tip: SoruTipi): { secenekler: string[]; dogru: number[] } {
+  if (tip === "dogruYanlis") return { secenekler: ["Doğru", "Yanlış"], dogru: [0] };
+  // Bölgeler görselin üzerinde çizilerek eklenir; boş şık "bozuk bölge" demek.
+  if (tip === "gorselIsaret") return { secenekler: [], dogru: [] };
+  // Ayraç baştan konuyor ki editör iki kutuyu ayırabilsin.
+  if (tip === "eslestirme") return { secenekler: [" | ", " | "], dogru: [] };
+  // Sıralamada doğru cevap kimliktir; `dogru` kullanılmaz.
+  if (tip === "siralama") return { secenekler: ["", ""], dogru: [] };
+  return { secenekler: ["", ""], dogru: [0] };
+}
+
 export async function soruEkleEylem(egitimId: string, tip: SoruTipi): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
   if (!taslakMi(egitimId)) return;
-  depo.soruEkle(egitimId, {
-    tip,
-    metin: "",
-    secenekler: tip === "dogruYanlis" ? ["Doğru", "Yanlış"] : ["", ""],
-    dogru: [0],
-  });
+  depo.soruEkle(egitimId, { tip, metin: "", ...baslangicSiklari(tip) });
   revalidatePath(`/egitimler/${egitimId}`);
 }
 

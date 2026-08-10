@@ -1,9 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import Icon from "@/components/Icon";
 import Kart from "./Kart";
-import { puanla, sinaviKur, tohumla } from "@/lib/sinav";
+import Bicimli from "./Bicimli";
+import {
+  bolgeCoz,
+  bolgeVurusu,
+  eslestirmeCifti,
+  karistir,
+  puanla,
+  sinaviKur,
+  tohumla,
+  type Bolge,
+} from "@/lib/sinav";
 import { yanlisAciklamalari, type YanlisAciklama } from "@/lib/kioskAkis";
 import type { Egitim, Sayfa, Soru } from "@/lib/tipler";
 
@@ -180,6 +190,13 @@ export default function EgitimOyun({
   const soru = sinavSorulari[soruIndeks];
   const secili = soru ? (cevaplar[soru.id] ?? []) : [];
   const cokluSecim = soru?.tip === "cokluSecim";
+  /* ŞIK LİSTESİ ile cevaplanan tipler. `bosluk` buraya dahil: cümledeki boşluk
+     görsel olarak farklı çizilir ama cevaplama ve puanlama çoktan seçmelinin
+     aynısıdır — ayrı bir cevap biçimi uydurmak, `sinav.ts`teki puanlamayı
+     ikiye bölerdi. */
+  const sikliSoru =
+    soru?.tip === "coktanSecmeli" || soru?.tip === "dogruYanlis" || soru?.tip === "cokluSecim" || soru?.tip === "bosluk";
+  const tamam = soru ? cevapTam(soru, secili) : false;
 
   function secenegeBas(i: number) {
     if (!soru) return;
@@ -190,8 +207,14 @@ export default function EgitimOyun({
     });
   }
 
+  /** Yeni tiplerin cevabı bütün olarak yazılır (sıra dizisi, eşleme dizisi). */
+  function cevabiAyarla(yeni: number[]) {
+    if (!soru) return;
+    setCevaplar((c) => ({ ...c, [soru.id]: yeni }));
+  }
+
   function soruIleri() {
-    if (secili.length === 0) return;
+    if (!tamam) return;
     if (soruIndeks < sinavSorulari.length - 1) setSoruIndeks((i) => i + 1);
     else if (prova) {
       // Provada cevap anahtarı elimizde (hazırlayan zaten yetkili) — puanı
@@ -322,12 +345,22 @@ export default function EgitimOyun({
           <Ilerleme simdi={soruIndeks + 1} toplam={sinavSorulari.length} etiket="Soru" />
           <div className="flex-1 py-6">
             <h2 id={`soru-${soru.id}`} className="text-2xl font-extrabold leading-tight sm:text-3xl">
-              {soru.metin}
+              {soru.tip === "bosluk" ? (
+                /* Seçilen şık BOŞLUĞUN İÇİNDE gösterilir: cümleyi tamamlanmış
+                   hâliyle okumak, "hangisini seçmiştim" diye aşağı bakmaya
+                   gerek bırakmıyor — ekstra dokunuş değil, ekstra bakış
+                   tasarrufu. */
+                <BoslukluSoru metin={soru.metin} secilenMetin={soru.secenekler[secili[0]]} />
+              ) : (
+                soru.metin
+              )}
             </h2>
             {/* SORU GÖRSELİ — "hangisi doğru duruş" tipi sorular metinle
                 sorulamıyor. Şıkların ÜSTÜNDE durur: cevabı verirken görselin
-                ekranda kalması gerekiyor, kaydırmayla değil. */}
-            {soru.gorselId ? (
+                ekranda kalması gerekiyor, kaydırmayla değil.
+                `gorselIsaret`te çizilmez: orada görsel süs değil CEVAP ALANI,
+                kendi bileşeni içinde bölge katmanıyla birlikte çiziliyor. */}
+            {soru.gorselId && soru.tip !== "gorselIsaret" ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={`/api/medya/${soru.gorselId}`}
@@ -341,37 +374,48 @@ export default function EgitimOyun({
             {cokluSecim ? (
               <p className="mt-2 text-sm font-semibold text-muted">Birden fazla şık işaretleyebilirsiniz.</p>
             ) : null}
+
             {/* Tek seçimlik soru RADYO grubudur, çoklu seçim ONAY KUTUSU
                 grubudur. Hepsi `aria-pressed` ile "basılı düğme" olarak
                 duyuruluyordu; ekran okuyucu kullanan kişi kaç şıktan kaçını
                 seçebileceğini hiç duymuyordu. */}
-            <div
-              role={cokluSecim ? "group" : "radiogroup"}
-              aria-labelledby={`soru-${soru.id}`}
-              className="mt-6 space-y-3"
-            >
-              {soru.secenekler.map((s, i) => (
-                <button
-                  key={i}
-                  onClick={() => secenegeBas(i)}
-                  className={`kiosk-secenek ${secili.includes(i) ? "kiosk-secenek-secili" : ""}`}
-                  role={cokluSecim ? "checkbox" : "radio"}
-                  aria-checked={secili.includes(i)}
-                >
-                  <span
-                    className={`grid h-8 w-8 shrink-0 place-items-center ${
-                      cokluSecim ? "rounded-lg" : "rounded-full"
-                    } border-2 ${secili.includes(i) ? "border-accent bg-accent text-white" : "border-line"}`}
+            {sikliSoru ? (
+              <div
+                role={cokluSecim ? "group" : "radiogroup"}
+                aria-labelledby={`soru-${soru.id}`}
+                className="mt-6 space-y-3"
+              >
+                {soru.secenekler.map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => secenegeBas(i)}
+                    className={`kiosk-secenek ${secili.includes(i) ? "kiosk-secenek-secili" : ""}`}
+                    role={cokluSecim ? "checkbox" : "radio"}
+                    aria-checked={secili.includes(i)}
                   >
-                    {secili.includes(i) ? <Icon name="check" size={16} /> : null}
-                  </span>
-                  <span>{s}</span>
-                </button>
-              ))}
-            </div>
+                    <span
+                      className={`grid h-8 w-8 shrink-0 place-items-center ${
+                        cokluSecim ? "rounded-lg" : "rounded-full"
+                      } border-2 ${secili.includes(i) ? "border-accent bg-accent text-white" : "border-line"}`}
+                    >
+                      {secili.includes(i) ? <Icon name="check" size={16} /> : null}
+                    </span>
+                    <span>{s}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {soru.tip === "siralama" || soru.tip === "eslestirme" ? (
+              <SiraliEsleme soru={soru} oturumId={oturumId} secili={secili} ayarla={cevabiAyarla} />
+            ) : null}
+
+            {soru.tip === "gorselIsaret" ? (
+              <GorselIsaret soru={soru} secili={secili} ayarla={cevabiAyarla} altMetinler={altMetinler} />
+            ) : null}
           </div>
           <div className="sticky bottom-0 -mx-5 border-t border-line bg-white/90 px-5 py-4 backdrop-blur">
-            <button onClick={soruIleri} disabled={secili.length === 0} className="kiosk-btn-primary">
+            <button onClick={soruIleri} disabled={!tamam} className="kiosk-btn-primary">
               {soruIndeks < sinavSorulari.length - 1 ? "Sonraki soru" : prova ? "Sonucu gör" : "Bitir"}
               <Icon name="chevronRight" size={22} />
             </button>
@@ -505,6 +549,324 @@ export default function EgitimOyun({
   );
 }
 
+/** Doldurulmamış yuva. Cevap dizisi `number[]` kalmalı (puanlama öyle yazıldı). */
+const BOS = -1;
+
+/**
+ * Sorunun cevabı GÖNDERİLEBİLECEK kadar tamam mı?
+ *
+ * Eski kural "en az bir şık işaretli"ydi ve yeni tiplerde yetmiyor: yarım
+ * sıralama ya da eksik eşleme gönderildiğinde `sinav.ts` bunu sessizce YANLIŞ
+ * sayar. Kişi cevabı bildiği hâlde, düğme açık göründüğü için yarım
+ * göndererek kalırdı — kapıyı burada tutuyoruz.
+ */
+function cevapTam(soru: SoruGorunum, secili: number[]): boolean {
+  if (soru.tip === "siralama" || soru.tip === "eslestirme") {
+    return secili.length === soru.secenekler.length && !secili.includes(BOS);
+  }
+  return secili.length > 0;
+}
+
+/**
+ * BOŞLUK DOLDURMA — cümledeki `___` ekranda gerçekten boşluk gibi görünür.
+ *
+ * Klavye YOK: kiosk eldivenle kullanılıyor, boşluğu yazdırmak en çok öğreten
+ * soruyu en az cevaplanan soru yapardı (`tipler.ts`teki not). Boşluk yalnız
+ * cümlenin nerede kesildiğini gösterir; cevap şıklardan seçilir.
+ */
+function BoslukluSoru({ metin, secilenMetin }: { metin: string; secilenMetin?: string }) {
+  // İki ve daha fazla alt çizgi boşluk sayılır: hazırlayan `__` da yazabiliyor.
+  const parcalar = metin.split(/_{2,}/);
+  // TEK boşlukta seçilen şık boşluğa yazılır. Birden çok boşluk varsa hangisine
+  // yazılacağı belirsiz — hepsine aynı kelimeyi koymak cümleyi bozardı.
+  const dolgu = parcalar.length === 2 ? (secilenMetin ?? "").trim() : "";
+
+  return (
+    <>
+      {parcalar.map((p, i) => (
+        <Fragment key={i}>
+          {i > 0 ? (
+            <span
+              className={`mx-1 inline-block min-w-[6ch] rounded-lg border-b-4 px-2 text-center align-baseline ${
+                dolgu ? "border-accent bg-accent-soft text-accent-dark" : "border-accent/50 bg-accent-soft/50"
+              }`}
+            >
+              {dolgu || <span className="sr-only">boşluk</span>}
+              {dolgu ? null : " "}
+            </span>
+          ) : null}
+          {p}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/**
+ * SIRALAMA ve EŞLEŞTİRME — tek bileşen, çünkü etkileşim AYNI.
+ *
+ * İkisi de "yuvalar var, havuzdan seçilen madde yuvaya girer" işidir:
+ * sıralamada yuvalar 1., 2., 3. sıradır; eşleştirmede yuvalar soldaki
+ * maddelerdir. İki ayrı bileşen yazsaydık ikisi zamanla ayrışır ve işçi aynı
+ * sınavda iki farklı etkileşim öğrenmek zorunda kalırdı.
+ *
+ * SÜRÜKLE-BIRAK YOK: eldivenli parmak bir listeyi sürükleyemiyor, dokunma
+ * hareketi kaydırmayla karışıyor. Dokunarak yerleştirme N madde için N dokunuş
+ * — sürüklemenin en iyi hâliyle aynı, ama ıskalayınca liste kaymıyor.
+ *
+ * HAVUZ TOHUMLU KARIŞTIRILIR: `sinaviKur` soruları karıştırıyor, şıkları
+ * değil. Sıralamada şıklar doğru sırada saklandığı için karıştırılmadan
+ * gösterilseydi cevap ekranda hazır dururdu. Tohum `oturumId + soru.id`:
+ * her yeniden çizimde aynı dizilim gelir, yoksa kişi dizdiğini kaybederdi.
+ */
+function SiraliEsleme({
+  soru,
+  oturumId,
+  secili,
+  ayarla,
+}: {
+  soru: SoruGorunum;
+  oturumId: string;
+  secili: number[];
+  ayarla: (yeni: number[]) => void;
+}) {
+  const eslestirme = soru.tip === "eslestirme";
+
+  const { yuvaEtiketleri, havuzMetinleri } = useMemo(() => {
+    if (soru.tip === "eslestirme") {
+      const ciftler = soru.secenekler.map((s) => eslestirmeCifti(s));
+      return { yuvaEtiketleri: ciftler.map((c) => c.sol), havuzMetinleri: ciftler.map((c) => c.sag) };
+    }
+    return {
+      yuvaEtiketleri: soru.secenekler.map((_, i) => `${i + 1}.`),
+      havuzMetinleri: soru.secenekler,
+    };
+  }, [soru]);
+
+  const dizilim = useMemo(
+    () => karistir(havuzMetinleri.map((_, i) => i), tohumla(oturumId + soru.id)),
+    [havuzMetinleri, oturumId, soru.id],
+  );
+
+  /* Cevap dizisi HER ZAMAN yuva sayısı kadar uzun; boş yuva `BOS`. Kısa dizi
+     tutulsaydı ortadaki bir eşlemeyi geri almak sonrakileri kaydırırdı — kişi
+     tek bir yanlışı düzeltirken doğru bildiklerini kaybederdi. */
+  const cevap: number[] = [];
+  for (let i = 0; i < yuvaEtiketleri.length; i++) cevap.push(secili[i] ?? BOS);
+  const kalanlar = dizilim.filter((h) => !cevap.includes(h));
+
+  function yerlestir(havuzIndeksi: number) {
+    const yeni = [...cevap];
+    const bos = yeni.indexOf(BOS);
+    if (bos === -1) return;
+    yeni[bos] = havuzIndeksi;
+    ayarla(yeni);
+  }
+
+  function geriAl(yuva: number) {
+    const yeni = [...cevap];
+    yeni[yuva] = BOS;
+    ayarla(yeni);
+  }
+
+  return (
+    <div className="mt-6">
+      <p className="text-base font-semibold text-muted">
+        {eslestirme
+          ? "Soldaki her maddeye karşılığını seçin. Yanlış seçtiyseniz × ile geri alın."
+          : "Doğru sırayla dokunun: ilk dokunduğunuz 1. sıraya girer. × ile geri alabilirsiniz."}
+      </p>
+
+      <ol className="mt-4 space-y-3">
+        {cevap.map((h, yuva) => (
+          <li
+            key={yuva}
+            className={`flex items-center gap-3 rounded-2xl border-2 p-3 ${
+              h === BOS ? "border-dashed border-line bg-paper" : "border-accent bg-accent-soft"
+            }`}
+          >
+            <span
+              className={`font-bold ${
+                eslestirme ? "flex-1 text-lg leading-snug" : "grid h-10 w-10 shrink-0 place-items-center text-xl"
+              }`}
+            >
+              {yuvaEtiketleri[yuva] || "—"}
+            </span>
+            <Icon name="chevronRight" size={22} className="shrink-0 text-muted" />
+            <span className="flex-1 text-lg font-semibold">
+              {h === BOS ? <span className="text-muted">Seçilmedi</span> : havuzMetinleri[h]}
+            </span>
+            {h === BOS ? null : (
+              <button
+                onClick={() => geriAl(yuva)}
+                aria-label={`${yuvaEtiketleri[yuva]} seçimini geri al`}
+                className="kiosk-btn-ikon"
+              >
+                <Icon name="close" size={24} />
+              </button>
+            )}
+          </li>
+        ))}
+      </ol>
+
+      {kalanlar.length > 0 ? (
+        <div className="mt-5 space-y-3">
+          <p className="text-sm font-bold uppercase tracking-wider text-muted">
+            {eslestirme ? "Karşılıklar" : "Kalan maddeler"}
+          </p>
+          {kalanlar.map((h) => (
+            <button
+              key={h}
+              onClick={() => yerlestir(h)}
+              className="kiosk-secenek"
+              aria-label={
+                eslestirme
+                  ? `${havuzMetinleri[h]} — sıradaki maddeye eşle`
+                  : `${havuzMetinleri[h]} — sıraya ekle`
+              }
+            >
+              <Icon name="plus" size={22} className="text-accent" />
+              <span>{havuzMetinleri[h]}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * GÖRSELDE İŞARETLEME — görsel, cevabın kendisi.
+ *
+ * ÖLÇÜLER YÜZDE: bölgeler `sinav.ts`te yüzde olarak saklanıyor, çünkü aynı
+ * görsel kioskta ve amir tabletinde farklı genişlikte çiziliyor. Tıklama da
+ * yüzdeye çevrilir; piksel karşılaştırsaydık doğru yeri işaretleyen kişi dar
+ * ekranda yanlış cevap alırdı.
+ *
+ * YALNIZ İŞARETLENENLER GÖRÜNÜR: bütün bölgeleri çerçeveleseydik soru
+ * "tehlikeyi bul" olmaktan çıkıp "kutulardan birini seç"e dönerdi.
+ */
+function GorselIsaret({
+  soru,
+  secili,
+  ayarla,
+  altMetinler,
+}: {
+  soru: SoruGorunum;
+  secili: number[];
+  ayarla: (yeni: number[]) => void;
+  altMetinler?: Record<string, string>;
+}) {
+  const bolgeler = useMemo<(Bolge | null)[]>(() => soru.secenekler.map((s) => bolgeCoz(s)), [soru]);
+
+  function degistir(i: number) {
+    ayarla(secili.includes(i) ? secili.filter((x) => x !== i) : [...secili, i]);
+  }
+
+  function tikla(e: MouseEvent<HTMLButtonElement>) {
+    // Klavyeyle basıldığında koordinat yoktur (detail 0) — 0,0 noktasını
+    // işaretlemek, ekran okuyucu kullanan kişiye rastgele cevap yazdırırdı.
+    if (e.detail === 0) return;
+    const k = e.currentTarget.getBoundingClientRect();
+    if (k.width === 0 || k.height === 0) return;
+    const vuran = bolgeVurusu(soru.secenekler, ((e.clientX - k.left) / k.width) * 100, ((e.clientY - k.top) / k.height) * 100);
+    if (vuran.length === 0) return;
+
+    /* İÇ İÇE BÖLGELERDE EN KÜÇÜĞÜ kazanır. Hepsini birden işaretlemek,
+       "makinenin tamamı" bölgesinin içindeki "koruma kapağı" bölgesine
+       dokunan kişiye iki cevap birden yazardı. */
+    let secim = vuran[0];
+    let enKucukAlan = Infinity;
+    for (const i of vuran) {
+      const b = bolgeler[i];
+      if (!b) continue;
+      const alan = b.g * b.y2;
+      if (alan < enKucukAlan) {
+        enKucukAlan = alan;
+        secim = i;
+      }
+    }
+    degistir(secim);
+  }
+
+  return (
+    <div className="mt-5">
+      <p className="text-base font-semibold text-muted">
+        Tehlikeli gördüğünüz yerlere dokunun. Yanlış dokunduysanız aynı yere tekrar dokunun.
+      </p>
+
+      {/* Dokunma hedefi görselin KENDİSİ — zaten 72px'ten büyük, ama ölçü
+          açıkça yazılı: görsel yüklenemezse kutu bir çizgiye inip
+          dokunulamaz hâle gelmesin. */}
+      {soru.gorselId ? (
+        <button
+          type="button"
+          onClick={tikla}
+          className="relative mt-4 inline-block min-h-[72px] max-w-full cursor-pointer rounded-2xl border-2 border-line focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`/api/medya/${soru.gorselId}`}
+            alt={(altMetinler?.[soru.gorselId] ?? "").trim() || "Soru görseli"}
+            className="max-h-[46vh] w-auto max-w-full rounded-2xl object-contain"
+          />
+          {secili.map((i) => {
+            const b = bolgeler[i];
+            if (!b) return null;
+            return (
+              <span
+                key={i}
+                aria-hidden
+                className="pointer-events-none absolute grid place-items-center rounded-xl border-4 border-accent bg-accent/25"
+                style={{ left: `${b.x}%`, top: `${b.y}%`, width: `${b.g}%`, height: `${b.y2}%` }}
+              >
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-accent text-white">
+                  <Icon name="check" size={22} />
+                </span>
+              </span>
+            );
+          })}
+        </button>
+      ) : (
+        <p className="mt-4 rounded-2xl border border-dashed border-line p-8 text-center text-muted">
+          Görsel eklenmemiş.
+        </p>
+      )}
+
+      <p aria-live="polite" className="mt-3 text-base font-semibold">
+        {secili.length === 0 ? "Henüz işaret yok." : `${secili.length} yer işaretlendi.`}
+      </p>
+
+      {/* EKRAN OKUYUCU / KLAVYE KARŞILIĞI: görsele dokunmak sesli okuyucuyla
+          yapılamaz, koordinat diye bir şey yok.
+
+          Bölge etiketleri cevap anahtarı DEĞİL — şık listesinin karşılığı;
+          hangisinin doğru olduğunu yine söylemiyoruz. Etiketsiz bölge listeye
+          girmez: "bölge 3" kimseye bir şey anlatmaz.
+
+          `sr-only focus:not-sr-only`: normalde görünmez, ODAK GELİNCE gerçek
+          bir 72px'lik kiosk şıkkına dönüşür. Kalıcı gizli bir düğme, klavyeyle
+          gezen kişiyi göremediği bir şeyi tıklarken bırakırdı. */}
+      <div role="group" aria-label="Görseldeki bölgeler" className="mt-3 space-y-3">
+        {bolgeler.map((b, i) =>
+          b && b.etiket ? (
+            <button
+              key={i}
+              type="button"
+              role="checkbox"
+              aria-checked={secili.includes(i)}
+              onClick={() => degistir(i)}
+              className={`kiosk-secenek sr-only focus:not-sr-only ${secili.includes(i) ? "kiosk-secenek-secili" : ""}`}
+            >
+              {b.etiket}
+            </button>
+          ) : null,
+        )}
+      </div>
+    </div>
+  );
+}
+
 /**
  * "NEDEN YANLIŞTI" KUTUSU — sınavın öğrettiği tek yer.
  *
@@ -531,7 +893,13 @@ function Aciklamalar({ yanlislar }: { yanlislar: YanlisAciklama[] }) {
         {aciklamali.map((y) => (
           <li key={y.soruId} className="rounded-2xl border border-line bg-white p-5">
             <p className="font-bold leading-snug">{y.metin}</p>
-            <p className="mt-2 whitespace-pre-line leading-relaxed text-ink/90">{y.aciklama}</p>
+            {/* BİÇİM DİLİ BURADA DA GEÇERLİ. Hazırlayan kart metninde `**` ile
+                vurgu yapıyor; aynı kişi açıklamayı da düzyazı olarak yazıyor.
+                Biri çizilip öteki çizilmezse sahada yıldız görünür ve neyin
+                nerede çalıştığı ezberlenmesi gereken bir kural olur. */}
+            <div className="mt-2 text-ink/90">
+              <Bicimli metin={y.aciklama} boyut="kucuk" />
+            </div>
           </li>
         ))}
       </ul>

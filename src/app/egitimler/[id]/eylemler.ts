@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { VERI_KLASORU } from "@/lib/db";
 import * as depo from "@/lib/depo";
 import { kapi } from "@/lib/kimlik";
+import { BOLUM_EN_UZUN, bolumAnahtari, bolumleriCoz } from "./bolumler";
 
 /**
  * EDİTÖRE ÖZEL SUNUCU EYLEMLERİ.
@@ -101,6 +102,36 @@ export async function kartKopyalaEylem(egitimId: string, sayfaId: string, hedefI
 
   depo.izBirak(ben.kullanici, `kartı başka eğitime kopyaladı: ${sayfaId} → ${hedefId}`);
   revalidatePath(`/egitimler/${hedefId}`);
+  revalidatePath(`/egitimler/${egitimId}`);
+}
+
+/* ── bölüm başlıkları ─────────────────────────────────────────────────────── */
+
+/**
+ * Bir kartın ÜSTÜNDE başlayan bölümün adını yazar; boş ad başlığı kaldırır.
+ *
+ * Şema değişmiyor: harita `ayar` tablosunda eğitim başına tek JSON satırı
+ * (gerekçe `bolumler.ts` başında). Kiosk bu satırı okumaz — bölüm başlığı
+ * HAZIRLAYANIN ARACI, işçinin göreceği bir kart değil.
+ *
+ * Harita her yazımda var olan sayfa kimliklerine göre süzülüyor: silinen
+ * kartın başlığı ayar satırında öksüz kalıyordu ve hiçbir ekranda görünmediği
+ * için de elle temizlenemiyordu.
+ */
+export async function bolumBasligiEylem(egitimId: string, sayfaId: string, baslik: string): Promise<void> {
+  const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
+  if (!taslakMi(egitimId)) return;
+
+  const idler = depo.sayfalariGetir(egitimId).map((s) => s.id);
+  if (!idler.includes(sayfaId)) return;
+
+  const harita = bolumleriCoz(depo.ayarOku(bolumAnahtari(egitimId)), idler);
+  const temiz = baslik.trim().slice(0, BOLUM_EN_UZUN);
+  if (temiz === "") delete harita[sayfaId];
+  else harita[sayfaId] = temiz;
+
+  depo.ayarYaz(bolumAnahtari(egitimId), JSON.stringify(harita));
+  depo.izBirak(ben.kullanici, temiz === "" ? `bölüm başlığı kaldırdı: ${egitimId}` : `bölüm başlığı yazdı: ${egitimId} — ${temiz}`);
   revalidatePath(`/egitimler/${egitimId}`);
 }
 

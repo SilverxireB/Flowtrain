@@ -3,6 +3,7 @@
 import Icon from "@/components/Icon";
 import { kartGorselleri } from "@/lib/editorMedya";
 import type { Egitim, Sayfa, Soru } from "@/lib/tipler";
+import { bolgeCoz, eslestirmeCifti } from "@/lib/sinav";
 
 /**
  * YAYINA HAZIRLIK KONTROL LİSTESİ.
@@ -29,6 +30,22 @@ function bosKart(s: Sayfa): boolean {
   return !s.metin?.trim() && !s.metinKarsi?.trim() && kartGorselleri(s).length === 0 && !s.videoId;
 }
 
+/**
+ * Bu kartta yayına engel olmayan ama SÖYLENMESİ gereken bir kusur var mı?
+ *
+ * TEK KAYNAK: hem buradaki uyarı satırları hem editördeki kart haritasının
+ * uyarı noktaları bunu kullanır. İki yerde ayrı ayrı yazılmıştı; ölçütler
+ * ayrışsaydı harita "sorun yok" derken kontrol listesi uyarır, hazırlayan da
+ * hangisine inanacağını bilemezdi.
+ */
+export function kartSorunlu(sayfa: Sayfa, kirik: Set<string>): boolean {
+  if (!sayfa.baslik.trim()) return true;
+  if (bosKart(sayfa)) return true;
+  if (sayfa.tip === "video" && !sayfa.videoId) return true;
+  if (kartGorselleri(sayfa).some((g) => kirik.has(g))) return true;
+  return !!sayfa.videoId && kirik.has(sayfa.videoId);
+}
+
 export function yayinKontrolu(
   egitim: Egitim,
   sayfalar: Sayfa[],
@@ -44,6 +61,7 @@ export function yayinKontrolu(
       : { durum: "tamam", metin: `${sayfalar.length} sayfa hazır.` },
   );
 
+  // Harita noktaları ve buradaki uyarılar AYNI ölçütten beslenir (kartSorunlu).
   const basliksiz = sayfalar.filter((s) => !s.baslik.trim()).length;
   if (basliksiz > 0) {
     liste.push({ durum: "uyari", metin: `${basliksiz} kartın başlığı boş — kioskta üstte boşluk görünür.` });
@@ -81,6 +99,52 @@ export function yayinKontrolu(
 
     const bosSik = sorular.filter((q) => q.secenekler.some((s) => !s.trim())).length;
     if (bosSik > 0) liste.push({ durum: "uyari", metin: `${bosSik} soruda boş şık var.` });
+
+    /* ── YENİ SORU TİPLERİNİN KENDİNE ÖZGÜ KUSURLARI ──────────────────────
+       Bu satırların hepsi SESSİZ hatalar: soru ekranda düzgün görünür, kişi
+       cevaplar, ama puanlama beklenenden başka çalışır. Yayından önce
+       söylenmezse sahada fark edilmez. */
+
+    // Doğru cevabı hiç işaretlenmemiş soru KİMSEYE puan vermez (bkz. sinav.ts).
+    const dogrusuz = sorular.filter(
+      (q) => q.tip !== "siralama" && q.tip !== "eslestirme" && q.dogru.length === 0,
+    ).length;
+    if (dogrusuz > 0) {
+      liste.push({
+        durum: "uyari",
+        metin: `${dogrusuz} soruda doğru cevap işaretlenmemiş — o soruyu kimse doğru yapamaz.`,
+      });
+    }
+
+    // `___` yoksa boşluk doldurma sorusu sıradan bir çoktan seçmeliye döner.
+    const bosluksuz = sorular.filter((q) => q.tip === "bosluk" && !q.metin.includes("___")).length;
+    if (bosluksuz > 0) {
+      liste.push({ durum: "uyari", metin: `${bosluksuz} boşluk sorusunda metinde \`___\` yok.` });
+    }
+
+    // Tek şıklı sıralama sorusu her cevabı doğru sayar.
+    const kisaSira = sorular.filter((q) => q.tip === "siralama" && q.secenekler.length < 2).length;
+    if (kisaSira > 0) {
+      liste.push({ durum: "uyari", metin: `${kisaSira} sıralama sorusunda en az iki adım olmalı.` });
+    }
+
+    // Yarım çift: sol ya da sağ tarafı boş kalan eşleştirme satırı.
+    const yarimCift = sorular.filter(
+      (q) => q.tip === "eslestirme" && q.secenekler.some((s) => { const c = eslestirmeCifti(s); return !c.sol || !c.sag; }),
+    ).length;
+    if (yarimCift > 0) {
+      liste.push({ durum: "uyari", metin: `${yarimCift} eşleştirme sorusunda yarım çift var.` });
+    }
+
+    const isaretliler = sorular.filter((q) => q.tip === "gorselIsaret");
+    const gorselsiz = isaretliler.filter((q) => !q.gorselId).length;
+    if (gorselsiz > 0) {
+      liste.push({ durum: "uyari", metin: `${gorselsiz} işaretleme sorusunda görsel seçilmemiş.` });
+    }
+    const bolgesiz = isaretliler.filter((q) => q.secenekler.filter((s) => bolgeCoz(s)).length === 0).length;
+    if (bolgesiz > 0) {
+      liste.push({ durum: "uyari", metin: `${bolgesiz} işaretleme sorusunda hiç bölge tanımlanmamış.` });
+    }
   }
 
   return liste;

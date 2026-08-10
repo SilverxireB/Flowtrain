@@ -22,6 +22,17 @@ import type { Sayfa } from "@/lib/tipler";
 /** Kiosk içerik genişliği: `max-w-3xl` (768) eksi iki yandan `px-5` (2×20). */
 const KIOSK_GENISLIK = 728;
 
+/**
+ * Önizlemenin ekranda kaplayabileceği en fazla yükseklik.
+ *
+ * Yeni tipler (kontrol listesi, karşılaştırma, vaka) uzun kart üretebiliyor:
+ * ölçülen yükseklik olduğu gibi verilince yapışkan (`sticky`) yan sütun
+ * pencereden taşıyor ve önizlemenin ALTI hiç görünmüyordu — üstelik sayfa
+ * kaydırıldıkça da gelmiyor, çünkü sütun yapışkan. Sınırı aşan kart kendi
+ * içinde kaydırılır: kartın tamamı erişilebilir kalır, editör yerinde durur.
+ */
+const EN_FAZLA_YUKSEKLIK = "min(70vh, 40rem)";
+
 export default function CanliOnizleme({
   sayfa,
   sira,
@@ -75,13 +86,30 @@ export default function CanliOnizleme({
 
       {sayfa ? (
         <div className="p-4">
-          {/* Dış kap sütunu ölçer, iç kap kiosk genişliğinde çizilip küçülür. */}
-          <div ref={dis} className="overflow-hidden" style={{ height: yukseklik || undefined }}>
+          {/* Üç kap, üçü de gerekli:
+              `dis`   — sütun GENİŞLİĞİNİ ölçer, kendisi kaydırılmaz. Ölçümü
+                        kaydırılan kaba bağlasaydık, beliren dikey kaydırma
+                        çubuğu genişliği daraltır, daralan genişlik ölçeği
+                        küçültür, küçülen kart çubuğu kaldırırdı — sonsuz
+                        ResizeObserver döngüsü.
+              ortadaki — yüksekliği sınırlar ve gerekirse kaydırır.
+              `ic`    — kiosk genişliğinde çizilir ve sütuna sığacak kadar
+                        küçültülür. */}
+          <div ref={dis} className="overflow-hidden">
             <div
-              ref={ic}
-              style={{ width: KIOSK_GENISLIK, transform: `scale(${olcek})`, transformOrigin: "top left" }}
+              className="overflow-y-auto overflow-x-hidden"
+              style={{ height: yukseklik || undefined, maxHeight: EN_FAZLA_YUKSEKLIK }}
             >
-              <Kart sayfa={sayfa} altMetinler={altMetinler} key={sayfa.id} />
+              <div
+                ref={ic}
+                style={{ width: KIOSK_GENISLIK, transform: `scale(${olcek})`, transformOrigin: "top left" }}
+              >
+                {/* `key` TİPİ DE İÇERİR: tip artık değiştirilebilir ve kimlik
+                    aynı kaldığı için kart yeniden bağlanmıyordu — videodan
+                    başka bir tipe geçince `<video>` öğesi ağaçta kalıp arka
+                    planda çalmaya devam ediyordu. */}
+                <Kart sayfa={sayfa} altMetinler={altMetinler} key={`${sayfa.id}:${sayfa.tip}`} />
+              </div>
             </div>
           </div>
 

@@ -8,7 +8,13 @@
  *    cevap anahtarını sızdırır, eksiği sınavı ceza hâline getirir.
  */
 import { qrEgitimId, kioskAcilisi, yanlisAciklamalari, KIOSK_SONUC_OTO_SN } from "../src/lib/kioskAkis.ts";
-import { kartGorselleri, gorselIzgaraSinifi, gorselYukseklikSinifi } from "../src/components/oyun/gorseller.ts";
+import {
+  kartGorselleri,
+  gorselIzgaraSinifi,
+  gorselYukseklikSinifi,
+  sayiIzgaraSinifi,
+  sayiPuntoSinifi,
+} from "../src/components/oyun/gorseller.ts";
 import { kontrol, esit, bitir } from "./yardim.mjs";
 
 /* ── QR parametresi ─────────────────────────────────────────────────────────
@@ -96,5 +102,18 @@ kontrol(
   parseInt(gorselYukseklikSinifi(1).match(/\d+/)[0], 10) > parseInt(gorselYukseklikSinifi(4).match(/\d+/)[0], 10),
   "görsel sayısı arttıkça her biri alçalır",
 );
+
+/* ── sayı vurgusu düzeni ─────────────────────────────────────────────────────
+   Rakam kartının bütün değeri "bir bakışta okunması". Sabit punto bırakılınca
+   üç rakamlı bir değer ("120 kg") iki sütunlu dizilimde kutudan taşıyor ve
+   satır kayıyordu — kart hem okunmaz hem çirkin oluyordu. */
+kontrol(!sayiIzgaraSinifi(1).includes("grid-cols"), "tek rakam ızgaraya girmez, tam genişlik kalır");
+kontrol(sayiIzgaraSinifi(2).includes("grid-cols-2"), "iki rakam yan yana");
+kontrol(sayiIzgaraSinifi(5).includes("sm:grid-cols-3"), "üç ve fazlası geniş ekranda üç sütun");
+
+const punto = (s) => Number(s.match(/text-(\d)xl/)[1]);
+kontrol(punto(sayiPuntoSinifi(1)) > punto(sayiPuntoSinifi(2)), "iki rakamda punto küçülür");
+kontrol(punto(sayiPuntoSinifi(2)) > punto(sayiPuntoSinifi(4)), "kalabalıkta daha da küçülür");
+kontrol(punto(sayiPuntoSinifi(9)) >= 4, "punto bir yerden sonra durur — okunaksız kadar küçülmez");
 
 bitir("oynatıcı");

@@ -2,10 +2,11 @@
 
 import { memo, useRef, useState } from "react";
 import Icon from "@/components/Icon";
+import KartAlanlari from "@/components/editor/KartAlanlari";
+import { KartTipiRozeti } from "@/components/editor/KartTipiMenusu";
 import MedyaSecici from "@/components/editor/MedyaSecici";
-import OtoMetin from "@/components/editor/OtoMetin";
-import { gorselYamasi, kartGorselleri, siraDegistir, type MedyaOzet } from "@/lib/editorMedya";
-import { KART_ACIKLAMA, KART_ETIKET, type Sayfa } from "@/lib/tipler";
+import { gorselYamasi, kartGorselleri, type MedyaOzet } from "@/lib/editorMedya";
+import { ASGARI_SURE_VARSAYILAN, KART_ACIKLAMA, KART_ETIKET, type KartTipi, type Sayfa } from "@/lib/tipler";
 
 /**
  * Editördeki tek sayfa satırı.
@@ -13,6 +14,11 @@ import { KART_ACIKLAMA, KART_ETIKET, type Sayfa } from "@/lib/tipler";
  * Hazırlayan yalnız METİN yazar ve GÖRSEL seçer; yerleşim, tipografi ve renk
  * ürüne aittir. Serbest tuval vermemenin sebebi kalite: boş tuval verilen her
  * araçta içerik ikinci haftada dağılır.
+ *
+ * TİPE ÖZEL ALANLAR AYRI DOSYADA (`KartAlanlari`): on kart tipinin alanları
+ * buraya sığdırılsaydı satır bileşeni bir tip anahtarına dönüşür, ortak kısım
+ * (başlık, kopyalama, süre, medya seçici) onun içinde kaybolurdu. Bu dosya
+ * "her kartta olan" şeyleri tutar.
  *
  * İKİ AYRI GERİ ÇAĞRI var ve ayrımı önemli:
  *  - `onAnlik` her tuşta çalışır ve YALNIZ yandaki canlı önizlemeyi besler,
@@ -77,19 +83,43 @@ function SayfaSatiriIc({
   onMedyaSil: (medyaId: string) => void;
   onAltMetin: (medyaId: string, altMetin: string) => void;
 }) {
-  const [secici, setSecici] = useState<"gorsel" | "video" | null>(null);
+  /* `once`/`sonra`: aynı seçici, ama gelen görsel listenin BELİRLİ bir yuvasına
+     yazılır (önce/sonra kartı). Ayrı bir seçici bileşeni açmak, kütüphaneyi ve
+     yükleme akışını ikiye bölerdi. */
+  const [secici, setSecici] = useState<"gorsel" | "video" | "once" | "sonra" | null>(null);
   const [kopyaAcik, setKopyaAcik] = useState(false);
   const [hedef, setHedef] = useState("");
+  /** Tip değiştirildiğinde önceki değerler — uyarı satırındaki "Geri al" bunu kullanır. */
+  const [oncekiTip, setOncekiTip] = useState<{ tip: KartTipi; asgariSure: number } | null>(null);
   /** Alana girildiği andaki değer — kaydetme kararı buna bakar (üstteki nota bkz). */
   const odakDegeri = useRef("");
 
   const video = sayfa.tip === "video";
   const gorseller = kartGorselleri(sayfa);
 
-  function gorselleriYaz(idler: string[]) {
-    const yama = gorselYamasi(idler);
+  function yaz(yama: Record<string, unknown>) {
     onAnlik(sayfa.id, yama);
     onGuncelle(sayfa.id, yama);
+  }
+
+  function gorselleriYaz(idler: string[]) {
+    yaz(gorselYamasi(idler));
+  }
+
+  /**
+   * TİP DEĞİŞTİRİLEBİLİR. Yanlış tiple açılmış bir kartı düzeltmenin tek yolu
+   * silip yeniden yazmaktı; alanlar aynı sütunlarda durduğu için (`kartVeri.ts`)
+   * veri taşımaya gerek yok.
+   *
+   * ASGARİ SÜRE YALNIZ DOKUNULMAMIŞSA TAŞINIR: elle 30 sn yazmış birinin ayarını
+   * ezmek sahtecilik önlemini sessizce zayıflatırdı; ama videodan (0 sn) başka
+   * bir tipe geçen kart 0 sn'de kalsaydı okumadan geçilebilirdi.
+   */
+  function tipDegistir(yeni: KartTipi) {
+    const yama: Record<string, unknown> = { tip: yeni };
+    if (sayfa.asgariSure === ASGARI_SURE_VARSAYILAN[sayfa.tip]) yama.asgariSure = ASGARI_SURE_VARSAYILAN[yeni];
+    setOncekiTip({ tip: sayfa.tip, asgariSure: sayfa.asgariSure });
+    yaz(yama);
   }
 
   return (
@@ -102,7 +132,7 @@ function SayfaSatiriIc({
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-line text-xs font-bold text-muted">
           {sira}
         </span>
-        <span className="chip text-xs">{KART_ETIKET[sayfa.tip]}</span>
+        <KartTipiRozeti tip={sayfa.tip} kilitli={kilitli} onDegis={tipDegistir} />
         <div className="flex-1" />
         <button
           onClick={() => setKopyaAcik((a) => !a)}
@@ -141,6 +171,32 @@ function SayfaSatiriIc({
       </div>
 
       <p className="mt-1 pl-9 text-xs text-muted">{KART_ACIKLAMA[sayfa.tip]}</p>
+
+      {/* TİP DEĞİŞİMİ SESSİZ OLMAZ: veri kaybolmuyor ama yeni tipin okumadığı
+          alan kartta görünmez oluyor — bu, "yazdığım ders nereye gitti?"
+          sorusunun tek uyarısı. Geri alma da burada: yanlış tiki fark eden kişi
+          menüyü yeniden açıp doğru tipi hatırlamak zorunda kalmasın. */}
+      {oncekiTip && !kilitli ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-orta/30 bg-orta/5 px-3 py-2 text-xs text-orta-dark">
+          <Icon name="warning" size={14} />
+          <span className="min-w-0 flex-1">
+            <strong>{KART_ETIKET[oncekiTip.tip]}</strong> → <strong>{KART_ETIKET[sayfa.tip]}</strong>. Yazdıklarınız
+            duruyor; yeni tipin kullanmadığı metin kartta görünmez.
+          </span>
+          <button
+            onClick={() => {
+              yaz({ tip: oncekiTip.tip, asgariSure: oncekiTip.asgariSure });
+              setOncekiTip(null);
+            }}
+            className="font-semibold underline underline-offset-2"
+          >
+            Geri al
+          </button>
+          <button onClick={() => setOncekiTip(null)} className="btn-icon h-6 w-6" aria-label="Uyarıyı kapat">
+            <Icon name="close" size={12} />
+          </button>
+        </div>
+      ) : null}
 
       {kopyaAcik && !kilitli ? (
         <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-paper p-3">
@@ -200,111 +256,38 @@ function SayfaSatiriIc({
           className="input-base font-semibold"
         />
 
-        <OtoMetin
-          disabled={kilitli}
-          defaultValue={sayfa.metin ?? ""}
-          onFocus={(e) => (odakDegeri.current = e.target.value)}
-          onChange={(e) => onAnlik(sayfa.id, { metin: e.target.value })}
-          onBlur={(e) => e.target.value !== odakDegeri.current && onGuncelle(sayfa.id, { metin: e.target.value })}
-          rows={sayfa.tip === "adim" ? 4 : 2}
-          placeholder={
-            sayfa.tip === "adim"
-              ? "Her satır bir adım"
-              : sayfa.tip === "yapYapma"
-                ? "YAP kolonuna yazılacak"
-                : "Metin"
-          }
-          className="input-base"
+        <KartAlanlari
+          sayfa={sayfa}
+          kilitli={kilitli}
+          gorseller={gorseller}
+          altMetinler={altMetinler}
+          odakDegeri={odakDegeri}
+          onAnlik={(yama) => onAnlik(sayfa.id, yama)}
+          onGuncelle={(yama) => onGuncelle(sayfa.id, yama)}
+          onGorselleriYaz={gorselleriYaz}
+          onYuvaSec={(yuva) => setSecici(yuva === 0 ? "once" : "sonra")}
+          onAltMetin={onAltMetin}
         />
 
-        {sayfa.tip === "yapYapma" ? (
-          <OtoMetin
-            disabled={kilitli}
-            defaultValue={sayfa.metinKarsi ?? ""}
-            onFocus={(e) => (odakDegeri.current = e.target.value)}
-            onChange={(e) => onAnlik(sayfa.id, { metinKarsi: e.target.value })}
-            onBlur={(e) =>
-              e.target.value !== odakDegeri.current && onGuncelle(sayfa.id, { metinKarsi: e.target.value })
-            }
-            rows={2}
-            placeholder="YAPMA kolonuna yazılacak"
-            className="input-base border-brand/30"
-          />
-        ) : null}
-
-        {/* ── görseller ──────────────────────────────────────────────────────
-            ÇOKLU GÖRSEL: bir kural kartında "doğru bağlantı" ve "yanlış
-            bağlantı" fotoğrafını yan yana koymak için ikinci bir kart açmak
-            gerekiyordu; iki kart aynı kuralı ikiye bölüyordu. Sıra önemli —
-            ilki kartın kapağı. */}
-        {gorseller.length > 0 ? (
-          <>
-            <ul className="flex flex-wrap gap-2">
-              {gorseller.map((g, i) => (
-                <li key={g} className="relative w-40">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`/api/medya/${g}`}
-                    alt=""
-                    className="h-20 w-40 rounded-lg border border-line object-cover"
-                  />
-                  {i === 0 ? (
-                    <span className="absolute left-1 top-1 rounded-md bg-ink/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                      Kapak
-                    </span>
-                  ) : null}
-                  <div className="mt-1 flex justify-center gap-0.5">
-                    <button
-                      onClick={() => gorselleriYaz(siraDegistir(gorseller, i, -1))}
-                      disabled={kilitli || i === 0}
-                      className="btn-icon h-7 w-7"
-                      aria-label="Görseli öne al"
-                    >
-                      <Icon name="chevronLeft" size={14} />
-                    </button>
-                    <button
-                      onClick={() => gorselleriYaz(siraDegistir(gorseller, i, 1))}
-                      disabled={kilitli || i === gorseller.length - 1}
-                      className="btn-icon h-7 w-7"
-                      aria-label="Görseli geri al"
-                    >
-                      <Icon name="chevronRight" size={14} />
-                    </button>
-                    <button
-                      onClick={() => gorselleriYaz(gorseller.filter((_, x) => x !== i))}
-                      disabled={kilitli}
-                      className="btn-icon h-7 w-7 hover:text-brand"
-                      aria-label="Görseli kaldır"
-                    >
-                      <Icon name="close" size={14} />
-                    </button>
-                  </div>
-                  {/* ALT METİN GÖRSELİN YANINDA duruyor, ayrı bir ekranda değil:
-                      açıklamayı yazacak an, görseli seçtiğiniz andır. */}
-                  <input
-                    disabled={kilitli}
-                    defaultValue={altMetinler[g] ?? ""}
-                    onBlur={(e) => e.target.value !== (altMetinler[g] ?? "") && onAltMetin(g, e.target.value)}
-                    placeholder="Bu görsel ne gösteriyor?"
-                    aria-label={`${i + 1}. görselin alt metni`}
-                    title="Ekran okuyucu bunu okur. Görselin NE GÖSTERDİĞİNİ yazın, dosya adını değil."
-                    className="input-base mt-1 px-2 py-1 text-[11px]"
-                  />
-                </li>
-              ))}
-            </ul>
-            <p className="text-xs text-muted">
-              Alt metin <strong>ekran okuyucuya</strong> okunur — görselin ne gösterdiğini yazın, dosya adını değil.
-              Boş bırakırsanız kart başlığından türetilen metin kullanılır.
-            </p>
-          </>
-        ) : null}
-
         <div className="flex flex-wrap items-center gap-3">
-          <button onClick={() => setSecici(video ? "video" : "gorsel")} disabled={kilitli} className="btn-ghost text-sm">
-            <Icon name={video ? "video" : "image"} size={16} />
-            {video ? (sayfa.videoId ? "Videoyu değiştir" : "Video ekle") : gorseller.length > 0 ? "Görsel ekle" : "Görsel seç"}
-          </button>
+          {/* Önce/sonra kartında görseller kendi yuvalarından seçilir; buradaki
+              genel düğme "hangi yuvaya gitti?" sorusunu doğurdu. */}
+          {sayfa.tip === "onceSonra" ? null : (
+            <button
+              onClick={() => setSecici(video ? "video" : "gorsel")}
+              disabled={kilitli}
+              className="btn-ghost text-sm"
+            >
+              <Icon name={video ? "video" : "image"} size={16} />
+              {video
+                ? sayfa.videoId
+                  ? "Videoyu değiştir"
+                  : "Video ekle"
+                : gorseller.length > 0
+                  ? "Görsel ekle"
+                  : "Görsel seç"}
+            </button>
+          )}
 
           {video && sayfa.videoId ? (
             <>
@@ -312,10 +295,7 @@ function SayfaSatiriIc({
                 <Icon name="check" size={14} /> Video eklendi
               </span>
               <button
-                onClick={() => {
-                  onAnlik(sayfa.id, { videoId: null });
-                  onGuncelle(sayfa.id, { videoId: null });
-                }}
+                onClick={() => yaz({ videoId: null })}
                 disabled={kilitli}
                 className="btn-icon hover:text-brand"
                 aria-label="Videoyu kaldır"
@@ -329,9 +309,14 @@ function SayfaSatiriIc({
 
           <label className="flex items-center gap-2 text-xs text-muted">
             {/* Asgari süre = sahtecilik önlemi. Görünür ve düzenlenebilir olması
-                bilinçli: hazırlayan videonun uzunluğuna göre ayarlayabilmeli. */}
+                bilinçli: hazırlayan videonun uzunluğuna göre ayarlayabilmeli.
+
+                `key` TİPE BAĞLI: alan denetimsiz, tip değişince varsayılan süre
+                yenilenince kutuda eski sayı kalırdı (kayıtta yeni değer, ekranda
+                eski değer — hangisinin doğru olduğu görünmezdi). */}
             En az
             <input
+              key={sayfa.tip}
               type="number"
               min={0}
               disabled={kilitli}
@@ -350,20 +335,26 @@ function SayfaSatiriIc({
 
       {secici ? (
         <MedyaSecici
-          tur={secici}
+          tur={secici === "video" ? "video" : "gorsel"}
           medyalar={medyalar}
           onMedyaSil={onMedyaSil}
           onAltMetin={onAltMetin}
           onKapat={() => setSecici(null)}
           onSec={(id) => {
+            const hangi = secici;
             setSecici(null);
-            if (secici === "video") {
-              onAnlik(sayfa.id, { videoId: id });
-              onGuncelle(sayfa.id, { videoId: id });
-            } else {
-              // Aynı görseli iki kez eklemek kartta iki kez çizerdi.
-              gorselleriYaz(gorseller.includes(id) ? gorseller : [...gorseller, id]);
+            if (hangi === "video") {
+              yaz({ videoId: id });
+              return;
             }
+            if (hangi === "once" || hangi === "sonra") {
+              const yeni = [...gorseller];
+              yeni[hangi === "once" ? 0 : 1] = id;
+              gorselleriYaz(yeni.filter(Boolean));
+              return;
+            }
+            // Aynı görseli iki kez eklemek kartta iki kez çizerdi.
+            gorselleriYaz(gorseller.includes(id) ? gorseller : [...gorseller, id]);
           }}
         />
       ) : null}

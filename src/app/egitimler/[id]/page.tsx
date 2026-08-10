@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { notFound } from "next/navigation";
 import Editor from "./Editor";
+import { bolumAnahtari, bolumleriCoz } from "./bolumler";
 import { VERI_KLASORU } from "@/lib/db";
 import { kartGorselleri, type MedyaOzet } from "@/lib/editorMedya";
 import { kapi } from "@/lib/kimlik";
@@ -63,6 +64,13 @@ export default function EgitimEditoru({ params }: { params: { id: string } }) {
         .map((e) => ({ id: e.id, ad: e.ad }))}
       kirikGorselIdler={kirikGorselIdler}
       oksuzSayisi={oksuzSayisi}
+      /* BÖLÜM BAŞLIKLARI şema dışında, `ayar` tablosunda duruyor (gerekçe
+         `bolumler.ts`). Silinmiş kartların öksüz kalan başlıkları burada
+         eleniyor — kiosk bu satırı hiç okumaz, işçiye fazladan kart çıkmaz. */
+      bolumler={bolumleriCoz(
+        depo.ayarOku(bolumAnahtari(params.id)),
+        sayfalar.map((s) => s.id),
+      )}
     />
   );
 }

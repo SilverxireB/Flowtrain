@@ -57,9 +57,89 @@ export function sinaviKur(havuz: Soru[], soruSayisi: number, karisik: boolean, t
  * eğitiminde "üç önlemden ikisini biliyorum" geçer not değildir.
  */
 export function soruDogruMu(soru: Soru, secilen: number[]): boolean {
+  /* SIRA ÖNEMLİ OLAN TİPLER ayrı ele alınır. Küme karşılaştırması `secilen`i
+     sıralıyor; sıralama sorusunda bu, yanlış sıralayan herkesi doğru
+     saymak demekti. */
+  if (soru.tip === "siralama") return siralamaDogruMu(soru, secilen);
+  if (soru.tip === "eslestirme") return eslestirmeDogruMu(soru, secilen);
+
   const d = [...soru.dogru].sort((a, b) => a - b);
   const s = [...new Set(secilen)].sort((a, b) => a - b);
+
+  /* DOĞRUSU İŞARETLENMEMİŞ SORU KİMSEYE PUAN VERMEZ.
+     Küme karşılaştırması boş `dogru` ile boş cevabı EŞİT sayıyordu: hazırlayan
+     doğru şıkkı işaretlemeyi unutmuşsa, soruyu boş bırakan herkes o sorudan
+     puan alıyordu. Sessiz ve tam ters yönde bir hata — "geçti" yazan kayıt
+     yanlış olur. Bu bir içerik kusurudur; `yayinKontrolu` yayından önce
+     uyarır, puanlama da ödüllendirmez. */
+  if (d.length === 0) return false;
+
   return d.length === s.length && d.every((v, i) => v === s[i]);
+}
+
+/**
+ * SIRALAMA — şıklar DOĞRU sırada saklanır, kişiye karışık gösterilir.
+ *
+ * Cevap, kişinin dizdiği sıradaki şık indeksleridir; doğru cevap kimliğin
+ * kendisidir (`0,1,2,…`). Ayrı bir "doğru sıra" alanı tutulmadı: iki yerde
+ * duran sıra er geç ayrışır ve hangisinin geçerli olduğu belirsizleşir.
+ */
+export function siralamaDogruMu(soru: Soru, secilen: number[]): boolean {
+  if (secilen.length !== soru.secenekler.length) return false;
+  return secilen.every((v, i) => v === i);
+}
+
+/**
+ * EŞLEŞTİRME — her şık `sol | sağ` çiftidir.
+ *
+ * Cevabın `i`. elemanı, `i`. soldaki maddeye seçilen sağ maddenin indeksidir.
+ * Doğru eşleşme kimliktir. Kısmi doğruya puan YOK: "üç önlemden ikisini
+ * biliyorum" güvenlik eğitiminde geçer not değildir (çoklu seçimdeki kuralın
+ * aynısı).
+ */
+export function eslestirmeDogruMu(soru: Soru, secilen: number[]): boolean {
+  if (secilen.length !== soru.secenekler.length) return false;
+  return secilen.every((v, i) => v === i);
+}
+
+/** Eşleştirme şıkkını çiftine ayırır (`sol | sağ`). */
+export function eslestirmeCifti(secenek: string): { sol: string; sag: string } {
+  const i = secenek.indexOf("|");
+  if (i === -1) return { sol: secenek.trim(), sag: "" };
+  return { sol: secenek.slice(0, i).trim(), sag: secenek.slice(i + 1).trim() };
+}
+
+export interface Bolge {
+  x: number;
+  y: number;
+  g: number;
+  y2: number;
+  etiket: string;
+}
+
+/**
+ * GÖRSELDE İŞARETLEME bölgesi: `x,y,genişlik,yükseklik | etiket`.
+ *
+ * Ölçüler YÜZDE (0–100), piksel değil: aynı görsel kioskta 728 px, amir
+ * tabletinde daha dar çiziliyor; piksel saklansaydı işaret kutusu cihazdan
+ * cihaza kayardı ve doğru yeri işaretleyen kişi yanlış cevap alırdı.
+ */
+export function bolgeCoz(secenek: string): Bolge | null {
+  const [olcu, etiket = ""] = secenek.split("|");
+  const p = olcu.split(",").map((s) => Number(s.trim()));
+  if (p.length < 4 || p.some((n) => !Number.isFinite(n))) return null;
+  return { x: p[0], y: p[1], g: p[2], y2: p[3], etiket: etiket.trim() };
+}
+
+/** Tıklanan nokta (yüzde olarak) hangi bölgelerin içinde? */
+export function bolgeVurusu(secenekler: string[], x: number, y: number): number[] {
+  const vuran: number[] = [];
+  for (let i = 0; i < secenekler.length; i++) {
+    const b = bolgeCoz(secenekler[i]);
+    if (!b) continue;
+    if (x >= b.x && x <= b.x + b.g && y >= b.y && y <= b.y + b.y2) vuran.push(i);
+  }
+  return vuran;
 }
 
 export interface PuanSonucu {

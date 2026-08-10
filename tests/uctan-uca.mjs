@@ -74,6 +74,20 @@ sunucu.stderr.on("data", (d) => {
   if (!s.includes("Warning")) process.stderr.write(`[sunucu] ${s}`);
 });
 
+/**
+ * Kart ekleme — GERÇEK KULLANICI YOLU.
+ *
+ * Kart tipi beşten ona çıkınca düz düğme sırası gruplu bir panele indi;
+ * eskiden tip düğmesine doğrudan tıklanıyordu. Panelin kendisi de sınavın
+ * konusu: açılmazsa kart eklemenin BAŞKA yolu yok.
+ */
+async function kartEkle(s, tipEtiketi) {
+  await s.click('button:has-text("Kart ekle")');
+  await s.waitForTimeout(200);
+  await s.click(`button:has-text("${tipEtiketi}")`);
+  await s.waitForTimeout(400);
+}
+
 async function sunucuyuBekle() {
   for (let i = 0; i < 60; i++) {
     try {
@@ -132,14 +146,14 @@ try {
   kontrol(await s.locator('button:has-text("Yayınla")').isDisabled(), "sayfasız eğitim yayınlanamaz");
 
   /* 3. İçerik ekle */
-  await s.click('button:has-text("Kural kartı")');
+  await kartEkle(s, "Kural kartı");
   await s.waitForTimeout(800);
   const baslikAlani = s.locator('input[placeholder="Başlık"]').first();
   await baslikAlani.fill("Emniyet kemeri zorunludur");
   await baslikAlani.blur();
   await s.waitForTimeout(800);
 
-  await s.click('button:has-text("Tehlike uyarısı")');
+  await kartEkle(s, "Tehlike uyarısı");
   await s.waitForTimeout(800);
   const ikinciBaslik = s.locator('input[placeholder="Başlık"]').nth(1);
   await ikinciBaslik.fill("2 metrenin üstü yüksektir");
@@ -218,7 +232,7 @@ try {
      olmuş görünmesi demek. */
   kontrol(await s.getByText("Yayında — düzenleme kapalı.").isVisible(), "yayındaki eğitim kilitli uyarısı çıkıyor");
   kontrol(await s.locator('input[placeholder="Başlık"]').first().isDisabled(), "yayındayken içerik alanları kapalı");
-  kontrol(await s.locator('button:has-text("Kural kartı")').isDisabled(), "yayındayken kart eklenemiyor");
+  kontrol(await s.locator('button:has-text("Kart ekle")').isDisabled(), "yayındayken kart eklenemiyor");
 
   /* 7. Atama kuralı — Kaynak bölümü */
   await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
@@ -343,7 +357,7 @@ try {
   await s.fill('input[name="ad"]', "İkinci Eğitim");
   await s.click('button:has-text("Oluştur")');
   await s.waitForURL(/\/egitimler\/egt_/, { timeout: 15000 });
-  await s.click('button:has-text("Kural kartı")');
+  await kartEkle(s, "Kural kartı");
   await s.waitForTimeout(900);
   const ikBaslik = s.locator('input[placeholder="Başlık"]').first();
   await ikBaslik.fill("Kısa kart");
@@ -475,9 +489,15 @@ try {
   await s.goto(`${ADRES}/kayitlar`, { waitUntil: "networkidle" });
   kontrol(await s.getByText("Kayıt defteri").first().isVisible(), "kayıt defteri açılıyor");
   kontrol(await s.getByText("Ali Yılmaz").first().isVisible(), "kayıt satırı kişinin adıyla görünüyor");
+  /* Tablonun metni ölçüme KATILIYOR: "görünmüyor" tek başına neyin yanlış
+     olduğunu söylemiyor — satır hiç yok mu, adı mı farklı, süzgeç mi eliyor?
+     Başarısızlıkta defterde ne olduğunu da yazdırıyoruz. */
+  const defterMetni = await s.locator("table").first().innerText();
   kontrol(
-    await s.getByText("Yüksekte Çalışma").first().isVisible(),
-    "kioskta tamamlanan eğitim deftere düşmüş",
+    defterMetni.includes("Yüksekte Çalışma"),
+    `kioskta tamamlanan eğitim deftere düşmüş${
+      defterMetni.includes("Yüksekte Çalışma") ? "" : ` — defterde görünen: ${defterMetni.slice(0, 400).replace(/\s+/g, " ")}`
+    }`,
   );
   /* Kayıt DÜZENLENMEZ, SİLİNMEZ (CLAUDE.md 7): defterde kalem ya da çöp kutusu
      olmamalı. Bu kural yalnız yazıyla değil, ekranın kendisiyle korunuyor. */
@@ -599,7 +619,13 @@ try {
   await s.goto(`${ADRES}/kayitlar`, { waitUntil: "networkidle" });
   await s.getByLabel("Kaynak süzgeci").selectOption("aktarim");
   await s.waitForTimeout(500);
-  kontrol(await s.getByText("Dış aktarım").first().isVisible(), "aktarılan kayıt 'Dış aktarım' kaynağıyla duruyor");
+  const aktarimMetni = await s.locator("table").first().innerText();
+  kontrol(
+    aktarimMetni.includes("Dış aktarım"),
+    `aktarılan kayıt 'Dış aktarım' kaynağıyla duruyor${
+      aktarimMetni.includes("Dış aktarım") ? "" : ` — süzülmüş defterde: ${aktarimMetni.slice(0, 400).replace(/\s+/g, " ")}`
+    }`,
+  );
   kontrol(await s.getByText("Ayşe Demir").first().isVisible(), "aktarılan kayıt kişiye bağlanmış");
 
   /* 18. EĞİTİM PAKETİ — paket mantığının TEK gerçek sınavı: pakete yazılan
@@ -610,7 +636,7 @@ try {
   await s.click('button:has-text("Oluştur")');
   await s.waitForURL(/\/egitimler\/egt_/, { timeout: 15000 });
   const paketEgitimId = new URL(s.url()).pathname.split("/").pop();
-  await s.click('button:has-text("Kural kartı")');
+  await kartEkle(s, "Kural kartı");
   await s.waitForTimeout(900);
   const pkBaslik = s.locator('input[placeholder="Başlık"]').first();
   await pkBaslik.fill("Paketten gelen kart");

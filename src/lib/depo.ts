@@ -181,7 +181,23 @@ export function egitimSil(id: string): void {
  * Eğitimi kopyala — "yeni eğitim = boş sayfa değil, geçen yılın kopyası".
  * Sayfa ve sorular yeni kimliklerle çoğaltılır; kopya HER ZAMAN taslak doğar.
  */
-export function egitimKopyala(id: string, hazirlayan: string): Egitim | null {
+export function egitimKopyala(id: string, hazirlayan: string): Egitim | null;
+
+export function egitimKopyala(
+  id: string,
+  hazirlayan: string,
+  esleme: Map<string, string>,
+): Egitim | null;
+/**
+ * Eğitimi kopyala — "yeni eğitim = boş sayfa değil, geçen yılın kopyası".
+ *
+ * İsteğe bağlı `esleme` haritası ESKİ sayfa kimliğinden yenisine yazılır.
+ * Çağıran, sayfa kimliğine bağlı yan verilerini (editördeki bölüm başlıkları
+ * gibi) kopyayla taşıyabilsin diye: o veriler `Sayfa` içinde durmadığı için
+ * burada kendiliğinden gelmiyorlar, ve haritayı dışarı vermeden taşımanın
+ * yolu yok — kopyanın sayfaları yeni kimlikler alıyor.
+ */
+export function egitimKopyala(id: string, hazirlayan: string, esleme?: Map<string, string>): Egitim | null {
   const kaynak = egitimGetir(id);
   if (!kaynak) return null;
   const yeni = egitimOlustur(`${kaynak.ad} (kopya)`, hazirlayan);
@@ -198,7 +214,8 @@ export function egitimKopyala(id: string, hazirlayan: string): Egitim | null {
     egitmen: kaynak.egitmen,
   });
   for (const s of sayfalariGetir(id)) {
-    sayfaEkle(yeni.id, { ...s, id: undefined as unknown as string });
+    const eklenen = sayfaEkle(yeni.id, { ...s, id: undefined as unknown as string });
+    esleme?.set(s.id, eklenen.id);
   }
   for (const q of sorulariGetir(id)) {
     soruEkle(yeni.id, {
