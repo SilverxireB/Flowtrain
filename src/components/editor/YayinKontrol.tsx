@@ -4,6 +4,7 @@ import Icon from "@/components/Icon";
 import { kartGorselleri } from "@/lib/editorMedya";
 import type { Egitim, Sayfa, Soru } from "@/lib/tipler";
 import { bolgeCoz, eslestirmeCifti } from "@/lib/sinav";
+import { okumaUyarilari } from "@/lib/okunabilirlik";
 
 /**
  * YAYINA HAZIRLIK KONTROL LİSTESİ.
@@ -145,6 +146,21 @@ export function yayinKontrolu(
     if (bolgesiz > 0) {
       liste.push({ durum: "uyari", metin: `${bolgesiz} işaretleme sorusunda hiç bölge tanımlanmamış.` });
     }
+  }
+
+  /* OKUNABİLİRLİK EN SONDA ve TEK SATIR. Kart kart yazılsaydı kırk kartlık
+     eğitimde liste okuma uyarılarıyla dolar, asıl kusurlar (boş şık, kırık
+     görsel) aralarında kaybolurdu. Kaç kartta sorun olduğu söylenir; hangisi
+     olduğunu kart haritası zaten gösteriyor. */
+  const okuma = okumaUyarilari(sayfalar);
+  if (okuma.length > 0) {
+    liste.push({
+      durum: "uyari",
+      metin:
+        okuma.length === 1
+          ? `Bir kartta okuma sorunu: ${okuma[0].metin}`
+          : `${okuma.length} kartta okuma sorunu var (uzun cümle, uzun kart ya da büyük harf).`,
+    });
   }
 
   return liste;
