@@ -12,6 +12,7 @@ import {
   karistir,
   tohumla,
   zorSorular,
+  kolaySorular,
   siralamaDogruMu,
   eslestirmeDogruMu,
   eslestirmeCifti,
@@ -165,5 +166,16 @@ const karisikSinav = [
 const sonuc = puanla(karisikSinav, { q1: [0, 1], q2: [1, 0], q3: [0] });
 esit(sonuc.dogruSayisi, 2, "yalnız yanlış eşleştirme düşer");
 esit(sonuc.yanlisSoruIdleri, ["q2"], "düşen soru doğru işaretlenir");
+
+/* ── kolay sorular: zor sorunun simetriği ────────────────────────────────── */
+{
+  const ist = [
+    { soruId: "a", deneme: 20, yanlis: 0 },  // hiç yanlış yok, yeterince denendi
+    { soruId: "b", deneme: 3, yanlis: 0 },   // yanlış yok AMA az denendi
+    { soruId: "c", deneme: 20, yanlis: 1 },  // bir kişi yanlış yapmış
+  ];
+  esit(kolaySorular(ist), ["a"], "yalnız yeterince denenmiş ve hiç yanlış yapılmamış soru kolay sayılır");
+  esit(kolaySorular([]), [], "istatistik yoksa kolay soru yok");
+}
 
 bitir("sinav");

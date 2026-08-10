@@ -184,3 +184,22 @@ export function zorSorular(
     .map((s) => ({ soruId: s.soruId, yanlisOrani: s.yanlis / s.deneme }))
     .sort((a, b) => b.yanlisOrani - a.yanlisOrani);
 }
+
+/**
+ * HİÇ YANLIŞ YAPILMAYAN SORULAR — zor sorunun simetriği.
+ *
+ * Kalite sinyali iki yönlüdür ve ürün şimdiye kadar yalnız bir yönünü
+ * söylüyordu. Yüz kişinin yüzünün doğru yaptığı soru kimseyi elemez, kimseye
+ * bir şey öğretmez ve sınavda yer kaplar: havuzdan bir soru çekildiğinde onun
+ * yerine gelen, gerçekten ayırt eden bir soru olabilirdi. "Kolay soru" kusur
+ * değil, ama havuzda ÇOK varsa sınav ölçmüyor demektir.
+ *
+ * Eşik zor sorununkiyle aynı mantıkta: yeterince denenmemiş soru hakkında
+ * hüküm verilmez (on denemenin altında istatistik gürültüdür).
+ */
+export function kolaySorular(
+  istatistik: { soruId: string; deneme: number; yanlis: number }[],
+  asgariDeneme = 10,
+): string[] {
+  return istatistik.filter((s) => s.deneme >= asgariDeneme && s.yanlis === 0).map((s) => s.soruId);
+}

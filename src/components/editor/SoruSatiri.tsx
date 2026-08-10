@@ -33,6 +33,7 @@ function SoruSatiriIc({
   soru,
   sira,
   zor,
+  kolay,
   istatistik,
   medyalar,
   onGuncelle,
@@ -44,6 +45,8 @@ function SoruSatiriIc({
   soru: Soru;
   sira: number;
   zor: boolean;
+  /** Yeterince denenmiş ve hiç yanlış yapılmamış — ölçmüyor. */
+  kolay: boolean;
   /** Bu soru kaç kez soruldu, kaçında yanlış yapıldı. */
   istatistik?: { deneme: number; yanlis: number };
   medyalar: MedyaOzet[];
@@ -188,6 +191,14 @@ function SoruSatiriIc({
         {zor ? (
           <span className="chip border-orta/40 bg-orta/10 text-xs text-orta-dark" title="Bu soruyu çoğunluk yanlış yapıyor">
             <Icon name="warning" size={14} /> Anlatım yetersiz olabilir
+          </span>
+        ) : null}
+        {/* ZOR SORUNUN SİMETRİĞİ. Sinyal iki yönlüdür ve ürün yalnız bir
+            yönünü söylüyordu: kimsenin yanlış yapmadığı soru kimseyi elemez,
+            kimseye bir şey öğretmez, havuzda yer kaplar. Kusur değil — bilgi. */}
+        {kolay && !zor ? (
+          <span className="chip text-xs text-muted" title="Yeterince denendi, hiç yanlış yapılmadı">
+            <Icon name="check" size={14} /> Kimse yanlış yapmıyor
           </span>
         ) : null}
         <div className="flex-1" />

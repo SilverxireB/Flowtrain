@@ -71,6 +71,7 @@ export default function Editor({
   sorular,
   rol,
   zorSoruIdleri,
+  kolaySoruIdleri,
   istatistik,
   medyalar,
   kategoriler,
@@ -84,6 +85,8 @@ export default function Editor({
   sorular: Soru[];
   rol: Rol;
   zorSoruIdleri: string[];
+  /** Yeterince denenmiş ve HİÇ yanlış yapılmamış sorular. */
+  kolaySoruIdleri: string[];
   istatistik: { soruId: string; deneme: number; yanlis: number }[];
   medyalar: MedyaOzet[];
   kategoriler: string[];
@@ -728,6 +731,7 @@ export default function Editor({
                     soru={s}
                     sira={i + 1}
                     zor={zorSoruIdleri.includes(s.id)}
+                    kolay={kolaySoruIdleri.includes(s.id)}
                     istatistik={istatistikHarita.get(s.id)}
                     medyalar={medyalar}
                     kilitli={kilitli}

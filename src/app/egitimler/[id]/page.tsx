@@ -7,7 +7,7 @@ import { VERI_KLASORU } from "@/lib/db";
 import { kartGorselleri, type MedyaOzet } from "@/lib/editorMedya";
 import { kapi } from "@/lib/kimlik";
 import * as depo from "@/lib/depo";
-import { zorSorular } from "@/lib/sinav";
+import { kolaySorular, zorSorular } from "@/lib/sinav";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +53,8 @@ export default function EgitimEditoru({ params }: { params: { id: string } }) {
       /* İÇERİK KALİTE SİNYALİ: çoğunluğun yanlış yaptığı soru, kötü İNSAN
          değil kötü SAYFA demektir. Hazırlayan bunu yüzüne görmezse düzeltmez. */
       zorSoruIdleri={zorSorular(istatistik).map((z) => z.soruId)}
+      /* Simetrik sinyal: kimsenin yanlış yapmadığı soru da ölçmüyor. */
+      kolaySoruIdleri={kolaySorular(istatistik)}
       istatistik={istatistik}
       medyalar={medyalar}
       kategoriler={depo.kategorileriGetir()}
