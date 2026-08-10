@@ -13,7 +13,21 @@ import { join, resolve } from "node:path";
  * VERİ KLASÖRÜ = YEDEK YERİ. Tek klasör kopyalanınca kurulum taşınır; kurulum
  * belgesinde söylenen tek yedek talimatı budur.
  */
-export const VERI_KLASORU = process.env.FLOWTRAIN_DATA ?? join(process.cwd(), "data");
+/**
+ * VİTRİN SUNUCUSU (Vercel) — kod deposundan çalışan tek yer.
+ *
+ * Orada proje klasörü SALT OKUNUR ve yazılabilir tek yer `/tmp`; üstelik her
+ * soğuk açılışta boştur. Bu yüzden veri klasörü oraya alınır ve depodaki hazır
+ * `data/` tohum olarak kullanılır — link her açıldığında aynı dolu kurulum.
+ *
+ * `VERCEL` değişkenini o sunucu kendisi koyar; GERÇEK KURULUMDA (self-host, iç
+ * ağdaki kutu) YOKTUR ve hiçbir yol değişmez: veri klasörü yine `./data`,
+ * "yedek = klasörü kopyala" kuralı yine doğrudur. Yazılamayan bir klasör
+ * orada SESSİZCE /tmp'ye kaçmaz, gürültüyle patlar — öyle olmalı.
+ */
+const VITRIN = !!process.env.VERCEL;
+export const VERI_KLASORU =
+  process.env.FLOWTRAIN_DATA ?? (VITRIN ? "/tmp/flowtrain" : join(process.cwd(), "data"));
 
 let _db: Database.Database | null = null;
 
@@ -244,19 +258,18 @@ CREATE TABLE IF NOT EXISTS medya (
 `;
 
 /**
- * `FLOWTRAIN_TOHUM` — BOŞ bir veri klasörünü hazır bir klasörden doldurur.
+ * BOŞ bir veri klasörünü hazır bir klasörden doldurur.
  *
- * Dosya sistemi kalıcı olmayan bir sunucuda (vitrin dağıtımı: her soğuk
- * açılışta boş bir geçici klasör) uygulama kurulum ekranıyla karşılıyordu.
- * Bu değişken verildiğinde hazır klasör bir kez kopyalanır; link her
- * açıldığında aynı dolu kurulum gelir.
+ * Vitrin sunucusunda kendiliğinden depodaki `data/` klasöründen tohumlanır —
+ * ORADA HİÇBİR AYAR GEREKMEZ. `FLOWTRAIN_TOHUM` ile başka bir klasör
+ * gösterilebilir (önceden kurulmuş bir kutuyu çoğaltmak için).
  *
- * İKİ KAPI: değişken yoksa (self-host'ta HEP yok) tek bir okumadır, hiçbir şey
+ * İKİ KAPI: kaynak yoksa (self-host'ta HEP yok) tek bir okumadır, hiçbir şey
  * değişmez; veri klasöründe ZATEN veritabanı varsa hiç dokunulmaz — kurulmuş
  * bir kutunun verisi asla ezilmez.
  */
 function tohumKlasorunuAc(): void {
-  const kaynak = process.env.FLOWTRAIN_TOHUM;
+  const kaynak = process.env.FLOWTRAIN_TOHUM ?? (VITRIN ? join(process.cwd(), "data") : "");
   if (!kaynak) return;
   if (existsSync(join(VERI_KLASORU, "flowtrain.db"))) return;
 
