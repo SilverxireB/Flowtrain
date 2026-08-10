@@ -62,20 +62,45 @@ if (existsSync(join(KOK, "node_modules", "next"))) {
 } else {
   bilgi("Bağımlılıklar kuruluyor (birkaç dakika sürebilir)…");
   yaz();
-  /* `--ignore-scripts` ŞART, süs değil.
-     `better-sqlite3`ün kendi install betiği yok ama `binding.gyp` dosyası var;
-     npm bunu görünce varsayılan olarak `node-gyp rebuild` başlatıyor ve C++
-     derleyicisi olmayan makinede "Could not find any Visual Studio installation"
-     ile ölüyor. Oysa derlemeye HİÇ gerek yok: paket Node-API tabanlı hazır
-     ikiliyi kendi içinde taşıyor (prebuilds/). Derleyicisi olan makinede de
-     aynı ikili kullanılıyor, yani bu bayrak her yerde doğru.
-
-     Bedeli: atlanan `postinstall` adımını (PDF işçisi) elle çağırmak. */
-  npmCalistir("install", "--ignore-scripts");
+  npmCalistir("install");
   yaz();
-  npmCalistir("run", "pdf-isci");
   basari("Bağımlılıklar kuruldu");
 }
+
+/* ── 2b. Yerel sürücü GERÇEKTEN yüklenebiliyor mu ──────────────────────────
+   `npm install` sessizce başarılı görünüp `better-sqlite3`ü ikilisiz
+   bırakabiliyor — sürüme göre iki ayrı yoldan:
+
+     · v13 paketin İÇİNDE hazır ikili taşır ama kendi install betiği yoktur;
+       npm `binding.gyp`i görüp `node-gyp rebuild` başlatır ve C++ derleyicisi
+       olmayan makinede "Could not find any Visual Studio installation" der.
+     · v12 ikiliyi install betiğiyle İNDİRİR; `--ignore-scripts` ile kurulmuşsa
+       hiç inmez.
+
+   İkisinin de belirtisi aynı ve GEÇ çıkar: kurulum "tamam" der, uygulama
+   ilk veritabanı erişiminde "Could not locate the bindings file" ile ölür.
+   Bu yüzden burada denenir ve gerekirse hazır ikili tek başına indirilir —
+   derleyici hiçbir durumda gerekmez. */
+bilgi("Veritabanı sürücüsü deneniyor…");
+const surucuVarMi = () =>
+  spawnSync(process.execPath, ["-e", "require('better-sqlite3')(':memory:')"], { cwd: KOK }).status === 0;
+
+if (!surucuVarMi()) {
+  bilgi("İkili eksik, hazır sürüm indiriliyor…");
+  spawnSync(process.execPath, [join(KOK, "node_modules", "prebuild-install", "bin.js")], {
+    cwd: join(KOK, "node_modules", "better-sqlite3"),
+    stdio: "inherit",
+  });
+  if (!surucuVarMi()) {
+    yaz();
+    hata("Veritabanı sürücüsü yüklenemedi.");
+    yaz("    İnternet bağlantınızı kontrol edip tekrar deneyin.");
+    yaz("    Sürmezse: npm install --ignore-scripts && npm run pdf-isci");
+    yaz();
+    process.exit(1);
+  }
+}
+basari("Veritabanı sürücüsü hazır");
 
 /* ── 3. Derleme ───────────────────────────────────────────────────────────── */
 bilgi("Uygulama derleniyor…");
