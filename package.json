@@ -15,6 +15,7 @@
     "e2e": "node tests/uctan-uca.mjs",
     "kur": "node scripts/kur.mjs",
     "veri": "node scripts/veri-hazirla.mjs",
+    "sifre": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/sifre-sifirla.mjs",
     "yuk": "node scripts/yuk.mjs"
   },
   "dependencies": {

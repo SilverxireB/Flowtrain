@@ -1,6 +1,6 @@
 import "server-only";
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { db, kimlik, simdi } from "./db";
+import { ozetDogru, ozetle, tuzUret } from "./parola";
 import * as pinIslem from "./pin";
 import type { Egitim, Grup, Kural, Medya, Oturum, Sayfa, Soru } from "./tipler";
 import { ASGARI_SURE_VARSAYILAN, SINAV_VARSAYILAN } from "./tipler";
@@ -607,10 +607,9 @@ export function bekleyenSenkronlar(): Oturum[] {
 
 export { PIN_DENEME_SINIRI, PIN_KILIT_DK, type PinSonucu } from "./pin";
 
-/** Hesap şifreleri de aynı reçeteyle özetlenir (kişiye özel tuz + scrypt). */
-function ozetle(deger: string, tuz: string): string {
-  return scryptSync(deger, tuz, 32).toString("hex");
-}
+/* Hesap şifrelerinin özeti `parola.ts`te — aynı reçeteyi konsoldan çalışan
+   kurtarma aracı da kullanıyor; iki kopya olsaydı biri değişince şifreler
+   sessizce "yanlış" olurdu. */
 
 export function pinKur(sicil: string, pin: string): void {
   pinIslem.pinKur(db(), sicil, pin, simdi());
@@ -641,7 +640,7 @@ export function hesaplariListele(): import("./yetki").Hesap[] {
 }
 
 export function hesapOlustur(h: import("./yetki").Hesap & { sifre: string }): void {
-  const tuz = randomBytes(16).toString("hex");
+  const tuz = tuzUret();
   db()
     .prepare("INSERT INTO hesap (kullanici,ad,rol,ozet,tuz,sicil,olusturma) VALUES (?,?,?,?,?,?,?)")
     .run(h.kullanici, h.ad, h.rol, ozetle(h.sifre, tuz), tuz, h.sicil ?? null, simdi());
@@ -652,14 +651,28 @@ export function hesapDogrula(kullanici: string, sifre: string): import("./yetki"
     | (import("./yetki").Hesap & { ozet: string; tuz: string })
     | undefined;
   if (!r) return null;
-  const a = Buffer.from(r.ozet, "hex");
-  const b = Buffer.from(ozetle(sifre, r.tuz), "hex");
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  if (!ozetDogru(r.ozet, r.tuz, sifre)) return null;
   return { kullanici: r.kullanici, ad: r.ad, rol: r.rol, sicil: r.sicil ?? undefined };
 }
 
 export function hesapSil(kullanici: string): void {
   db().prepare("DELETE FROM hesap WHERE kullanici=?").run(kullanici);
+}
+
+/**
+ * Şifreyi değiştirir. Yeni TUZ da üretilir — aynı tuzu korumak, eski özetle
+ * yeni özeti karşılaştırılabilir kılardı.
+ *
+ * Şifre geri OKUNAMAZ (scrypt özeti); unutulduğunda tek yol budur. Kapalı
+ * ağda e-posta ile sıfırlama diye bir şey yok: kurtarma yetkisi, sunucunun
+ * dosya sistemine erişebilen kişide olmak zorunda.
+ */
+export function hesapSifreDegistir(kullanici: string, yeniSifre: string): boolean {
+  const tuz = tuzUret();
+  const r = db()
+    .prepare("UPDATE hesap SET ozet=?, tuz=? WHERE kullanici=?")
+    .run(ozetle(yeniSifre, tuz), tuz, kullanici);
+  return r.changes > 0;
 }
 
 export function hesapSayisi(): number {
