@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
-import { existsSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { cpSync, existsSync, mkdirSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 /**
  * SQLite deposu — tek dosya, veri klasörünün içinde.
@@ -243,9 +243,34 @@ CREATE TABLE IF NOT EXISTS medya (
 );
 `;
 
+/**
+ * `FLOWTRAIN_TOHUM` — BOŞ bir veri klasörünü hazır bir klasörden doldurur.
+ *
+ * Dosya sistemi kalıcı olmayan bir sunucuda (vitrin dağıtımı: her soğuk
+ * açılışta boş bir geçici klasör) uygulama kurulum ekranıyla karşılıyordu.
+ * Bu değişken verildiğinde hazır klasör bir kez kopyalanır; link her
+ * açıldığında aynı dolu kurulum gelir.
+ *
+ * İKİ KAPI: değişken yoksa (self-host'ta HEP yok) tek bir okumadır, hiçbir şey
+ * değişmez; veri klasöründe ZATEN veritabanı varsa hiç dokunulmaz — kurulmuş
+ * bir kutunun verisi asla ezilmez.
+ */
+function tohumKlasorunuAc(): void {
+  const kaynak = process.env.FLOWTRAIN_TOHUM;
+  if (!kaynak) return;
+  if (existsSync(join(VERI_KLASORU, "flowtrain.db"))) return;
+
+  const mutlak = resolve(kaynak);
+  if (!existsSync(mutlak) || mutlak === resolve(VERI_KLASORU)) return;
+  /* `-shm` KOPYALANMAZ: paylaşımlı bellek indeksidir, açılışta yeniden
+     üretilir; başka bir makineden gelen kalıntı SQLite'ı yanıltır. */
+  cpSync(mutlak, VERI_KLASORU, { recursive: true, filter: (y) => !y.endsWith("-shm") });
+}
+
 export function db(): Database.Database {
   if (_db) return _db;
   if (!existsSync(VERI_KLASORU)) mkdirSync(VERI_KLASORU, { recursive: true });
+  tohumKlasorunuAc();
   if (!existsSync(join(VERI_KLASORU, "medya"))) mkdirSync(join(VERI_KLASORU, "medya"), { recursive: true });
   const d = new Database(join(VERI_KLASORU, "flowtrain.db"));
   d.exec(SEMA);
