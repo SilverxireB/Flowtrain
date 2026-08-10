@@ -154,7 +154,7 @@ export default function KartAlanlari({
       ) : null}
 
       {tanim.kural ? <p className="text-[11px] leading-relaxed text-muted">{tanim.kural}</p> : null}
-      {bicimVar ? <BicimIpucu /> : null}
+      {bicimVar ? <div className="hidden sm:block"><BicimIpucu /></div> : null}
 
       {sayfa.tip === "onceSonra" ? (
         <OnceSonraYuvalari

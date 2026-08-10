@@ -538,7 +538,7 @@ export default function Editor({
         </div>
 
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_26rem] xl:items-start">
-          <div className="space-y-8">
+          <div className="min-w-0 space-y-8">
             {yayinda ? (
               /* Yayındaki eğitim bir KAYITTIR: tamamlanmış oturumlar "sürüm N"e
                  atıf yapıyor. İçeriği yerinde değiştirmek, insanların kayıtta

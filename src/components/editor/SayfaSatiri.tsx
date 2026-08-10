@@ -5,6 +5,7 @@ import Icon from "@/components/Icon";
 import KartAlanlari from "@/components/editor/KartAlanlari";
 import { KartTipiRozeti } from "@/components/editor/KartTipiMenusu";
 import MedyaSecici from "@/components/editor/MedyaSecici";
+import CanliOnizleme from "@/components/editor/CanliOnizleme";
 import { gorselYamasi, kartGorselleri, type MedyaOzet } from "@/lib/editorMedya";
 import { ASGARI_SURE_VARSAYILAN, KART_ACIKLAMA, KART_ETIKET, type KartTipi, type Sayfa } from "@/lib/tipler";
 
@@ -88,6 +89,8 @@ function SayfaSatiriIc({
      yükleme akışını ikiye bölerdi. */
   const [secici, setSecici] = useState<"gorsel" | "video" | "once" | "sonra" | null>(null);
   const [kopyaAcik, setKopyaAcik] = useState(false);
+  /** Bu kartın KENDİ önizlemesi açık mı (kart içinde, yerinde). */
+  const [onizleme, setOnizleme] = useState(false);
   const [hedef, setHedef] = useState("");
   /** Tip değiştirildiğinde önceki değerler — uyarı satırındaki "Geri al" bunu kullanır. */
   const [oncekiTip, setOncekiTip] = useState<{ tip: KartTipi; asgariSure: number } | null>(null);
@@ -128,12 +131,32 @@ function SayfaSatiriIc({
       onClick={() => onSec(sayfa.id)}
       className={`card p-4 transition-shadow ${secili ? "border-accent/50 ring-4 ring-accent-soft" : ""}`}
     >
-      <div className="flex items-center gap-2">
+      {/* DAR EKRANDA SARAR: beş simge düğmesi + sıra + tip rozeti 390px'e
+          sığmıyor ve satır kartı, kart da sayfayı taşırıyordu. */}
+      <div className="flex flex-wrap items-center gap-2">
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-line text-xs font-bold text-muted">
           {sira}
         </span>
         <KartTipiRozeti tip={sayfa.tip} kilitli={kilitli} onDegis={tipDegistir} />
         <div className="flex-1" />
+
+        {/* Eylemler TEK kapta: dar ekranda beş simge sıra+tip rozetiyle aynı
+            satıra sığmıyor ve rasgele kırılıyordu. Kırılacaksa BİLİNÇLİ
+            kırılsın — kendi satırına geçip sağa yaslansın. */}
+        <div className="flex items-center gap-2 max-sm:w-full max-sm:justify-end">
+        {/* TEKİL ÖNİZLEME: kartın kendi önizlemesi, kartın İÇİNDE.
+            Alttaki şerit "şu an hangi karttayım"ı sürekli gösteriyor; bu düğme
+            "şu kart sahada nasıl duruyor" sorusuna yerinde cevap veriyor —
+            kaydırmadan, başka bir yüzeye gitmeden. */}
+        <button
+          onClick={() => setOnizleme((a) => !a)}
+          aria-expanded={onizleme}
+          className={`btn-icon ${onizleme ? "bg-accent-soft text-accent" : ""}`}
+          aria-label={onizleme ? "Önizlemeyi kapat" : "Bu kartı önizle"}
+          title="Bu kartın kioskta nasıl görüneceği"
+        >
+          <Icon name="monitor" size={16} />
+        </button>
         <button
           onClick={() => setKopyaAcik((a) => !a)}
           disabled={kilitli}
@@ -168,9 +191,10 @@ function SayfaSatiriIc({
         >
           <Icon name="trash" size={16} />
         </button>
+        </div>
       </div>
 
-      <p className="mt-1 pl-9 text-xs text-muted">{KART_ACIKLAMA[sayfa.tip]}</p>
+      <p className="mt-1 hidden pl-9 text-xs text-muted sm:block">{KART_ACIKLAMA[sayfa.tip]}</p>
 
       {/* TİP DEĞİŞİMİ SESSİZ OLMAZ: veri kaybolmuyor ama yeni tipin okumadığı
           alan kartta görünmez oluyor — bu, "yazdığım ders nereye gitti?"
@@ -332,6 +356,12 @@ function SayfaSatiriIc({
           </label>
         </div>
       </div>
+
+      {onizleme ? (
+        <div className="mt-4 border-t border-line pt-4">
+          <CanliOnizleme sayfa={sayfa} sira={sira} toplam={toplam} altMetinler={altMetinler} />
+        </div>
+      ) : null}
 
       {secici ? (
         <MedyaSecici
