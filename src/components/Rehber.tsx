@@ -19,6 +19,7 @@
  * kullanır — "bu alan bölünemez" uyarısı doğrudan "Yerleşim" başlığını açar.
  */
 import { ReactNode, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "@/components/Icon";
 
 export interface RehberBolum {
@@ -45,6 +46,10 @@ export default function Rehber({
 }) {
   const govde = useRef<HTMLDivElement>(null);
   const [aktif, setAktif] = useState(bolum ?? bolumler[0]?.id ?? "");
+  /* Portal `document`e yazıyor; sunucu çiziminde o yok. İlk istemci çiziminden
+     sonra açılır — çekmece zaten bir tıklamayla geliyor, gecikmesi görünmez. */
+  const [monte, setMonte] = useState(false);
+  useEffect(() => setMonte(true), []);
 
   // ESC ile kapat + arka planı kilitle (çekmece kayarken sayfa kaymasın).
   useEffect(() => {
@@ -88,7 +93,26 @@ export default function Rehber({
     setAktif(id);
   };
 
-  return (
+  /**
+   * ÇEKMECE GÖVDEYE TAŞINIR (portal) — `fixed` başka türlü GÜVENİLİR DEĞİL.
+   *
+   * Rehber düğmesi başlık şeridinin içinde duruyor ve o şeritte `backdrop-blur`
+   * var. `backdrop-filter`, tıpkı `transform` gibi, altındaki `position: fixed`
+   * öğeler için YENİ BİR KAPSAYICI BLOK yaratıyor: çekmece ekranı değil başlık
+   * kutusunu kaplıyordu — 375×112 piksellik bir şerit. Telefonda görünen buydu:
+   * rehberin başlığı ve sekmeleri üstte, hemen altında da editörün formu, ikisi
+   * iç içe. Karartma da yalnız o şeridi karartıyordu.
+   *
+   * Portal bunu kaynağında bitiriyor: çekmece `document.body`nin çocuğu olarak
+   * çiziliyor, ağaçtaki hiçbir ata onu bir daha kıramaz. Düzeltmeyi başlıktaki
+   * `backdrop-blur`ı kaldırarak yapmak, aynı tuzağı bir sonraki bulanık yüzeyde
+   * yeniden kurardı.
+   *
+   * `mounted` kapısı sunucu çiziminde `document`in olmaması içindir.
+   */
+  if (!monte) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[80] flex justify-end" role="dialog" aria-modal="true" aria-label={baslik}>
       <button className="absolute inset-0 bg-black/45" onClick={onClose} aria-label="Rehberi kapat" tabIndex={-1} />
 
@@ -131,6 +155,7 @@ export default function Rehber({
           <p className="text-muted text-xs pb-4">Bir şey eksikse söyle — rehber ürünle birlikte güncelleniyor.</p>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

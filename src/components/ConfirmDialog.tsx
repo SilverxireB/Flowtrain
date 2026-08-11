@@ -13,7 +13,8 @@
  *   <button onClick={() => confirm({ title, message, danger: true }, doSil)} />
  *   {dialog}
  */
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 export interface ConfirmOptions {
   title: string;
@@ -36,7 +37,23 @@ export default function ConfirmDialog({
   onCancel,
 }: ConfirmOptions & { onConfirm: () => void; onCancel: () => void }) {
   const dark = tone === "dark";
-  return (
+
+  /**
+   * ONAY PENCERESİ DE GÖVDEYE TAŞINIR (portal).
+   *
+   * Gerekçesi `Rehber.tsx`teki ile aynı ve orada GERÇEKLEŞTİ: `backdrop-blur`
+   * ya da `transform` taşıyan bir ata, altındaki `position: fixed` öğe için
+   * yeni bir kapsayıcı blok yaratıyor ve tam ekran katman o kutuya hapsoluyor.
+   * Onay penceresi bugün böyle bir atanın altında çizilmiyor — ama bu, çağıran
+   * yerin bugünkü hâline bağlı bir şans. Bir onay penceresinin yarısı görünmez
+   * olursa kullanıcı ya yanlış düğmeye basar ya da hiç basamaz; şansa
+   * bırakılacak yer değil. (`tests/genislik.test.mjs` bu kuralı tutuyor.)
+   */
+  const [monte, setMonte] = useState(false);
+  useEffect(() => setMonte(true), []);
+  if (!monte) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[70] bg-black/60 grid place-items-center p-4" onClick={onCancel}>
       <div
         role="alertdialog"
@@ -75,7 +92,8 @@ export default function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

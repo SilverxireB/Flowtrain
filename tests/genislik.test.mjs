@@ -49,4 +49,30 @@ kontrol(
     : `kendi genişliğini dayatan sayfa(lar): ${sapanlar.map((y) => y.replace(KOK, "")).join(", ")}`,
 );
 
+/* ── TAM EKRAN KATMANLAR GÖVDEYE TAŞINMALI ────────────────────────────────
+   GERÇEK HATA (11 Ağustos 2026, telefonda bildirildi): rehber çekmecesi
+   ekranı değil, başlık şeridinin kutusunu kaplıyordu — 375×112 piksellik bir
+   şerit. Altındaki editör formu rehberin metniyle iç içe görünüyordu.
+
+   SEBEP: çekmece başlık şeridinin İÇİNDE çiziliyor ve o şeritte
+   `backdrop-blur` var. `backdrop-filter`, tıpkı `transform` gibi, altındaki
+   `position: fixed` öğeler için yeni bir kapsayıcı blok yaratıyor; `fixed`
+   artık ekrana göre değil o kutuya göre çözülüyor.
+
+   Kusur GÖZLE FARK EDİLMİYOR: geniş ekranda başlık şeridi zaten geniş,
+   çekmece de makul görünüyor. Yalnız dar ekranda ortaya çıkıyor — yani tam da
+   sınavın yakalaması gereken cinsten. Kural: tam ekran katman, ağaçtaki
+   yerine güvenmek yerine gövdeye taşınır (`createPortal`). */
+const KATMANLAR = ["../src/components/Rehber.tsx", "../src/components/ConfirmDialog.tsx"];
+for (const goreli of KATMANLAR) {
+  const yol = fileURLToPath(new URL(goreli, import.meta.url));
+  const metin = readFileSync(yol, "utf8");
+  const tamEkran = /className="fixed inset-0/.test(metin);
+  if (!tamEkran) continue;
+  kontrol(
+    /createPortal\(/.test(metin),
+    `${goreli.split("/").pop()}: tam ekran katman gövdeye taşınıyor (backdrop-blur'lu ata 'fixed'i kırar)`,
+  );
+}
+
 bitir("genişlik");
