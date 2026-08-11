@@ -54,7 +54,7 @@ export default async function Atama() {
       <Baslik
         ust="/"
         ustAd="Ana sayfa"
-        baslik="Atama kuralları"
+        baslik="Atamalar"
         rehberBolum="atama"
         not={`${kisiler.length} kişi listede`}
         sag={
@@ -74,12 +74,17 @@ export default async function Atama() {
         ) : null}
 
         <section className="card p-5">
-          <h2 className="font-semibold">Yeni kural</h2>
+          <h2 className="font-semibold">Yeni atama</h2>
+          {/* METİN ARTIK İKİ YOLU DA ANLATIYOR. Eskiden yalnız "kişi kişi atama
+              yapmayın" yazıyordu ve kişiye özel atama eklendikten sonra sayfa
+              kendi kendisiyle çelişiyordu. Kural hâlâ VARSAYILAN — sebebini
+              söylemek yasaklamaktan daha iyi çalışıyor. */}
           <p className="mt-1 text-sm text-muted">
-            Kişi kişi atama yapmayın. Kural yazarsanız listeye sonradan düşen personel{" "}
-            <strong className="text-ink">kendiliğinden</strong> kapsanır. Kuralı bir{" "}
-            <strong className="text-ink">pakete</strong> yazarsanız, pakete sonradan eklenen eğitim de kendiliğinden
-            kapsanır.
+            <strong className="text-ink">Kural</strong> yazarsanız listeye sonradan düşen personel kendiliğinden
+            kapsanır — süregelen zorunluluklar için doğru olan budur. Kuralı bir{" "}
+            <strong className="text-ink">pakete</strong> yazarsanız, pakete sonradan eklenen eğitim de kapsanır.{" "}
+            <strong className="text-ink">Belirli kişilere</strong> atama ise istisna içindir: ramak kala sonrası tekrar
+            eğitimi, göreve yeni geçen kişi.
           </p>
           <KuralFormu
             egitimler={egitimler.map((e) => ({ id: e.id, ad: e.ad, yayinda: e.durum === "yayin" }))}
@@ -88,17 +93,20 @@ export default async function Atama() {
             hatlar={secenek("hat")}
             gorevler={secenek("gorev")}
             kombinasyonlar={kombinasyonlar}
+            /* Kişi seçici ve "kimler" önizlemesi için kırpılmış liste: yalnız
+               ekranda gösterilen ve kapsamda kullanılan alanlar gidiyor. */
+            kisiler={kisiler.map((k) => ({ sicil: k.sicil, ad: k.ad, bolum: k.bolum, hat: k.hat, gorev: k.gorev }))}
           />
         </section>
 
         <section>
           <h2 className="eyebrow mb-3">
-            Kurallar · {kurallar.length}
+            Atamalar · {kurallar.length}
             {paketKuralSayisi > 0 ? ` (${paketKuralSayisi} paket kuralı)` : ""}
           </h2>
           {kurallar.length === 0 ? (
             <p className="card p-8 text-center text-muted">
-              Henüz kural yok — yayındaki eğitimler kimseye atanmadı, kiosk&apos;ta hiçbir şey görünmez.
+              Henüz atama yok — yayındaki eğitimler kimseye gitmiyor, kiosk&apos;ta hiçbir şey görünmez.
             </p>
           ) : (
             <ul className="space-y-3">

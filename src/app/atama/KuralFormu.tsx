@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { kosulKapsar } from "@/lib/kurallar";
+import { eslesir } from "@/lib/arama";
 import { useFormState, useFormStatus } from "react-dom";
 import Icon from "@/components/Icon";
 import { kuralEkleEylem } from "./eylemler";
@@ -24,6 +25,7 @@ export default function KuralFormu({
   hatlar,
   gorevler,
   kombinasyonlar,
+  kisiler,
 }: {
   egitimler: { id: string; ad: string; yayinda: boolean }[];
   paketler: { id: string; ad: string; egitimSayisi: number }[];
@@ -32,6 +34,8 @@ export default function KuralFormu({
   gorevler: string[];
   /** Ayrık (bölüm, hat, görev) üçlüleri ve her birinin kişi sayısı. */
   kombinasyonlar: { bolum?: string; hat?: string; gorev?: string; adet: number }[];
+  /** Kişi seçici ve "kimler" önizlemesi için kırpılmış personel listesi. */
+  kisiler: { sicil: string; ad: string; bolum?: string; hat?: string; gorev?: string }[];
 }) {
   const [hata, gonder] = useFormState(kuralEkleEylem, null);
   const [hedefTipi, setHedefTipi] = useState<"egitim" | "paket">("egitim");
@@ -60,12 +64,34 @@ export default function KuralFormu({
    * çalışıyor ve atama kurallar listesinde GÖRÜNÜR kalıyor.
    */
   const [kime, setKime] = useState<"grup" | "kisi">("grup");
-  const [sicilMetni, setSicilMetni] = useState("");
+  /**
+   * SİCİL ELLE YAZILMIYOR ARTIK. Önce serbest metin kutusuydu: kural yazan
+   * kişinin sicilleri ezbere ya da kâğıttan bilmesi gerekiyordu ve yanlış
+   * yazılan bir sicil sessizce KİMSEYİ kapsamıyordu (hata da vermiyordu,
+   * çünkü "o sicilli kimse yok" diye bir kural yok). Artık listeden seçiliyor;
+   * seçilen kişi adıyla görünüyor, yani yanlış kişi gözle yakalanıyor.
+   */
+  const [secilenSiciller, setSecilenSiciller] = useState<string[]>([]);
+  const [sorgu, setSorgu] = useState("");
 
-  const secilenSiciller = useMemo(
-    () => [...new Set(sicilMetni.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean))],
-    [sicilMetni],
-  );
+  const sicilKarti = useMemo(() => new Map(kisiler.map((k) => [k.sicil, k])), [kisiler]);
+
+  /* Aramada Türkçe duyarlı eşleşme (`lib/arama`): düz `includes` "İSTANBUL"u
+     küçültünce görünmez bir birleşen bırakıp SESSİZCE bulamıyor. */
+  const sonuclar = useMemo(() => {
+    const q = sorgu.trim();
+    if (!q) return [];
+    return kisiler
+      .filter((k) => !secilenSiciller.includes(k.sicil))
+      .filter((k) => eslesir(k.ad, q) || eslesir(k.sicil, q) || eslesir(k.bolum, q))
+      .slice(0, 8);
+  }, [sorgu, kisiler, secilenSiciller]);
+
+  /** Kuralın kapsadığı kişiler — "kaç kişi" sayısının ARKASINDAKİLER. */
+  const kapsananlar = useMemo(() => {
+    if (kime === "kisi") return secilenSiciller.map((s) => sicilKarti.get(s)).filter(Boolean) as typeof kisiler;
+    return kisiler.filter((k) => kosulKapsar({ bolum: secili.bolum, hat: secili.hat, gorev: secili.gorev }, k));
+  }, [kime, secilenSiciller, sicilKarti, kisiler, secili]);
 
   /**
    * KAÇ KİŞİYE GİDECEK — anlık.
@@ -77,13 +103,7 @@ export default function KuralFormu({
    * BİREBİR aynı olsun diye kapsam kuralının kendisinden (`kosulKapsar`)
    * geçiyor; forma özel ikinci bir eşleşme yazılsaydı ayrışırdı.
    */
-  const kapsanan = useMemo(() => {
-    if (kime === "kisi") return secilenSiciller.length;
-    return kombinasyonlar.reduce(
-      (t, k) => (kosulKapsar({ bolum: secili.bolum, hat: secili.hat, gorev: secili.gorev }, k) ? t + k.adet : t),
-      0,
-    );
-  }, [kime, secilenSiciller, kombinasyonlar, secili]);
+  const kapsanan = kapsananlar.length;
   const toplam = useMemo(() => kombinasyonlar.reduce((t, k) => t + k.adet, 0), [kombinasyonlar]);
 
   function degistir(alan: string, deger: string) {
@@ -96,7 +116,7 @@ export default function KuralFormu({
   return (
     <form action={gonder} className="mt-4 space-y-4">
       <fieldset>
-        <legend className="mb-1.5 text-sm font-semibold">Kural neye yazılsın?</legend>
+        <legend className="mb-1.5 text-sm font-semibold">Ne atanacak?</legend>
         <input type="hidden" name="hedefTipi" value={hedefTipi} />
         <div className="flex gap-2">
           {(
@@ -190,20 +210,70 @@ export default function KuralFormu({
           <Coklu ad="gorev" etiket="Görev" secenekler={gorevler} secili={secili.gorev} degistir={degistir} />
         </>
       ) : (
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold">Siciller</span>
-          <textarea
-            name="sicil"
-            value={sicilMetni}
-            onChange={(e) => setSicilMetni(e.target.value)}
-            rows={3}
-            placeholder={"1001\n1002 1003\n9001"}
-            className="input-base font-mono text-sm"
-          />
-          <span className="mt-1 block text-xs text-muted">
-            Boşluk, virgül ya da satır sonu ayırır — kâğıttan okuyup olduğu gibi yapıştırabilirsiniz.
-          </span>
-        </label>
+        <div>
+          {/* Sunucuya giden değer: seçilenlerin sicilleri. */}
+          <input type="hidden" name="sicil" value={secilenSiciller.join(" ")} />
+
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-semibold">Kişi ara</span>
+            <input
+              value={sorgu}
+              onChange={(e) => setSorgu(e.target.value)}
+              placeholder="Ada, sicile ya da bölüme göre"
+              className="input-base"
+            />
+          </label>
+
+          {sonuclar.length > 0 ? (
+            <ul className="mt-2 space-y-1">
+              {sonuclar.map((k) => (
+                <li key={k.sicil}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSecilenSiciller((x) => [...x, k.sicil]);
+                      setSorgu("");
+                    }}
+                    className="dokunulur flex w-full items-center gap-2 rounded-xl border border-line bg-white px-3 py-2 text-left text-sm hover:border-accent"
+                  >
+                    <Icon name="plus" size={14} className="shrink-0 text-accent" />
+                    <span className="min-w-0 flex-1 truncate">
+                      <strong className="font-semibold">{k.ad}</strong>
+                      <span className="text-muted">
+                        {" "}
+                        · {k.sicil}
+                        {k.bolum ? ` · ${k.bolum}` : ""}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : sorgu.trim() ? (
+            <p className="mt-2 text-sm text-muted">Eşleşen kişi yok.</p>
+          ) : null}
+
+          {secilenSiciller.length > 0 ? (
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {secilenSiciller.map((sc) => {
+                const k = sicilKarti.get(sc);
+                return (
+                  <li key={sc}>
+                    <button
+                      type="button"
+                      onClick={() => setSecilenSiciller((x) => x.filter((y) => y !== sc))}
+                      className="chip dokunma-44 border-accent/40 bg-accent-soft text-sm text-accent-dark"
+                      aria-label={`${k?.ad ?? sc} kişisini çıkar`}
+                    >
+                      {k?.ad ?? sc} <span className="font-normal opacity-70">{sc}</span>
+                      <Icon name="close" size={14} />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+        </div>
       )}
 
       <fieldset>
@@ -270,7 +340,7 @@ export default function KuralFormu({
           className={`text-sm font-semibold ${kapsanan === 0 ? "text-brand-dark" : "text-muted"}`}
         >
           {kapsanan === 0 ? (
-            <>{kime === "kisi" ? "Henüz sicil yazılmadı" : "Bu seçimle hiç kimse kapsanmıyor"}</>
+            <>{kime === "kisi" ? "Henüz kişi seçilmedi" : "Bu seçimle hiç kimse kapsanmıyor"}</>
           ) : (
             <>
               <strong className="text-ink">{kapsanan}</strong> kişiye gidecek
@@ -279,6 +349,32 @@ export default function KuralFormu({
           )}
         </span>
       </div>
+      {/* SAYININ ARKASINDAKİLER. "142 kişiye gidecek" doğru ama denetlenemez:
+          kural yazan kişi listeyi görmeden doğru kişileri seçtiğinden emin
+          olamıyordu. Açılır duruyor — kapalıyken sayı yeter, şüphelenince
+          açılır. İlk 50 kişi çiziliyor: bin kişilik listeyi DOM'a basmak
+          formu kilitler ve zaten kimse bin satır okumaz. */}
+      {kapsanan > 0 ? (
+        <details className="rounded-xl border border-line bg-white px-3 py-2">
+          <summary className="dokunma-44 cursor-pointer text-sm font-semibold">
+            Kimler? <span className="font-normal text-muted">{kapsanan} kişi</span>
+          </summary>
+          <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto text-sm">
+            {kapsananlar.slice(0, 50).map((k) => (
+              <li key={k.sicil} className="flex flex-wrap gap-x-2 border-b border-line/60 py-1 last:border-0">
+                <span className="font-semibold">{k.ad}</span>
+                <span className="text-muted">
+                  {k.sicil}
+                  {k.bolum ? ` · ${k.bolum}` : ""}
+                  {k.gorev ? ` · ${k.gorev}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {kapsanan > 50 ? <p className="mt-2 text-xs text-muted">…ve {kapsanan - 50} kişi daha.</p> : null}
+        </details>
+      ) : null}
+
       {kime === "grup" && kapsanan === 0 && (secili.bolum.length > 0 || secili.hat.length > 0 || secili.gorev.length > 0) ? (
         <p className="text-xs text-muted">
           Bölüm, hat ve görev <strong className="text-ink">birlikte</strong> aranır: kişi üçünü de karşılamalı.
@@ -337,7 +433,7 @@ function Gonder() {
   const { pending } = useFormStatus();
   return (
     <button type="submit" disabled={pending} className="btn-primary">
-      <Icon name="plus" size={18} /> {pending ? "Ekleniyor…" : "Kuralı ekle"}
+      <Icon name="plus" size={18} /> {pending ? "Ekleniyor…" : "Atamayı ekle"}
     </button>
   );
 }
