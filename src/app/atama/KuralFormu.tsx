@@ -47,6 +47,25 @@ export default function KuralFormu({
    * yalnız aynı anda tek alan gönderiliyor.
    */
   const [sonTarihKipi, setSonTarihKipi] = useState<"yok" | "iseGiris" | "sabit">("yok");
+  /**
+   * KİME: gruba mı, tek tek kişilere mi?
+   *
+   * "Kural yaz, kişi kişi atama" doğru varsayılan — listeye sonradan düşen
+   * personeli kural kendiliğinden kapsıyor. Ama bir İSTİSNA sınıfı var ve o
+   * politika değil, OLAY: ramak kala yaşayan kişiye tekrar eğitimi, yeni
+   * göreve geçene ek eğitim. Bunlar bölüm/hat/görevle ifade edilemez.
+   *
+   * İki kip aynı kuralı yazıyor (koşula sicil boyutu eklendi), ayrı bir atama
+   * yolu AÇILMADI: son tarih, kiosk, pano, kayıt ve denetim izi olduğu gibi
+   * çalışıyor ve atama kurallar listesinde GÖRÜNÜR kalıyor.
+   */
+  const [kime, setKime] = useState<"grup" | "kisi">("grup");
+  const [sicilMetni, setSicilMetni] = useState("");
+
+  const secilenSiciller = useMemo(
+    () => [...new Set(sicilMetni.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean))],
+    [sicilMetni],
+  );
 
   /**
    * KAÇ KİŞİYE GİDECEK — anlık.
@@ -58,14 +77,13 @@ export default function KuralFormu({
    * BİREBİR aynı olsun diye kapsam kuralının kendisinden (`kosulKapsar`)
    * geçiyor; forma özel ikinci bir eşleşme yazılsaydı ayrışırdı.
    */
-  const kapsanan = useMemo(
-    () =>
-      kombinasyonlar.reduce(
-        (t, k) => (kosulKapsar({ bolum: secili.bolum, hat: secili.hat, gorev: secili.gorev }, k) ? t + k.adet : t),
-        0,
-      ),
-    [kombinasyonlar, secili],
-  );
+  const kapsanan = useMemo(() => {
+    if (kime === "kisi") return secilenSiciller.length;
+    return kombinasyonlar.reduce(
+      (t, k) => (kosulKapsar({ bolum: secili.bolum, hat: secili.hat, gorev: secili.gorev }, k) ? t + k.adet : t),
+      0,
+    );
+  }, [kime, secilenSiciller, kombinasyonlar, secili]);
   const toplam = useMemo(() => kombinasyonlar.reduce((t, k) => t + k.adet, 0), [kombinasyonlar]);
 
   function degistir(alan: string, deger: string) {
@@ -136,9 +154,57 @@ export default function KuralFormu({
         </p>
       ) : null}
 
-      <Coklu ad="bolum" etiket="Bölüm" secenekler={bolumler} secili={secili.bolum} degistir={degistir} />
-      <Coklu ad="hat" etiket="Hat" secenekler={hatlar} secili={secili.hat} degistir={degistir} />
-      <Coklu ad="gorev" etiket="Görev" secenekler={gorevler} secili={secili.gorev} degistir={degistir} />
+      <fieldset>
+        <legend className="mb-1.5 text-sm font-semibold">Kime?</legend>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["grup", "Bölüm / hat / göreve"],
+              ["kisi", "Belirli kişilere"],
+            ] as const
+          ).map(([deger, etiket]) => (
+            <button
+              key={deger}
+              type="button"
+              onClick={() => setKime(deger)}
+              aria-pressed={kime === deger}
+              className={`chip dokunma-44 text-sm ${kime === deger ? "border-accent bg-accent-soft text-accent-dark" : ""}`}
+            >
+              {etiket}
+            </button>
+          ))}
+        </div>
+        {kime === "kisi" ? (
+          <p className="mt-2 text-xs text-muted">
+            İstisna içindir: ramak kala sonrası tekrar eğitimi, göreve yeni geçen kişi, bir kişinin eksiği.{" "}
+            <strong className="text-ink">Politika için kural yazın</strong> — kişi listesi, listeye sonradan düşen
+            personeli kapsamaz.
+          </p>
+        ) : null}
+      </fieldset>
+
+      {kime === "grup" ? (
+        <>
+          <Coklu ad="bolum" etiket="Bölüm" secenekler={bolumler} secili={secili.bolum} degistir={degistir} />
+          <Coklu ad="hat" etiket="Hat" secenekler={hatlar} secili={secili.hat} degistir={degistir} />
+          <Coklu ad="gorev" etiket="Görev" secenekler={gorevler} secili={secili.gorev} degistir={degistir} />
+        </>
+      ) : (
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold">Siciller</span>
+          <textarea
+            name="sicil"
+            value={sicilMetni}
+            onChange={(e) => setSicilMetni(e.target.value)}
+            rows={3}
+            placeholder={"1001\n1002 1003\n9001"}
+            className="input-base font-mono text-sm"
+          />
+          <span className="mt-1 block text-xs text-muted">
+            Boşluk, virgül ya da satır sonu ayırır — kâğıttan okuyup olduğu gibi yapıştırabilirsiniz.
+          </span>
+        </label>
+      )}
 
       <fieldset>
         <legend className="mb-1.5 text-sm font-semibold">Son tarih</legend>
@@ -204,16 +270,16 @@ export default function KuralFormu({
           className={`text-sm font-semibold ${kapsanan === 0 ? "text-brand-dark" : "text-muted"}`}
         >
           {kapsanan === 0 ? (
-            <>Bu seçimle hiç kimse kapsanmıyor</>
+            <>{kime === "kisi" ? "Henüz sicil yazılmadı" : "Bu seçimle hiç kimse kapsanmıyor"}</>
           ) : (
             <>
               <strong className="text-ink">{kapsanan}</strong> kişiye gidecek
-              {kapsanan === toplam ? " (listedeki herkes)" : ` · listede ${toplam} kişi`}
+              {kime === "kisi" ? "" : kapsanan === toplam ? " (listedeki herkes)" : ` · listede ${toplam} kişi`}
             </>
           )}
         </span>
       </div>
-      {kapsanan === 0 && (secili.bolum.length > 0 || secili.hat.length > 0 || secili.gorev.length > 0) ? (
+      {kime === "grup" && kapsanan === 0 && (secili.bolum.length > 0 || secili.hat.length > 0 || secili.gorev.length > 0) ? (
         <p className="text-xs text-muted">
           Bölüm, hat ve görev <strong className="text-ink">birlikte</strong> aranır: kişi üçünü de karşılamalı.
           Örneğin bakımdaki herkese yazmak için yalnız <strong className="text-ink">Bakım</strong> seçin, hat ve görev

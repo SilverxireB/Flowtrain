@@ -57,9 +57,14 @@ export function kapsamda(kisi: Kisi, kural: Kural): boolean {
  */
 export function kosulKapsar(
   kosul: Kural["kosul"],
-  kisi: { bolum?: string; hat?: string; gorev?: string },
+  kisi: { sicil?: string; bolum?: string; hat?: string; gorev?: string },
 ): boolean {
-  return boyutUyar(kosul.bolum, kisi.bolum) && boyutUyar(kosul.hat, kisi.hat) && boyutUyar(kosul.gorev, kisi.gorev);
+  return (
+    boyutUyar(kosul.sicil, kisi.sicil) &&
+    boyutUyar(kosul.bolum, kisi.bolum) &&
+    boyutUyar(kosul.hat, kisi.hat) &&
+    boyutUyar(kosul.gorev, kisi.gorev)
+  );
 }
 
 /**

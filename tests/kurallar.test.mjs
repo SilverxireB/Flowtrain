@@ -163,4 +163,22 @@ esit(gunFarki("2026-08-01", "2026-08-06"), -5, "geçmiş tarih negatif");
   esit(kapsamda(kisi, { ...kural, aktif: false }), false, "pasif kural kimseyi kapsamaz (kosulKapsar bunu bilmez)");
 }
 
+/* ── kişiye özel atama: sicil boyutu ────────────────────────────────────────
+   Kural motoru "kişi kişi atama yapma" diyor ve politika icin haklı; ama
+   istisna (ramak kala sonrası tekrar eğitimi, göreve yeni geçen kişi) kişiye
+   özgü ve bolum/hat/gorev ile ifade edilemiyor. Ayrı bir atama yolu açmak
+   yerine koşula bir boyut eklendi — motorun geri kalanı hiç değişmedi. */
+{
+  const ali = { sicil: "1001", bolum: "Kaynak", hat: "Hat 1", gorev: "Operatör" };
+  const veli = { sicil: "1002", bolum: "Kaynak", hat: "Hat 1", gorev: "Operatör" };
+  kontrol(kosulKapsar({ sicil: ["1001"] }, ali), "sicil yazılan kişi kapsanır");
+  kontrol(!kosulKapsar({ sicil: ["1001"] }, veli), "sicil yazılmayan kişi KAPSANMAZ (aynı bölümde olsa bile)");
+  kontrol(kosulKapsar({ sicil: ["1001", "1002"] }, veli), "birden çok sicil yazılabilir");
+  kontrol(kosulKapsar({}, ali), "boş sicil listesi süzmez — eski kurallar aynen çalışır");
+  kontrol(
+    !kosulKapsar({ sicil: ["1001"], bolum: ["Montaj"] }, ali),
+    "sicil de diğer boyutlar gibi VE ile bağlı",
+  );
+}
+
 bitir("kurallar");

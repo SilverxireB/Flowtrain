@@ -217,6 +217,24 @@ export interface Kural {
     bolum?: string[]
     hat?: string[]
     gorev?: string[]
+    /**
+     * KİŞİYE ÖZEL ATAMA — adı geçen siciller.
+     *
+     * Kural motoru "kişi kişi atama yapma" diyor ve haklı: listeye sonradan
+     * düşen personeli kural kendiliğinden kapsar. Ama bir İSTİSNA sınıfı var
+     * ve o politika değil, olay: ramak kala yaşayan kişiye tekrar eğitimi,
+     * yeni göreve geçene ek eğitim, bir kişinin eksiği. Bunlar bölüm/hat/görev
+     * ile ifade edilemez çünkü kişiye özgüdür.
+     *
+     * AYRI BİR ATAMA YOLU AÇILMADI, koşula bir boyut eklendi: son tarih,
+     * kiosk, pano, tamamlama kaydı ve denetim izi olduğu gibi çalışıyor. En
+     * önemlisi atama GÖRÜNÜR kalıyor — "bu kişi bu eğitimi neden aldı"nın
+     * cevabı kurallar listesinde duruyor, kimsenin hatırlamasına kalmıyor.
+     *
+     * Verildiğinde diğer boyutlar gibi VE ile bağlanır; tek başına
+     * kullanıldığında (olağan hâli) yalnız o kişileri kapsar.
+     */
+    sicil?: string[]
     /** İşe girişinden itibaren ilk N gün içinde tamamlanmalı. */
     iseGirisIcindeGun?: number
   }

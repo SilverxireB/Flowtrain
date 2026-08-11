@@ -31,10 +31,18 @@ export async function kuralEkleEylem(_onceki: string | null, form: FormData): Pr
   if (!hedefId) return "Bir eğitim ya da paket seçin.";
 
   const gun = String(form.get("iseGirisIcindeGun") ?? "").trim();
+  /* KİŞİYE ÖZEL: siciller serbest metin olarak da yazılabiliyor (kâğıttan
+     okuyup yapıştırmak için). Boşluk/virgül/satır sonu ayırıcı sayılır. */
+  const sicilHam = String(form.get("sicil") ?? "").trim();
+  const sicil = sicilHam
+    ? [...new Set(sicilHam.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean))]
+    : [];
+
   const kosul = {
     bolum: dizi(form, "bolum"),
     hat: dizi(form, "hat"),
     gorev: dizi(form, "gorev"),
+    sicil,
     iseGirisIcindeGun: gun ? Number(gun) : undefined,
   };
   const sonTarih = String(form.get("sonTarih") ?? "").trim() || undefined;

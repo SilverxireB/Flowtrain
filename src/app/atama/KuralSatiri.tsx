@@ -37,6 +37,16 @@ export default function KuralSatiri({
   const { confirm, dialog } = useConfirm();
 
   const parcalar: string[] = [];
+  /* KİŞİYE ÖZEL ATAMA EN BAŞTA ve AÇIKÇA: listeye bakan kişi "bu neden var"
+     sorusunu buradan cevaplayabilmeli. Sicil kalabalıksa sayıya düşer, yoksa
+     satır kırk sicille dolar ve diğer kurallar okunmaz olur. */
+  if (kural.kosul.sicil?.length) {
+    parcalar.push(
+      kural.kosul.sicil.length <= 4
+        ? `Kişiye özel: ${kural.kosul.sicil.join(", ")}`
+        : `Kişiye özel: ${kural.kosul.sicil.length} sicil`,
+    );
+  }
   if (kural.kosul.bolum?.length) parcalar.push(`Bölüm: ${kural.kosul.bolum.join(", ")}`);
   if (kural.kosul.hat?.length) parcalar.push(`Hat: ${kural.kosul.hat.join(", ")}`);
   if (kural.kosul.gorev?.length) parcalar.push(`Görev: ${kural.kosul.gorev.join(", ")}`);
