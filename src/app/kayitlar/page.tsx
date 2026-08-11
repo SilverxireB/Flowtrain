@@ -33,18 +33,30 @@ export default async function KayitlarSayfa() {
   const egitimler = depo.egitimleriListele();
   const egitimKarti = new Map(egitimler.map((e) => [e.id, e]));
 
+  /* KÜNYE KAYDIN KENDİ SÜRÜMÜNDEN GELİR.
+     Defter eskiden adı, kategoriyi ve tekrar süresini TASLAKTAN okuyordu:
+     "sürüm 1" diyen bir kaydın yanında bugünkü ad yazıyor, sertifikanın
+     geçerlilik tarihi de bugünkü tekrar süresinden hesaplanıyordu. Kayıt bir
+     sürüme atıf yapıyorsa künyesi de o sürümden okunmalı — sürümlü yayının
+     asıl getirisi buydu (`docs/SURUMLU-YAYIN.md`). */
+  const yayinKarti = new Map(depo.yayinKunyeleri().map((y) => [depo.yayinAnahtari(y.egitimId, y.surum), y]));
+
   const satirlar: KayitSatiri[] = depo.oturumlariGetir().map((o) => {
     const e = egitimKarti.get(o.egitimId);
+    /* O sürümün anlık görüntüsü yoksa taslağa düşülür: sürümlü yayından ÖNCE
+       yazılmış kayıtlar ve taslak bir eğitime yazılan sınıf/aktarım kayıtları
+       böyle. Eskisinden kötü değil, sadece elde olanın en iyisi. */
+    const kunye = yayinKarti.get(depo.yayinAnahtari(o.egitimId, o.egitimSurum)) ?? e;
     const k = kisiKarti.get(o.sicil);
     const bitisGunu = o.bitis?.slice(0, 10);
     return {
       id: o.id,
       egitimId: o.egitimId,
       // Eğitim silinmiş olabilir; kayıt yine de durur ve kimliğiyle gösterilir.
-      egitimAdi: e?.ad ?? `(silinmiş eğitim · ${o.egitimId})`,
+      egitimAdi: kunye?.ad ?? `(silinmiş eğitim · ${o.egitimId})`,
       egitimSurum: o.egitimSurum,
-      kategori: e?.kategori ?? "",
-      zorunlu: !!e?.zorunlu,
+      kategori: kunye?.kategori ?? "",
+      zorunlu: !!kunye?.zorunlu,
       sicil: o.sicil,
       ad: k?.ad ?? "",
       bolum: k?.bolum ?? "",
@@ -59,8 +71,11 @@ export default async function KayitlarSayfa() {
       egitmen: o.egitmen,
       gozeten: o.gozeten,
       notlar: o.notlar,
+      /* Geçerlilik de o sürümün tekrar süresinden: bugün 12 aydan 6 aya
+         çekilen bir süre, geçen yıl alınmış sertifikayı geriye dönük
+         kısaltmamalı. */
       gecerlilikBitis:
-        o.sonuc === "gecti" && bitisGunu && e?.tekrarAy ? ayEkle(bitisGunu, e.tekrarAy) : undefined,
+        o.sonuc === "gecti" && bitisGunu && kunye?.tekrarAy ? ayEkle(bitisGunu, kunye.tekrarAy) : undefined,
     };
   });
 

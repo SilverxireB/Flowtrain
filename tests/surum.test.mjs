@@ -358,6 +358,31 @@ esit(
   "saha listesindeki künye de yayından geliyor (atama motorunun malzemesi)",
 );
 
+/* ══ 4. KAYIT DEFTERİ KÜNYESİ ══════════════════════════════════════════════
+   Kayıt "sürüm 1" diyorsa yanında 1. sürümün adı ve tekrar süresi yazmalı.
+   Defter bunları eskiden taslaktan okuyordu: eğitim yeniden adlandırıldığında
+   geçen yılın sertifikası bugünkü adla basılıyor, tekrar süresi 12 aydan 6 aya
+   çekildiğinde de geçmiş sertifikaların geçerliliği GERİYE DÖNÜK kısalıyordu. */
+
+const d = depo.egitimOlustur("Forklift", "hazirlayan");
+depo.egitimGuncelle(d.id, { tekrarAy: 12, kategori: "Ekipman" });
+depo.sayfaEkle(d.id, { tip: "kural", baslik: "Yük kaldırma" });
+depo.yayinla(d.id, "onaylayan");
+
+// Taslakta ad, kategori ve tekrar süresi değişip YENİ sürüm yayınlanıyor.
+depo.egitimGuncelle(d.id, { ad: "Forklift (yenilendi)", tekrarAy: 6, kategori: "İSG" });
+depo.yayinla(d.id, "onaylayan");
+esit(depo.sonYayinGetir(d.id).surum, 2, "ikinci sürüm açıldı");
+
+const kunye = new Map(depo.yayinKunyeleri().map((y) => [depo.yayinAnahtari(y.egitimId, y.surum), y]));
+esit(kunye.get(depo.yayinAnahtari(d.id, 1)).ad, "Forklift", "1. sürümün künyesinde ESKİ ad duruyor");
+esit(kunye.get(depo.yayinAnahtari(d.id, 1)).tekrarAy, 12, "1. sürümün tekrar süresi 12 ay kaldı");
+esit(kunye.get(depo.yayinAnahtari(d.id, 1)).kategori, "Ekipman", "1. sürümün kategorisi korundu");
+esit(kunye.get(depo.yayinAnahtari(d.id, 2)).ad, "Forklift (yenilendi)", "2. sürüm yeni adı taşıyor");
+esit(kunye.get(depo.yayinAnahtari(d.id, 2)).tekrarAy, 6, "2. sürümün tekrar süresi 6 ay");
+esit(depo.egitimGetir(d.id).ad, "Forklift (yenilendi)", "taslak bugünkü adı taşımaya devam ediyor");
+esit(kunye.get(depo.yayinAnahtari(d.id, 99)), undefined, "olmayan sürümün künyesi yok (defter taslağa düşer)");
+
 /* ── temizlik ──────────────────────────────────────────────────────────────── */
 db().close();
 try {

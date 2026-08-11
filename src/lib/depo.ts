@@ -421,6 +421,29 @@ export function sonYayinGetir(egitimId: string): YayinSurum | null {
   return sonYayin(yayinlariGetir(egitimId));
 }
 
+/**
+ * TÜM sürüm künyeleri — kayıt defteri kaydın KENDİ sürümünü göstersin diye.
+ *
+ * Defter eskiden eğitim adını, kategorisini ve tekrar süresini TASLAKTAN
+ * okuyordu: "sürüm 1" diyen bir kaydın yanında bugünkü ad yazıyordu ve
+ * sertifikanın geçerlilik tarihi bugünkü tekrar süresinden hesaplanıyordu.
+ * Kayıt bir sürüme atıf yapıyorsa künyesi de o sürümden gelmeli.
+ *
+ * TEK SORGU: kayıt başına ayrı arama, 20 000 satırlık defterde 20 000 sorgu
+ * demekti. Sürüm sayısı avuç içi kadar (eğitim × sürüm), hepsi bir kerede
+ * okunup bellekte eşleşiyor.
+ */
+export function yayinKunyeleri(): YayinSurum[] {
+  const cikti: YayinSurum[] = [];
+  for (const r of db().prepare("SELECT * FROM yayinSurum").all()) cikti.push(yayindan(r as Satir));
+  return cikti;
+}
+
+/** `yayinKunyeleri()` sonucunu aramak için anahtar. */
+export function yayinAnahtari(egitimId: string, surum: number): string {
+  return `${egitimId}#${surum}`;
+}
+
 export function yayinGetir(egitimId: string, surum: number): YayinSurum | null {
   const r = db().prepare("SELECT * FROM yayinSurum WHERE egitimId=? AND surum=?").get(egitimId, surum) as
     | Satir

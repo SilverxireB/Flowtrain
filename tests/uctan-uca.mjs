@@ -992,6 +992,29 @@ try {
   await s.getByRole("button", { name: "Kapat" }).click();
   await s.waitForTimeout(300);
 
+  /* 23b. DEFTER KAYDIN KENDİ SÜRÜMÜNÜN ADINI GÖSTERİR.
+     Eğitimi yeniden adlandırıp yayınlıyoruz; 1. sürümde alınmış kaydın adı
+     DEĞİŞMEMELİ. Defter eskiden adı taslaktan okuyordu, yani geçen yılın
+     sertifikası bugünkü adla basılıyordu. */
+  await s.goto(`${ADRES}${surumYolu}`, { waitUntil: "networkidle" });
+  const adAlani = s.getByLabel("Eğitim adı");
+  await adAlani.fill("Sürüm Denemesi (yeni ad)");
+  await adAlani.blur();
+  await s.waitForTimeout(1200);
+  await s.click('button:has-text("Yayınla")');
+  await s.waitForTimeout(2500);
+  kontrol(await s.getByText("Yayında · sürüm 3").isVisible(), "yeniden adlandırma 3. sürümü açtı");
+
+  await s.goto(`${ADRES}/kayitlar`, { waitUntil: "networkidle" });
+  kontrol(
+    (await s.locator('button[aria-label="1001 · Sürüm Denemesi kaydını aç"]').count()) === 1,
+    "1. sürümde alınan kayıt ESKİ adıyla duruyor (künye kaydın sürümünden)",
+  );
+  kontrol(
+    (await s.locator('button[aria-label*="Sürüm Denemesi (yeni ad)"]').count()) === 0,
+    "yeni ad eski kayda geriye dönük yapışmadı",
+  );
+
   /* 24. PDF İÇE AKTARMA — "yükle" kapısı ürünün en önemli tek özelliği.
      Fabrikada İSG sunumu ve prosedür PDF'i zaten var; "gel bunları bizim
      editörde yeniden yaz" demek uyarlamayı öldürür.
