@@ -60,6 +60,13 @@ büyük punto, az seçenek. Onaylar `ConfirmDialog` ile (native `confirm` yok).
   `depo.kurallariCozulmus()` paket kurallarını üyelerine açar; `kurallar.ts`
   saf mantık olarak kalır ve paketten haberi olmaz. Pakete sonradan eklenen
   eğitim, kural yeniden yazılmadan kapsanır.
+- **Yazma onayı sunucudan gelir** (`kayitlar/YazmaSonucu.tsx`). Sınıf ve
+  aktarım kaydında sonuç eylemin dönüş değerinde değil ADRESTE taşınıyor
+  (`?yazildi=&atlanan=`), çünkü yazma eylemi `revalidatePath` çağırdığı anda
+  formu yeniden kurduruyor ve durumda tutulan onay ölüyordu — kullanıcı otuz
+  kişilik listeyi kaydedip hiçbir şey görmüyordu. Aynı desen gereken başka bir
+  yerde de bu yolla çözülmeli: **eylem sonrası mesajı bileşen durumuna emanet
+  etme.**
 - **Taslak ≠ yayın.** `egitim/sayfa/soru` TASLAKTIR, editör oraya yazar;
   `yayinSurum/yayinSayfa/yayinSoru` "Yayınla" anının anlık görüntüsüdür ve
   KAYITTIR — yayınlanan sürüm bir daha değişmez, değişiklik yeni sürümdür.
@@ -125,9 +132,7 @@ misafirle sulandırırdı.
 - `npm run e2e` — GERÇEK tarayıcı + GERÇEK sunucu, tüm zincir. Geçici veri
   klasörü kurar, kurulumun verisine dokunmaz. **Playwright gerekir:**
   `npm install --no-save playwright && npx playwright install chromium`.
-  **Bugün 139/141.** Düşen iki satır BİLİNEN ve İLGİSİZ bir açık: sınıf/aktarım
-  kaydından sonra özet paneli hiç çıkmıyor ve form sıfırlanıyor (kayıtlar
-  yazılıyor). Sınavdaki yorumlar teşhisi taşıyor; geçsin diye gevşetilmedi.
+  **Bugün 152/152.**
 - `node scripts/yuk.mjs` — fabrika ölçeğinde başarım (1000 kişi · 60 eğitim ·
   20 000 kayıt). Kabul ölçütü: kiosk 1 sn, kokpit 3 sn. Ölçüt aşılırsa çıkış
   kodu 1. **Demo veride görünmeyen kareli maliyetler yalnız burada çıkar.**

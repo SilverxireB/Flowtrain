@@ -1,5 +1,6 @@
 import Baslik from "@/components/Baslik";
 import SinifFormu from "./SinifFormu";
+import YazmaSonucu, { sonucOku } from "../YazmaSonucu";
 import { kapi } from "@/lib/kimlik";
 import * as depo from "@/lib/depo";
 import { bugun } from "@/lib/db";
@@ -28,9 +29,13 @@ export const dynamic = "force-dynamic";
 export default function SinifSayfa({
   searchParams,
 }: {
-  searchParams?: { duzelt?: string; egitim?: string; sicil?: string; gun?: string };
+  searchParams?: { duzelt?: string; egitim?: string; sicil?: string; gun?: string; yazildi?: string; atlanan?: string };
 }) {
   kapi("hazirlayan", "/kayitlar/sinif");
+
+  // Yazma onayı adresten okunur — gerekçe `YazmaSonucu.tsx`.
+  const yazildi = sonucOku(searchParams?.yazildi);
+  const atlanan = sonucOku(searchParams?.atlanan) ?? 0;
 
   const egitimler = depo.egitimleriListele().map((e) => ({
     id: e.id,
@@ -66,6 +71,7 @@ export default function SinifSayfa({
         rehberBolum="takip"
       />
       <div className="sayfa-govde">
+        {yazildi !== null ? <YazmaSonucu yazildi={yazildi} atlanan={atlanan} /> : null}
         <SinifFormu egitimler={egitimler} bugunGun={bugun()} baslangic={baslangic} />
       </div>
     </main>

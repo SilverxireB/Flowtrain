@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Icon from "@/components/Icon";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -47,7 +46,6 @@ export default function SinifFormu({
   bugunGun: string;
   baslangic?: DuzeltmeBaslangici;
 }) {
-  const router = useRouter();
   const { confirm, dialog } = useConfirm();
   const [egitimId, setEgitimId] = useState(baslangic?.egitimId ?? "");
   const [gun, setGun] = useState(baslangic?.gun ?? bugunGun);
@@ -55,7 +53,6 @@ export default function SinifFormu({
   const [notlar, setNotlar] = useState("");
   const [liste, setListe] = useState(baslangic?.liste ?? "");
   const [rapor, setRapor] = useState<AktarimRaporu | null>(null);
-  const [yazilan, setYazilan] = useState<number | undefined>(undefined);
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
 
@@ -69,7 +66,6 @@ export default function SinifFormu({
   function egitimSec(id: string) {
     setEgitimId(id);
     setRapor(null);
-    setYazilan(undefined);
     const e = egitimler.find((x) => x.id === id);
     if (e?.egitmen && !egitmen.trim()) setEgitmen(e.egitmen);
   }
@@ -78,7 +74,6 @@ export default function SinifFormu({
     if (calisiyor) return;
     setCalisiyor(true);
     setHata(null);
-    setYazilan(undefined);
     const c = await sinifDenetleEylem(girdi());
     setCalisiyor(false);
     if (c.hata) {
@@ -88,17 +83,22 @@ export default function SinifFormu({
     setRapor(c.rapor ?? null);
   }
 
+  /**
+   * BAŞARIDA BURAYA DÖNÜLMEZ: eylem yazmayı bitirince sonucu adrese koyup
+   * yönlendiriyor (`eylemler.ts` → `sonucaDon`) ve onayı sayfa sunucudan
+   * çiziyor. Sonucu burada durumda tutmak, `revalidatePath` bileşeni yeniden
+   * kurduğu için kullanıcının hiçbir onay görmemesi demekti.
+   *
+   * Geriye yalnız HATA yolu kalıyor: o zaman eylem olağan şekilde dönüyor ve
+   * mesaj formun üstünde gösteriliyor.
+   */
   async function kaydet() {
     if (calisiyor) return;
     setCalisiyor(true);
     setHata(null);
     const c = await sinifKaydetEylem(girdi());
     setCalisiyor(false);
-    if (c.hata) return setHata(c.hata);
-    setRapor(c.rapor ?? null);
-    setYazilan(c.yazilan);
-    setListe("");
-    router.refresh();
+    if (c?.hata) setHata(c.hata);
   }
 
   /* GENİŞLİK KABUKTAN GELİR. Bu iki sayfa kendi `max-w-3xl`ini taşıyordu:
@@ -207,8 +207,7 @@ export default function SinifFormu({
             onChange={(e) => {
               setListe(e.target.value);
               setRapor(null);
-              setYazilan(undefined);
-            }}
+                      }}
             rows={10}
             placeholder={"Her satıra bir sicil (yanında ad soyad olabilir):\n10109369 Bülent Sandıkçı\n10112044\n10098771 Ayşe Demir"}
             className="input-base mt-1 font-mono text-xs"
@@ -254,7 +253,7 @@ export default function SinifFormu({
         </div>
       </div>
 
-      {rapor ? <RaporOzeti rapor={rapor} yazilan={yazilan} /> : null}
+      {rapor ? <RaporOzeti rapor={rapor} /> : null}
       {dialog}
     </div>
   );

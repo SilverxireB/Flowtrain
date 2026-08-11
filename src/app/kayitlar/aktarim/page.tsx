@@ -1,5 +1,6 @@
 import Baslik from "@/components/Baslik";
 import AktarimFormu from "./AktarimFormu";
+import YazmaSonucu, { sonucOku } from "../YazmaSonucu";
 import { kapi } from "@/lib/kimlik";
 import { SUTUN_TAKMA_ADLARI } from "@/lib/kayitAktarim";
 
@@ -16,8 +17,16 @@ export const dynamic = "force-dynamic";
  * Bu kayıtlar `kaynak: 'aktarim'` taşır — nereden geldikleri denetimde
  * gizlenmez, kioskta yapılmış gibi görünmezler.
  */
-export default function AktarimSayfa() {
+export default function AktarimSayfa({
+  searchParams,
+}: {
+  searchParams?: { yazildi?: string; atlanan?: string };
+}) {
   kapi("hazirlayan", "/kayitlar/aktarim");
+
+  // Yazma onayı adresten okunur — gerekçe `YazmaSonucu.tsx`.
+  const yazildi = sonucOku(searchParams?.yazildi);
+  const atlanan = sonucOku(searchParams?.atlanan) ?? 0;
 
   // Takma adlar tek kaynaktan (`kayitAktarim.ts`) gelir: ekranda yazan liste
   // ile kodun gerçekten kabul ettiği liste ayrışmasın.
@@ -34,6 +43,7 @@ export default function AktarimSayfa() {
     <main className="bg-wash min-h-screen">
       <Baslik ust="/kayitlar" ustAd="Kayıt defteri" baslik="Geçmiş kayıt aktarımı" rehberBolum="takip" />
       <div className="sayfa-govde">
+        {yazildi !== null ? <YazmaSonucu yazildi={yazildi} atlanan={atlanan} /> : null}
         <AktarimFormu takmalar={takmalar} />
       </div>
     </main>

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { kapi } from "@/lib/kimlik";
 import * as depo from "@/lib/depo";
 import { personelKaynagi, kaydiGonder } from "@/lib/adaptorlar";
@@ -76,6 +77,28 @@ function tazele(): void {
   revalidatePath("/kayitlar");
   revalidatePath("/pano");
   revalidatePath("/ekibim");
+}
+
+/**
+ * YAZMA BİTTİ — SONUCU ADRESE KOYUP DÖN.
+ *
+ * NEDEN BÖYLE: sonuç eskiden formun kendi durumunda (`useState`) tutuluyordu ve
+ * kullanıcı hiçbir onay göremiyordu. Sebebi ölçüldü — yukarıdaki `tazele()`
+ * içindeki `revalidatePath`, eylem dönerken bulunulan sayfayı da yeniden
+ * kurduruyor; taze bir sayfa yüklemesinden sonraki İLK kaydetmede form
+ * bileşeni sıfırdan doğuyor ve az önce yazılan `rapor`/`yazilan` durumu onunla
+ * birlikte ölüyordu. Ekranda kalan tek şey boşalmış bir formdu: eğitmen otuz
+ * kişilik listeyi kaydediyor, hiçbir şey görmüyordu.
+ *
+ * `router.refresh()`ı kaldırmak ÇÖZMEDİ (denendi, yeniden kurulma sürüyor) ve
+ * `revalidatePath`ten vazgeçmek de olmaz — kayıt defteri, pano ve amir tableti
+ * tazeliğini ona borçlu. Bu yüzden onay, yeniden kurulmayı ATLATAN tek yere
+ * taşındı: adres. Sayfa sonucu sunucudan çiziyor, dolayısıyla bileşen kaç kez
+ * yeniden kurulursa kurulsun yazı yerinde kalıyor; yenilenmeye ve paylaşılan
+ * bağlantıya da dayanıklı.
+ */
+function sonucaDon(yol: string, yazilan: number, atlanan: number): never {
+  redirect(`${yol}?yazildi=${yazilan}&atlanan=${atlanan}`);
 }
 
 export interface AktarimCevabi {
@@ -161,7 +184,7 @@ export async function sinifKaydetEylem(girdi: SinifGirdisi): Promise<AktarimCeva
       : `sınıf eğitimi kaydı: ${egitim?.ad ?? girdi.egitimId} · ${girdi.gun} · eğitmen ${girdi.egitmen.trim()} · ${yazilan} katılımcı`,
   );
   tazele();
-  return { rapor, yazilan };
+  sonucaDon("/kayitlar/sinif", yazilan, rapor.atlanan);
 }
 
 function sinifHatasi(girdi: SinifGirdisi): string | null {
@@ -206,7 +229,7 @@ export async function aktarimUygulaEylem(metin: string): Promise<AktarimCevabi> 
     `geçmiş kayıt aktarımı: ${yazilan} kayıt yazıldı, ${hazir.rapor.atlanan} satır atlandı`,
   );
   tazele();
-  return { ...hazir, yazilan };
+  sonucaDon("/kayitlar/aktarim", yazilan, hazir.rapor.atlanan);
 }
 
 async function aktarimiHazirla(metin: string): Promise<AktarimCevabi> {

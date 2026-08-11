@@ -579,17 +579,16 @@ try {
   await s.waitForTimeout(500);
   await s.getByRole("alertdialog").getByRole("button", { name: "Kaydet" }).click();
   await s.waitForTimeout(2500);
-  /* ⚠ BİLİNEN AÇIK (11 Ağustos 2026) — sürümlü yayınla İLGİSİZ, düşük öncelikli.
-     Kaydet'ten sonra özet paneli HİÇ çıkmıyor ve form baştan sona sıfırlanıyor
-     (eğitim seçimi bile "Seçin…"e dönüyor). Ölçüldü: panel 700 ms'de de
-     2500 ms'de de yok, yani geç gelme değil — `sinifKaydetEylem` raporu doğru
-     döndürüyor ama `tazele()` + `router.refresh()` sonrası bileşen yeniden
-     kuruluyor ve yerel `rapor` durumu siliniyor.
-     ZARAR: eğitmen otuz kişilik listeyi kaydeder ve hiçbir onay görmez.
-     Kayıtlar YAZILIYOR — hemen aşağıdaki defter denetimleri bunu gösteriyor.
-     Bu satır bilerek KIRMIZI bırakıldı: geçecek şekilde gevşetmek, gerçek
-     bir kullanıcı sorununu sınavın içine gömmek olurdu. */
+  /* YAZMA ONAYI — eskiden buradaki tek kırmızı satırdı.
+     Onay formun kendi durumunda tutuluyordu ve HİÇ görünmüyordu: yazma eylemi
+     `revalidatePath` çağırdığı için sayfa yeniden kuruluyor, form sıfırdan
+     doğuyor ve az önce kurulan sonuç durumu onunla birlikte ölüyordu.
+     Eğitmen otuz kişilik listeyi kaydedip boş bir form görüyordu.
+     Onay artık ADRESTE ve sunucudan çiziliyor (`YazmaSonucu`), yani kaç kez
+     yeniden kurulursa kurulsun yerinde kalıyor. */
   kontrol(await s.getByText(/2 kayıt deftere yazıldı/).isVisible(), "sınıf kayıtları gerçekten yazıldı");
+  kontrol(s.url().includes("yazildi=2"), "onay adreste duruyor (yeniden kurulmayı atlatır)");
+  kontrol(await s.getByText(/2 satır atlandı/).isVisible(), "atlanan satır sayısı da onayda yazıyor");
 
   /* Kayıt DEFTERDE ve KAYNAĞI doğru: sınıf kaydı kioskta yapılmış gibi
      görünmemeli — süre/anomali ölçüsü ikisini karıştırırsa pano yalan söyler. */
@@ -631,10 +630,9 @@ try {
   await s.waitForTimeout(500);
   await s.getByRole("alertdialog").getByRole("button", { name: "Aktar" }).click();
   await s.waitForTimeout(2500);
-  /* ⚠ Yukarıdaki sınıf kaydıyla AYNI bilinen açık: aktarımdan sonra da özet
-     paneli çıkmıyor, form sıfırlanıyor. Kayıt yazılıyor (altındaki defter
-     denetimleri geçiyor). Bilerek kırmızı. */
+  /* Aktarım onayı da sunucudan geliyor — sınıf kaydıyla aynı yol. */
   kontrol(await s.getByText(/1 kayıt deftere yazıldı/).isVisible(), "geçmiş kayıt deftere alındı");
+  kontrol(s.url().includes("yazildi=1"), "aktarım onayı da adreste duruyor");
 
   await s.goto(`${ADRES}/kayitlar`, { waitUntil: "networkidle" });
   await s.getByLabel("Kaynak süzgeci").selectOption("aktarim");

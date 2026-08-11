@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import Icon from "@/components/Icon";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -26,19 +25,16 @@ const ALAN_ADI: Record<AktarimAlani, string> = {
  * yazmadan ÖNCE gösterir.
  */
 export default function AktarimFormu({ takmalar }: { takmalar: Record<AktarimAlani, string[]> }) {
-  const router = useRouter();
   const { confirm, dialog } = useConfirm();
   const dosyaRef = useRef<HTMLInputElement>(null);
   const [metin, setMetin] = useState("");
   const [dosyaAdi, setDosyaAdi] = useState<string | null>(null);
   const [rapor, setRapor] = useState<AktarimRaporu | null>(null);
-  const [yazilan, setYazilan] = useState<number | undefined>(undefined);
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
 
   function sifirla() {
     setRapor(null);
-    setYazilan(undefined);
     setHata(null);
   }
 
@@ -61,19 +57,19 @@ export default function AktarimFormu({ takmalar }: { takmalar: Record<AktarimAla
     if (c.hata) setHata(c.hata);
   }
 
+  /**
+   * BAŞARIDA BURAYA DÖNÜLMEZ — sınıf formuyla aynı gerekçe: eylem sonucu
+   * adrese koyup yönlendiriyor, onayı sayfa sunucudan çiziyor
+   * (`eylemler.ts` → `sonucaDon`). Geriye yalnız hata yolu kalıyor.
+   */
   async function uygula() {
     if (calisiyor) return;
     setCalisiyor(true);
     setHata(null);
     const c = await aktarimUygulaEylem(metin);
     setCalisiyor(false);
-    setRapor(c.rapor ?? null);
-    setYazilan(c.yazilan);
-    if (c.hata) return setHata(c.hata);
-    setMetin("");
-    setDosyaAdi(null);
-    if (dosyaRef.current) dosyaRef.current.value = "";
-    router.refresh();
+    if (c?.rapor) setRapor(c.rapor);
+    if (c?.hata) setHata(c.hata);
   }
 
   /* GENİŞLİK KABUKTAN GELİR. Bu iki sayfa kendi `max-w-3xl`ini taşıyordu:
@@ -180,7 +176,7 @@ export default function AktarimFormu({ takmalar }: { takmalar: Record<AktarimAla
         ) : null}
       </section>
 
-      {rapor ? <RaporOzeti rapor={rapor} yazilan={yazilan} /> : null}
+      {rapor ? <RaporOzeti rapor={rapor} /> : null}
 
       {/* Takma adlar ekranda YAZAR: kullanıcı "sicil sütunu bulunamadı"
           hatasını görüp hangi adları kabul ettiğimizi tahmin etmek zorunda

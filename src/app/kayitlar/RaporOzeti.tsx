@@ -10,30 +10,23 @@ import type { AktarimRaporu } from "@/lib/kayitAktarim";
  * kolaydı; asıl soru atlanan 38'in hangileri olduğu. Sessizce düşen bir satır
  * denetimde "o kişi eğitimi almadı" demektir — bunu ekranda göstermeyen bir
  * aktarım aracı, veriyi kaybetmenin en sessiz yoludur.
+ *
+ * YALNIZ DENETİM ADIMI. Yazma SONRASI onay burada değil, sunucunun çizdiği
+ * `YazmaSonucu` şeridinde: yazma eylemi `revalidatePath` çağırdığı için bu
+ * bileşen tam o anda yeniden kuruluyor ve durumunda taşıdığı sonuç ölüyordu.
+ * "Yazıldı" cümlesini burada tutmaya çalışmak, kullanıcının hiçbir onay
+ * görmemesinin sebebiydi.
  */
-export default function RaporOzeti({ rapor, yazilan }: { rapor: AktarimRaporu; yazilan?: number }) {
+export default function RaporOzeti({ rapor }: { rapor: AktarimRaporu }) {
   const atlananlar = rapor.satirlar.filter((s) => s.durum === "atlandi");
   const uyarililar = rapor.satirlar.filter((s) => s.durum === "gecerli" && !!s.uyari);
 
   return (
     <div className="mt-4 space-y-3">
-      <div
-        className={`rounded-xl border px-4 py-3 text-sm ${
-          yazilan !== undefined ? "border-iyi/40 bg-iyi/10" : "border-line bg-wash"
-        }`}
-      >
+      <div className="rounded-xl border border-line bg-wash px-4 py-3 text-sm">
         <p className="font-semibold">
-          {yazilan !== undefined ? (
-            <>
-              {yazilan} kayıt deftere yazıldı
-              {rapor.atlanan > 0 ? `, ${rapor.atlanan} satır atlandı.` : "."}
-            </>
-          ) : (
-            <>
-              {rapor.gecerli} satır yazılacak
-              {rapor.atlanan > 0 ? `, ${rapor.atlanan} satır atlanacak.` : "."}
-            </>
-          )}
+          {rapor.gecerli} satır yazılacak
+          {rapor.atlanan > 0 ? `, ${rapor.atlanan} satır atlanacak.` : "."}
         </p>
         {uyarililar.length > 0 ? (
           <p className="mt-1 text-muted">{uyarililar.length} satır uyarılı — yazılır ama kontrol edilmeli.</p>
