@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 const YUZEYLER: { yol: string; ad: string; not: string; ikon: IconName; enAz: Rol | null }[] = [
   { yol: "/egitimler", ad: "Eğitimler", not: "Hazırla, sınavını kur, yayınla", ikon: "book", enAz: "hazirlayan" },
   { yol: "/gruplar", ad: "Eğitim paketleri", not: "Birlikte verilen eğitimleri tek ada bağla", ikon: "folder", enAz: "hazirlayan" },
-  { yol: "/atama", ad: "Atama kuralları", not: "Kim, ne zamana kadar", ikon: "target", enAz: "hazirlayan" },
+  { yol: "/atama", ad: "Eğitim ataması", not: "Kim, ne zamana kadar", ikon: "target", enAz: "hazirlayan" },
   { yol: "/ekibim", ad: "Ekibim", not: "Eksikleri gör, yanında tamamlat", ikon: "users", enAz: "amir" },
   { yol: "/ziyaretci", ad: "Ziyaretçiler", not: "Kaydet, bilgilendir, içeri al", ikon: "userPlus", enAz: null },
   { yol: "/kayitlar", ad: "Kayıt defteri", not: "Tüm tamamlamalar, CSV/PDF, sertifika", ikon: "receipt", enAz: "hazirlayan" },

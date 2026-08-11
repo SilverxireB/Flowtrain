@@ -47,7 +47,7 @@ export default async function GruplarSayfasi() {
         rehberBolum="atama"
         sag={
           <Link href="/atama" className="btn-ghost text-sm">
-            <Icon name="target" size={16} /> Atama kuralları
+            <Icon name="target" size={16} /> Eğitim ataması
           </Link>
         }
       />

@@ -1,3 +1,5 @@
+import Halka from "./Halka";
+
 /**
  * YÜKLENİYOR — sayfa geçişinde boş ekran yerine markanın kendisi.
  *
@@ -13,9 +15,9 @@
  */
 export default function Yukleniyor({ not }: { not?: string }) {
   return (
-    <div className="grid min-h-[60vh] place-items-center px-5" role="status" aria-live="polite">
+    <div className="grid min-h-[60vh] place-items-center px-5" aria-live="polite">
       <div className="flex flex-col items-center gap-3">
-        <span className="yukleme-halka" aria-hidden />
+        <Halka boyut={48} />
         <span className="text-sm font-semibold text-muted">{not ?? "Yükleniyor…"}</span>
       </div>
     </div>

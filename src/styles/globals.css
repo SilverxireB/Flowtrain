@@ -81,21 +81,23 @@ body {
   }
 }
 
-.yukleme-halka {
-  display: block;
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 9999px;
-  background: conic-gradient(#4f46e5, #e11d48, #d97706, #16a34a, #4f46e5);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
-  animation: yukleme-don 0.9s linear infinite;
+/* İki halka TERS yönde döner (`Halka.tsx`). Yaylar logodan geliyor ve burada
+   yalnız DÖNDÜRÜLÜYOR — renk, kalınlık, açı hiçbir yerde değiştirilmez.
+   Eskiden burada `conic-gradient` ile dört rengi sürekli bir geçişe yayan bir
+   yaklaşım vardı; uzaktan halka gibi duruyordu ama logonun halkası değildi. */
+.halka-don-sag {
+  animation: yukleme-don 1.1s linear infinite;
+}
+
+.halka-don-sol {
+  animation: yukleme-don 1.6s linear infinite reverse;
 }
 
 /* HAREKETİ AZALT: dönme 0,01 ms'ye inince halka donmuş görünür. Dönmek yerine
    nefes alsın — bekleme sürdüğü YİNE belli olsun. */
 @media (prefers-reduced-motion: reduce) {
-  .yukleme-halka {
+  .halka-don-sag,
+  .halka-don-sol {
     animation: yukleme-nefes 1.6s ease-in-out infinite !important;
   }
 }

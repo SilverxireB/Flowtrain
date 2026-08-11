@@ -54,7 +54,7 @@ export default async function Atama() {
       <Baslik
         ust="/"
         ustAd="Ana sayfa"
-        baslik="Atamalar"
+        baslik="Eğitim ataması"
         rehberBolum="atama"
         not={`${kisiler.length} kişi listede`}
         sag={
