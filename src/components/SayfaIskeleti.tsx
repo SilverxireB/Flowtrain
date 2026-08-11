@@ -1,3 +1,4 @@
+import Halka from "./Halka";
 import { SkelBox } from "./Skeleton";
 
 /**
@@ -12,6 +13,13 @@ import { SkelBox } from "./Skeleton";
  *
  * Başlık şeridi de iskelette var: yalnız gövdeyi çizmek, üstteki şerit yerinde
  * dururken altının boşalmasına ve düzenin zıplamasına yol açıyordu.
+ *
+ * İSKELET + HALKA BİRLİKTE. Gri kutular sayfanın ŞEKLİNİ söylüyor ama nabzı
+ * yok: hepsi aynı hızda soluyan bir yığın, ekranda takılı kalmışla çalışan
+ * arasındaki farkı göstermiyor ve kullanıcı "yükleme göstergesi hiç çıkmıyor"
+ * diye bildirdi. Halka şeridin sağ ucunda döner — şekil bilgisini bozmadan
+ * "çalışıyor" der. Çizim `globals.css`teki tek kuraldan gelir, burada yalnız
+ * ölçeklenir.
  */
 export default function SayfaIskeleti({ satir = 6 }: { satir?: number }) {
   return (
@@ -20,6 +28,8 @@ export default function SayfaIskeleti({ satir = 6 }: { satir?: number }) {
         <div className="sayfa-kap flex items-center gap-3 py-3">
           <SkelBox className="h-9 w-9" />
           <SkelBox className="h-5 w-40" />
+          <div className="flex-1" />
+          <Halka boyut={20} />
         </div>
       </div>
 

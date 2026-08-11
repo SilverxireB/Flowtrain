@@ -2,7 +2,9 @@
 
 import { useRef, useState } from "react";
 import Icon from "@/components/Icon";
+import Halka from "@/components/Halka";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { medyaYukle, onizlemeUret } from "./ilkKare";
 import { boyutMetni, gorselMi, type MedyaOzet } from "@/lib/editorMedya";
 
 /**
@@ -34,29 +36,44 @@ export default function MedyaSecici({
   onMedyaSil: (id: string) => void;
   onAltMetin: (medyaId: string, altMetin: string) => void;
 }) {
-  const [yukleniyor, setYukleniyor] = useState(false);
+  /**
+   * Yüklenen dosyanın ekrandaki hâli.
+   *
+   * `onizleme` dosya SEÇİLİR SEÇİLMEZ dolar (videoda ilk kare, görselde
+   * dosyanın kendisi) — yükleme bitmeden. İnsan doğru dosyayı seçtiğini
+   * yüklemenin sonunda değil başında görsün.
+   */
+  const [yukleme, setYukleme] = useState<{ ad: string; onizleme: string | null; oran: number; yaziliyor: boolean } | null>(
+    null,
+  );
   const [hata, setHata] = useState<string | null>(null);
   const [arama, setArama] = useState("");
   const dosyaGirdi = useRef<HTMLInputElement>(null);
   const { confirm, dialog } = useConfirm();
 
   const video = tur === "video";
+  const yukleniyor = yukleme !== null;
 
   async function dosyaSec(e: React.ChangeEvent<HTMLInputElement>) {
     const dosya = e.target.files?.[0];
     e.target.value = "";
     if (!dosya) return;
 
-    setYukleniyor(true);
     setHata(null);
-    const form = new FormData();
-    form.append("dosya", dosya);
-    const cevap = await fetch("/api/medya", { method: "POST", body: form });
-    const sonuc = await cevap.json();
-    setYukleniyor(false);
+    setYukleme({ ad: dosya.name, onizleme: null, oran: 0, yaziliyor: false });
 
-    if (!cevap.ok) return setHata(sonuc.hata ?? "Yüklenemedi.");
-    onSec(sonuc.id);
+    /* Önizleme yüklemeyi BEKLETMEZ: ikisi birlikte başlar. Video çözümlemesi
+       birkaç yüz milisaniye sürebiliyor ve o süre boyunca baytların akmaması
+       için bir sebep yok. */
+    onizlemeUret(dosya).then((onizleme) => setYukleme((y) => (y ? { ...y, onizleme } : y)));
+
+    const sonuc = await medyaYukle(dosya, (oran) =>
+      setYukleme((y) => (y ? { ...y, oran, yaziliyor: oran >= 100 } : y)),
+    );
+
+    setYukleme(null);
+    if (sonuc.hata) return setHata(sonuc.hata);
+    onSec(sonuc.id!);
   }
 
   const suzulmus = medyalar.filter(
@@ -88,7 +105,8 @@ export default function MedyaSecici({
 
         <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
           <button onClick={() => dosyaGirdi.current?.click()} disabled={yukleniyor} className="btn-primary text-sm">
-            <Icon name="upload" size={16} /> {yukleniyor ? "Yükleniyor…" : "Bilgisayardan yükle"}
+            {yukleniyor ? <Halka boyut={16} /> : <Icon name="upload" size={16} />}
+            {yukleniyor ? "Yükleniyor…" : "Bilgisayardan yükle"}
           </button>
           <input
             ref={dosyaGirdi}
@@ -109,6 +127,34 @@ export default function MedyaSecici({
           <p role="alert" className="mx-5 mt-4 rounded-xl border border-brand/30 bg-brand-soft px-4 py-2.5 text-sm font-semibold text-brand-dark">
             {hata}
           </p>
+        ) : null}
+
+        {/* YÜKLENEN DOSYA — önizleme üstünde halka.
+            Halka görselin ÜSTÜNDE duruyor, yanında değil: bekleme o dosyaya
+            ait ve iki ayrı yere bakmak gerekmesin. */}
+        {yukleme ? (
+          <div className="mx-5 mt-4 flex items-center gap-4 rounded-xl border border-accent/30 bg-accent-soft/30 p-3">
+            <span className="relative grid h-20 w-28 shrink-0 place-items-center overflow-hidden rounded-lg bg-ink/5">
+              {yukleme.onizleme ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={yukleme.onizleme} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              ) : (
+                <Icon name={video ? "video" : "image"} size={24} className="text-muted" />
+              )}
+              {/* Karartma: halka açık renkli bir karenin üstünde kayboluyordu. */}
+              <span className="absolute inset-0 bg-ink/35" aria-hidden />
+              <Halka boyut={48} oran={yukleme.oran} className="relative" />
+            </span>
+
+            <div className="min-w-0 flex-1" role="status" aria-live="polite">
+              <p className="truncate text-sm font-semibold">{yukleme.ad}</p>
+              <p className="mt-0.5 text-xs text-muted">
+                {/* Gönderim bitti ≠ iş bitti: sunucu diske yazarken yüzde
+                    %100'de durur ve "dondu" görünür. Metin devralır. */}
+                {yukleme.yaziliyor ? "Sunucuya kaydediliyor…" : `Yükleniyor · %${Math.round(yukleme.oran)}`}
+              </p>
+            </div>
+          </div>
         ) : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">

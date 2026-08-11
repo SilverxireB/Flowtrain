@@ -645,18 +645,28 @@ export default function Editor({
                        söyler ve katlanır. Katlama telefonda zorunlu — kırk
                        kartlık eğitimde altıncı bölüme inmek için beş bölümü
                        kaydırmak gerekiyordu. */
-                    <button
-                      type="button"
-                      onClick={() => bolumKatla(anahtar)}
-                      aria-expanded={!katli}
-                      className="dokunma-44 flex w-full items-center gap-2 pr-2 text-left"
-                    >
-                      <Icon name={katli ? "chevronRight" : "down"} size={16} className="shrink-0 text-accent" />
-                      <span className="min-w-0 flex-1 truncate text-sm font-bold uppercase tracking-[0.1em] text-ink">
-                        {grup.ad}
-                      </span>
+                    /* Kapak DÜĞME DEĞİL, satır: içinde düzenlenebilir bir alan
+                       ve kaldırma düğmesi var, ikisi de bir düğmenin içine
+                       giremez. Katlama artık soldaki oka bağlı. */
+                    <div className="flex items-center gap-2 pr-2">
+                      <button
+                        type="button"
+                        onClick={() => bolumKatla(anahtar)}
+                        aria-expanded={!katli}
+                        aria-label={katli ? `${grup.ad} bölümünü aç` : `${grup.ad} bölümünü kapat`}
+                        className="btn-icon shrink-0 text-accent"
+                      >
+                        <Icon name={katli ? "chevronRight" : "down"} size={16} />
+                      </button>
+                      <BolumAyraci
+                        kapak
+                        sayfaId={grup.kartlar[0].sayfa.id}
+                        baslik={grup.ad}
+                        kilitli={kilitli}
+                        onYaz={bolumYaz}
+                      />
                       <span className="shrink-0 text-xs text-muted">{grup.kartlar.length} kart</span>
-                    </button>
+                    </div>
                   ) : null}
 
                   {katli ? null : grup.kartlar.map(({ sayfa: s, indeks: i }) => (
@@ -686,7 +696,12 @@ export default function Editor({
                       <span aria-hidden className="absolute -bottom-1.5 left-0 right-0 z-10 h-0.5 rounded bg-accent" />
                     ) : null}
 
-                    <BolumAyraci sayfaId={s.id} baslik={bolumler[s.id]} kilitli={kilitli} onYaz={bolumYaz} />
+                    {/* Bölümü BAŞLATAN kartta ayraç çizilmez: adı kapak zaten
+                        gösteriyor ve düzenlemesi orada. Kalan kartlarda ayraç
+                        yalnız "+ Bölüm başlığı" olarak belirir. */}
+                    {grup.ad !== null && grup.kartlar[0].sayfa.id === s.id ? null : (
+                      <BolumAyraci sayfaId={s.id} baslik={bolumler[s.id]} kilitli={kilitli} onYaz={bolumYaz} />
+                    )}
 
                     {/* TUTAMAK KARTIN İÇİNE GEÇTİ. Solda ayrı bir sütun olarak
                         dururken kartı ~40px sağa itiyordu: kartlar sayfadaki

@@ -20,12 +20,23 @@ function BolumAyraciIc({
   sayfaId,
   baslik,
   kilitli,
+  kapak = false,
   onYaz,
 }: {
   sayfaId: string;
   /** Yazılmış bölüm adı; yoksa `undefined`. */
   baslik?: string;
   kilitli?: boolean;
+  /**
+   * BÖLÜM KAPAĞININ İÇİNDE Mİ?
+   *
+   * Bölüm adı iki kez çiziliyordu: bir kez katlanan kapakta, bir kez de o
+   * bölümü BAŞLATAN kartın ayracında. Ekranda aynı kelime alt alta iki kere
+   * görünüyor, hangisinin düzenlenebilir olduğu belli olmuyordu. Ad artık tek
+   * yerde — kapakta — duruyor; ayraç oraya `kapak` kipiyle giriyor ve kendi
+   * çizgisini/boşluğunu bırakıyor (kapak zaten çerçeveli).
+   */
+  kapak?: boolean;
   onYaz: (sayfaId: string, baslik: string) => void;
 }) {
   const [yeni, setYeni] = useState(false);
@@ -36,8 +47,8 @@ function BolumAyraciIc({
   // yayındayken hiçbir şeyin değişmemesi kuralı burada da geçerli.
   if (baslik || yeni) {
     return (
-      <div className="mb-2 mt-6 flex items-center gap-2 border-t border-line pt-4">
-        <Icon name="folder" size={15} className="shrink-0 text-muted" />
+      <div className={kapak ? "flex min-w-0 flex-1 items-center gap-2" : "mb-2 mt-6 flex items-center gap-2 border-t border-line pt-4"}>
+        {kapak ? null : <Icon name="folder" size={15} className="shrink-0 text-muted" />}
         <input
           autoFocus={yeni}
           disabled={kilitli}
