@@ -18,8 +18,13 @@
 import Database from "better-sqlite3";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const KOK = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+/* `fileURLToPath`, elle kırpılmış `pathname` DEĞİL: Windows'ta `pathname`
+   "/D:/..." döner ve baştaki eğik çizgi `join` ile "D:\D:\..." üretir. Burada
+   düzeltme regex'iyle idare ediliyordu; kütüphanenin kendi işlevi hem doğru
+   hem de yüzde kaçışlarını (boşluklu klasör adı) çözer. */
+const KOK = fileURLToPath(new URL("..", import.meta.url));
 const VERI = process.env.FLOWTRAIN_DATA ?? join(KOK, "data");
 const ORNEK = join(KOK, "ornek");
 const MEDYA = join(VERI, "medya");

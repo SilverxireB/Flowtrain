@@ -13,9 +13,15 @@
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { kontrol, bitir } from "./yardim.mjs";
 
-const KOK = new URL("../src/app", import.meta.url).pathname;
+/* `fileURLToPath`, `new URL(...).pathname` DEĞİL.
+   Windows'ta `pathname` yolu "/D:/Claude/..." diye verir; baştaki eğik çizgi
+   `join` ile birleşince "D:\D:\Claude\..." olur ve sınav dosyayı hiç bulamadan
+   ENOENT ile ölür. macOS/Linux'ta ikisi de aynı sonucu verdiği için kusur
+   yalnız Windows'ta çıkıyor. */
+const KOK = fileURLToPath(new URL("../src/app", import.meta.url));
 
 /* Kiosk, giriş, kurulum ve oynatıcı BİLEREK dışarıda: onlar kokpit değil,
    okuma/tablet yüzeyi (globals.css aynı istisnayı sayıyor). */

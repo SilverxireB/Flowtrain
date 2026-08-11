@@ -12,9 +12,11 @@
  */
 import sharp from 'sharp'
 import { mkdir } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 
 const KAYNAK = process.env.FLOWMETER_PUBLIC ?? '/home/user/FlowMeter/public'
-const HEDEF = new URL('../public/', import.meta.url).pathname
+// `pathname` DEĞİL: Windows'ta "/D:/..." döner ve yol birleştirmede bozulur.
+const HEDEF = fileURLToPath(new URL('../public/', import.meta.url))
 
 /** Glifin rengi — bu renge YAKIN her piksel silinir. */
 const LACIVERT = [0x00, 0x1e, 0x64]
