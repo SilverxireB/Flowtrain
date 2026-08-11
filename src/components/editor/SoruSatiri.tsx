@@ -324,7 +324,12 @@ function SoruSatiriIc({
       {siralama ? (
         <ol className="mt-3 space-y-2">
           {soru.secenekler.map((s, i) => (
-            <li key={`${i}:${s}`} className="flex items-center gap-2">
+            /* DAR EKRANDA SARAR. Satır tek sıraydı: numara + girdi + yukarı +
+               aşağı + sil, 390px'te girdiye avuç içi kadar yer kalıyor ve
+               taşıma düğmeleri birbirine giriyordu — "mobilde sıralamayı
+               taşımak çok zor" tam olarak buydu. Sarınca metin tam genişlik
+               alır, taşıma düğmeleri kendi satırına geçip sağa yaslanır. */
+            <li key={`${i}:${s}`} className="flex flex-wrap items-center gap-2">
               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent-soft text-xs font-bold text-accent-dark">
                 {i + 1}
               </span>
@@ -334,8 +339,9 @@ function SoruSatiriIc({
                 disabled={kilitli}
                 placeholder={`${i + 1}. adım`}
                 aria-label={`${i + 1}. adımın metni`}
-                className="input-base py-2"
+                className="input-base w-auto min-w-0 flex-1 py-2 max-sm:w-[calc(100%-2.5rem)] max-sm:flex-none"
               />
+              <div className="flex items-center gap-2 max-sm:ml-10 max-sm:w-full max-sm:justify-end">
               <button
                 onClick={() => tasi(i, -1)}
                 disabled={kilitli || i === 0}
@@ -357,6 +363,7 @@ function SoruSatiriIc({
                   <Icon name="close" size={16} />
                 </button>
               ) : null}
+              </div>
             </li>
           ))}
         </ol>

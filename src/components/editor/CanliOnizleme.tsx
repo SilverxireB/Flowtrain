@@ -33,6 +33,21 @@ const KIOSK_GENISLIK = 728;
  */
 const EN_FAZLA_YUKSEKLIK = "min(70vh, 40rem)";
 
+/**
+ * KİOSK KART ALANININ EN AZ YÜKSEKLİĞİ (kiosk pikseli).
+ *
+ * Önizleme içeriğe göre büzülüyordu: iki satırlık bir kart ince bir şerit gibi
+ * çıkıyor, hazırlayan da "kiosk görünümü kısa kalıyor" diyordu — haklı olarak,
+ * çünkü SAHADA o kart ekranı kaplıyor. Önizlemenin işi kartın metnini
+ * göstermek değil, kartın EKRANDA NASIL DURACAĞINI göstermek; kısa bir kartın
+ * altında kalan boşluk da o bilginin parçası ("bu kart çok boş görünecek").
+ *
+ * Değer kiosk ölçüsünde yazılır ve sütuna sığacak orana birlikte küçülür, yani
+ * önizleme hep aynı ekran oranını taşır. Bunu aşan kart yine kendi içinde
+ * kaydırılır (`EN_FAZLA_YUKSEKLIK`).
+ */
+const KIOSK_EN_AZ_YUKSEKLIK = 520;
+
 export default function CanliOnizleme({
   sayfa,
   sira,
@@ -64,7 +79,7 @@ export default function CanliOnizleme({
     const gozlemci = new ResizeObserver(() => {
       const o = Math.min(1, d.clientWidth / KIOSK_GENISLIK);
       setOlcek(o);
-      setYukseklik(i.scrollHeight * o);
+      setYukseklik(Math.max(i.scrollHeight, KIOSK_EN_AZ_YUKSEKLIK) * o);
     });
     gozlemci.observe(d);
     gozlemci.observe(i);

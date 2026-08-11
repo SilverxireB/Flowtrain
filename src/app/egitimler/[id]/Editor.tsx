@@ -199,6 +199,44 @@ export default function Editor({
     [gosterilen, kirikKume, bolumler],
   );
 
+  /**
+   * BÖLÜM GRUPLARI.
+   *
+   * Başlık modelde zaten "bu kartın ÜSTÜNDE bölüm başlar" demekti, yani bir
+   * başlık sonraki başlığa kadarki tüm kartları kapsıyordu. Ama ekranda hiçbir
+   * şey gruplanmıyordu: kartlar düz bir liste hâlinde akıyor, bölüm adı da
+   * araya sıkışmış bir satır gibi duruyordu. Hazırlayan haklı olarak "her karta
+   * ayrı bölüm girmem gerekiyor, başlıktan farkı yok" diyordu — fark MODELDE
+   * vardı, YÜZEYDE yoktu.
+   *
+   * İlk başlıktan önceki kartlar adsız gruptur ve kaplama çizilmez: boş bir
+   * "Bölümsüz" kutusu, olmayan bir şeye ad vermek olurdu.
+   */
+  const gruplar = useMemo(() => {
+    const cikti: { ad: string | null; kartlar: { sayfa: Sayfa; indeks: number }[] }[] = [];
+    gosterilen.forEach((sayfa, indeks) => {
+      const ad = bolumler[sayfa.id];
+      if (ad || cikti.length === 0) cikti.push({ ad: ad ?? null, kartlar: [] });
+      cikti[cikti.length - 1].kartlar.push({ sayfa, indeks });
+    });
+    return cikti;
+  }, [gosterilen, bolumler]);
+
+  /**
+   * Katlanmış bölümler — kırk kartlık eğitimde telefonda gezinmenin tek yolu.
+   * Kimlik olarak bölümün İLK KARTININ kimliği kullanılır: ad değişince katlama
+   * durumu kaybolmasın, aynı adlı iki bölüm birbirini katlamasın.
+   */
+  const [katliBolumler, setKatliBolumler] = useState<Set<string>>(new Set());
+  const bolumKatla = useCallback((anahtar: string) => {
+    setKatliBolumler((k) => {
+      const y = new Set(k);
+      if (y.has(anahtar)) y.delete(anahtar);
+      else y.add(anahtar);
+      return y;
+    });
+  }, []);
+
   /* Alt metin, medyanın kendisine yazılıyor (karta değil) — aynı fotoğraf on
      kartta kullanılıyorsa açıklaması on kez yazılmasın. Satırlara HARİTA
      geçiliyor, dizinin kendisi değil: satır başına `find` çağırmak kırk kartta
@@ -590,7 +628,38 @@ export default function Editor({
                   bırakma çizgisi burada. `SayfaSatiri`nin kendisine hiç
                   dokunulmuyor — o satır kart hattının dosyası. */}
               <div className="mt-4 space-y-3" onKeyDown={listeTus}>
-                {gosterilen.map((s, i) => (
+                {gruplar.map((grup) => {
+                  const anahtar = grup.kartlar[0]?.sayfa.id ?? "bolumsuz";
+                  const katli = grup.ad !== null && katliBolumler.has(anahtar);
+                  return (
+                <section
+                  key={anahtar}
+                  className={
+                    grup.ad !== null
+                      ? "space-y-3 rounded-2xl border-l-4 border-accent/30 bg-accent-soft/20 py-2 pl-3"
+                      : "space-y-3"
+                  }
+                >
+                  {grup.ad !== null ? (
+                    /* BÖLÜM BAŞLIĞI ARTIK BİR KAPAK: kaç kart kapsadığını
+                       söyler ve katlanır. Katlama telefonda zorunlu — kırk
+                       kartlık eğitimde altıncı bölüme inmek için beş bölümü
+                       kaydırmak gerekiyordu. */
+                    <button
+                      type="button"
+                      onClick={() => bolumKatla(anahtar)}
+                      aria-expanded={!katli}
+                      className="dokunma-44 flex w-full items-center gap-2 pr-2 text-left"
+                    >
+                      <Icon name={katli ? "chevronRight" : "down"} size={16} className="shrink-0 text-accent" />
+                      <span className="min-w-0 flex-1 truncate text-sm font-bold uppercase tracking-[0.1em] text-ink">
+                        {grup.ad}
+                      </span>
+                      <span className="shrink-0 text-xs text-muted">{grup.kartlar.length} kart</span>
+                    </button>
+                  ) : null}
+
+                  {katli ? null : grup.kartlar.map(({ sayfa: s, indeks: i }) => (
                   <div
                     key={s.id}
                     id={kartDomKimligi(s.id)}
@@ -619,29 +688,37 @@ export default function Editor({
 
                     <BolumAyraci sayfaId={s.id} baslik={bolumler[s.id]} kilitli={kilitli} onYaz={bolumYaz} />
 
-                    <div className="flex items-start gap-1">
-                      <div
-                        draggable={!kilitli}
-                        onDragStart={(e) => {
-                          // Firefox veri konmadan sürüklemeyi başlatmıyor.
-                          e.dataTransfer.setData("text/plain", s.id);
-                          e.dataTransfer.effectAllowed = "move";
-                          const kart = document.getElementById(kartDomKimligi(s.id));
-                          if (kart) e.dataTransfer.setDragImage(kart, 24, 24);
-                          surukleBasla(s.id);
-                        }}
-                        onDragEnd={surukleBitir}
-                        title="Sürükleyerek taşıyın · klavyede Ctrl+↑/↓"
-                        className={`mt-4 shrink-0 rounded-md p-0.5 ${
-                          kilitli
-                            ? "opacity-20"
-                            : `text-muted hover:bg-line/60 hover:text-ink ${surukleId === s.id ? "cursor-grabbing" : "cursor-grab"}`
-                        }`}
-                      >
-                        <Icon name="grip" size={16} />
-                      </div>
-                      <div className={`min-w-0 flex-1 ${surukleId === s.id ? "opacity-40" : ""}`}>
+                    {/* TUTAMAK KARTIN İÇİNE GEÇTİ. Solda ayrı bir sütun olarak
+                        dururken kartı ~40px sağa itiyordu: kartlar sayfadaki
+                        her şeyle (bölüm başlığı, "İÇERİK" etiketi, üstteki
+                        tanım kutusu) hizasız kalıyor, liste sağa kaymış gibi
+                        görünüyordu. Artık başlık satırının ilk öğesi — hiçbir
+                        şey kaymıyor, sürükleme aynı şekilde çalışıyor. */}
+                    <div className={`min-w-0 ${surukleId === s.id ? "opacity-40" : ""}`}>
+                      <div>
                         <SayfaSatiri
+                          tutamak={
+                            <span
+                              draggable={!kilitli}
+                              onDragStart={(e) => {
+                                // Firefox veri konmadan sürüklemeyi başlatmıyor.
+                                e.dataTransfer.setData("text/plain", s.id);
+                                e.dataTransfer.effectAllowed = "move";
+                                const kart = document.getElementById(kartDomKimligi(s.id));
+                                if (kart) e.dataTransfer.setDragImage(kart, 24, 24);
+                                surukleBasla(s.id);
+                              }}
+                              onDragEnd={surukleBitir}
+                              title="Sürükleyerek taşıyın · klavyede Ctrl+↑/↓"
+                              className={`hidden shrink-0 rounded-md p-0.5 sm:inline-grid sm:place-items-center ${
+                                kilitli
+                                  ? "opacity-20"
+                                  : `text-muted hover:bg-line/60 hover:text-ink ${surukleId === s.id ? "cursor-grabbing" : "cursor-grab"}`
+                              }`}
+                            >
+                              <Icon name="grip" size={16} />
+                            </span>
+                          }
                           sayfa={s}
                           sira={i + 1}
                           toplam={gosterilen.length}
@@ -663,7 +740,10 @@ export default function Editor({
                       </div>
                     </div>
                   </div>
-                ))}
+                  ))}
+                </section>
+                  );
+                })}
               </div>
 
               {gosterilen.length > 1 ? (

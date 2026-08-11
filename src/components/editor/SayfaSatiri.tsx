@@ -44,6 +44,7 @@ import { ASGARI_SURE_VARSAYILAN, KART_ACIKLAMA, KART_ETIKET, type KartTipi, type
  * karşılığında editör kırk kartta da akıcı kalıyor.
  */
 function SayfaSatiriIc({
+  tutamak,
   sayfa,
   sira,
   toplam,
@@ -62,6 +63,8 @@ function SayfaSatiriIc({
   onAltMetin,
   kilitli,
 }: {
+  /** Sürükleme tutamağı — başlık satırının ilk öğesi olarak çizilir. */
+  tutamak?: React.ReactNode;
   sayfa: Sayfa;
   sira: number;
   toplam: number;
@@ -134,6 +137,7 @@ function SayfaSatiriIc({
       {/* DAR EKRANDA SARAR: beş simge düğmesi + sıra + tip rozeti 390px'e
           sığmıyor ve satır kartı, kart da sayfayı taşırıyordu. */}
       <div className="flex flex-wrap items-center gap-2">
+        {tutamak}
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-line text-xs font-bold text-muted">
           {sira}
         </span>
