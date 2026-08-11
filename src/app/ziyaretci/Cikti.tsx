@@ -4,6 +4,7 @@ import { useState } from "react";
 import Icon from "@/components/Icon";
 import { useToast } from "@/components/Toast";
 import { ziyaretciPdfIndir, type ZiyaretciPdfSatiri } from "@/lib/ziyaretciPdf";
+import { yol } from "@/lib/yol";
 
 /**
  * ZİYARETÇİ DEFTERİ ÇIKTISI.
@@ -35,7 +36,7 @@ export default function Cikti() {
     setMesgul(true);
     show("PDF hazırlanıyor…", "busy");
     try {
-      const c = await fetch(`/api/ziyaretci/disa-aktar?bicim=json&gun=${gun}`);
+      const c = await fetch(yol(`/api/ziyaretci/disa-aktar?bicim=json&gun=${gun}`));
       if (!c.ok) throw new Error(String(c.status));
       const veri = (await c.json()) as { satirlar: ZiyaretciPdfSatiri[]; tarih: string };
       if (veri.satirlar.length === 0) {
@@ -80,7 +81,7 @@ export default function Cikti() {
           </label>
 
           {/* CSV doğrudan bağlantı: tarayıcının kendi indirmesi, ara bellek yok. */}
-          <a href={`/api/ziyaretci/disa-aktar?gun=${gun}`} className="btn-ghost text-sm" download>
+          <a href={yol(`/api/ziyaretci/disa-aktar?gun=${gun}`)} className="btn-ghost text-sm" download>
             <Icon name="download" size={16} /> CSV
           </a>
           <button onClick={pdfIndir} disabled={mesgul} className="btn-primary text-sm">

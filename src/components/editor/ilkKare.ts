@@ -10,6 +10,8 @@
  * gitmek dosyayı iki kez okumak olurdu.
  */
 
+import { yol } from "@/lib/yol";
+
 /** Görselde dosyanın kendisi, videoda ilk kare. Başarısızsa null. */
 export async function onizlemeUret(dosya: File): Promise<string | null> {
   if (dosya.type.startsWith("image/")) return URL.createObjectURL(dosya);
@@ -112,7 +114,7 @@ export function medyaYukle(dosya: File, onOran: (oran: number) => void): Promise
     istek.onerror = () => coz({ hata: "Bağlantı koptu. Tekrar deneyin." });
     istek.onabort = () => coz({ hata: "Yükleme iptal edildi." });
 
-    istek.open("POST", "/api/medya");
+    istek.open("POST", yol("/api/medya"));
     istek.send(form);
   });
 }

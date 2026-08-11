@@ -2,6 +2,7 @@
 
 import type { Sayfa } from "@/lib/tipler";
 import Icon from "@/components/Icon";
+import { medyaYolu } from "@/lib/yol";
 import {
   karsilastirmaTablosu,
   kontrolMaddeleri,
@@ -115,7 +116,7 @@ export default function Kart({
             key={sayfa.videoId}
             data-icerik-videosu
             className="mt-6 w-full rounded-2xl bg-black"
-            src={`/api/medya/${sayfa.videoId}`}
+            src={medyaYolu(sayfa.videoId)}
             controls
             controlsList="nodownload noplaybackrate"
             disablePictureInPicture
@@ -310,7 +311,7 @@ function Gorseller({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           key={id}
-          src={`/api/medya/${id}`}
+          src={medyaYolu(id)}
           alt={
             (altMetinler?.[id] ?? "").trim() ||
             (idler.length > 1 ? `${baslik} — görsel ${i + 1}/${idler.length}` : `${baslik} — görsel`)
@@ -407,7 +408,7 @@ function OnceSonraPanel({
       {gorselId ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={`/api/medya/${gorselId}`}
+          src={medyaYolu(gorselId)}
           alt={(altMetinler?.[gorselId] ?? "").trim() || `${baslik} — ${etiket.toLocaleLowerCase("tr")}`}
           className="mt-3 max-h-[32vh] w-full rounded-xl border border-line bg-white object-contain"
         />

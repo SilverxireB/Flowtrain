@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type Mouse
 import Icon from "@/components/Icon";
 import Kart from "./Kart";
 import Bicimli from "./Bicimli";
+import { medyaYolu } from "@/lib/yol";
 import {
   bolgeCoz,
   bolgeVurusu,
@@ -398,7 +399,7 @@ export default function EgitimOyun({
             {soru.gorselId && soru.tip !== "gorselIsaret" ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={`/api/medya/${soru.gorselId}`}
+                src={medyaYolu(soru.gorselId)}
                 /* "Soru görseli" bir açıklama değil, bir etiket. Hazırlayan
                    görsele alt metni yazdıysa soruyu ANLAŞILIR kılan odur —
                    "hangisi doğru duruş" sorusu görseli okunmadan cevaplanamaz. */
@@ -841,7 +842,7 @@ function GorselIsaret({
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={`/api/medya/${soru.gorselId}`}
+            src={medyaYolu(soru.gorselId)}
             alt={(altMetinler?.[soru.gorselId] ?? "").trim() || "Soru görseli"}
             className="max-h-[46vh] w-auto max-w-full rounded-2xl object-contain"
           />

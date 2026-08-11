@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Icon from "@/components/Icon";
 import { bolgeCoz, type Bolge } from "@/lib/sinav";
+import { medyaYolu } from "@/lib/yol";
 
 /**
  * GÖRSELDE İŞARETLEME sorusunun bölgeleri — görselin ÜZERİNE ÇİZİLEREK.
@@ -159,7 +160,7 @@ export default function BolgeSecici({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={`/api/medya/${gorselId}`}
+          src={medyaYolu(gorselId)}
           alt=""
           draggable={false}
           className="block max-h-80 w-auto max-w-full select-none bg-paper"

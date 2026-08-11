@@ -5,6 +5,7 @@ import MetinAlani, { BicimIpucu } from "@/components/editor/BicimAraclari";
 import { siraDegistir } from "@/lib/editorMedya";
 import { karsilastirmaTablosu } from "@/lib/kartVeri";
 import type { KartTipi, Sayfa } from "@/lib/tipler";
+import { medyaYolu } from "@/lib/yol";
 
 /**
  * KART TİPİNE GÖRE ALANLAR.
@@ -358,7 +359,7 @@ function Yuva({
       {id ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/api/medya/${id}`} alt="" className="h-24 w-full rounded-lg border border-line object-cover" />
+          <img src={medyaYolu(id)} alt="" className="h-24 w-full rounded-lg border border-line object-cover" />
           <div className="mt-1 flex gap-1">
             <button type="button" disabled={kilitli} onClick={onSec} className="btn-ghost flex-1 py-1 text-[11px]">
               Değiştir
@@ -432,7 +433,7 @@ function Galeri({
         {gorseller.map((g, i) => (
           <li key={g} className="relative w-40">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/api/medya/${g}`} alt="" className="h-20 w-40 rounded-lg border border-line object-cover" />
+            <img src={medyaYolu(g)} alt="" className="h-20 w-40 rounded-lg border border-line object-cover" />
             {i === 0 ? (
               <span className="absolute left-1 top-1 rounded-md bg-ink/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
                 Kapak

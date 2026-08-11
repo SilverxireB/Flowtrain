@@ -6,6 +6,7 @@ import Halka from "@/components/Halka";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { medyaYukle, onizlemeUret } from "./ilkKare";
 import { boyutMetni, gorselMi, type MedyaOzet } from "@/lib/editorMedya";
+import { medyaYolu } from "@/lib/yol";
 
 /**
  * MEDYA SEÇİCİ — "yükle" ile "kütüphaneden seç" TEK pencerede.
@@ -185,7 +186,7 @@ export default function MedyaSecici({
                       </span>
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={`/api/medya/${m.id}`} alt="" className="h-24 w-full bg-paper object-cover" />
+                      <img src={medyaYolu(m.id)} alt="" className="h-24 w-full bg-paper object-cover" />
                     )}
                     <span className="block px-2.5 py-2">
                       <span className="block truncate text-xs font-semibold">{m.ad || m.id}</span>

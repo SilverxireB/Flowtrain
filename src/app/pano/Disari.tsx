@@ -4,6 +4,7 @@ import { useState } from "react";
 import Icon from "@/components/Icon";
 import { damgaMetni } from "@/lib/rapor";
 import type { PanoOzeti } from "@/lib/panoPdf";
+import { yol } from "@/lib/yol";
 
 /**
  * Dışa aktarma düğmeleri.
@@ -47,7 +48,7 @@ export default function Disari({ ozet, tarih, kurum }: { ozet: PanoOzeti; tarih:
       <button onClick={pdf} disabled={calisiyor} className="btn-ghost text-sm">
         <Icon name="download" size={16} /> {calisiyor ? "Hazırlanıyor…" : "PDF"}
       </button>
-      <a href="/api/disa-aktar" className="btn-ghost text-sm" download>
+      <a href={yol("/api/disa-aktar")} className="btn-ghost text-sm" download>
         <Icon name="download" size={16} /> CSV
       </a>
     </>

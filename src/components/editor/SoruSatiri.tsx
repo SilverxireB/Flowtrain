@@ -8,6 +8,7 @@ import OtoMetin from "@/components/editor/OtoMetin";
 import type { MedyaOzet } from "@/lib/editorMedya";
 import { eslestirmeCifti } from "@/lib/sinav";
 import { SORU_ACIKLAMA, SORU_ETIKET, type Soru } from "@/lib/tipler";
+import { medyaYolu } from "@/lib/yol";
 
 /**
  * Editördeki tek soru.
@@ -143,7 +144,7 @@ function SoruSatiriIc({
       {soru.gorselId ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/api/medya/${soru.gorselId}`} alt="" className="h-14 rounded-lg border border-line object-cover" />
+          <img src={medyaYolu(soru.gorselId)} alt="" className="h-14 rounded-lg border border-line object-cover" />
           {/* ALT METİN SORUDA DAHA DA GEREKLİ: "bu fotoğraftaki hangi davranış
               yanlış?" sorusunu ekran okuyucuyla dinleyen kişi görseli
               göremiyorsa soruyu hiç cevaplayamaz. */}

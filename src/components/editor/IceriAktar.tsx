@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Icon from "@/components/Icon";
 import { pptxCoz, type PptxGorsel } from "@/lib/pptx";
+import { yol } from "@/lib/yol";
 
 /**
  * "YÜKLE" KAPISI — ürünün en önemli tek özelliği.
@@ -236,7 +237,7 @@ async function medyaYukle(dosya: File): Promise<string> {
   const form = new FormData();
   form.append("dosya", dosya);
   form.append("kutuphane", "hayir");
-  const cevap = await fetch("/api/medya", { method: "POST", body: form });
+  const cevap = await fetch(yol("/api/medya"), { method: "POST", body: form });
   const sonuc = await cevap.json();
   if (!cevap.ok) throw new Error(sonuc.hata ?? "Yükleme başarısız.");
   return sonuc.id as string;
