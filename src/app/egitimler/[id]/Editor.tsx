@@ -172,6 +172,35 @@ export default function Editor({
   const kilitli = yayinda;
 
   const gosterilen = useMemo(() => sayfalar.map((s) => birlestir(s, anlik[s.id])), [sayfalar, anlik]);
+
+  /**
+   * YENİ GELEN KART — belirerek girsin, bir anda bitmesin.
+   *
+   * Ekleme sunucu eylemi; `router.refresh()` dönünce liste TOPTAN yeniden
+   * çiziliyor ve kart hiçbir ara durum olmadan ekranda beliriveriyordu. Göz
+   * bunu "bir şeyler ters gitti de düzeldi" diye okuyor — kullanıcı da öyle
+   * bildirdi ("oluştururken hata oluşuyor gibi").
+   *
+   * Kimliği ÖNCEKİ ÇİZİMLE KARŞILAŞTIRARAK buluyoruz: sunucudan dönen kimliği
+   * beklemeye gerek yok, listede olmayan kimlik yeni kimliktir. Sıralama ve
+   * silme de listeyi değiştirir ama oralarda YENİ kimlik doğmaz, dolayısıyla
+   * animasyon yanlışlıkla tetiklenmez.
+   */
+  const oncekiIdler = useRef<Set<string>>(new Set(sayfalar.map((s) => s.id)));
+  const [yeniKartId, setYeniKartId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const simdiki = sayfalar.map((s) => s.id);
+    const yeni = simdiki.find((id) => !oncekiIdler.current.has(id));
+    oncekiIdler.current = new Set(simdiki);
+    if (!yeni) return;
+
+    setYeniKartId(yeni);
+    /* İşaret TEMİZLENİR: kalırsa kart her yeniden çizimde (her tuş vuruşunda
+       liste yeniden kuruluyor) baştan animasyona girer ve titrer. */
+    const t = setTimeout(() => setYeniKartId(null), 600);
+    return () => clearTimeout(t);
+  }, [sayfalar]);
   const secili = gosterilen.find((s) => s.id === seciliId) ?? gosterilen[0] ?? null;
   const seciliSira = secili ? gosterilen.findIndex((s) => s.id === secili.id) + 1 : 0;
 
@@ -674,7 +703,7 @@ export default function Editor({
                     key={s.id}
                     id={kartDomKimligi(s.id)}
                     data-kart={s.id}
-                    className="group relative"
+                    className={`group relative ${yeniKartId === s.id ? "animate-pop" : ""}`}
                     onDragOver={(e) => {
                       if (!surukleId) return;
                       e.preventDefault();
