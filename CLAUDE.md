@@ -133,5 +133,9 @@ uçtan uca sınav yakaladı. Bu yüzden **parametre yakalayıp birden çok kez
 OPM adaptörü (v1.5) · self-host kurulum paketi/Docker · SMS dürtme modülü (v2).
 MVP dışı bırakılanlar `docs/KAPSAM.md`te listeli.
 
-Ziyaretçi tarafında kalanlar: ziyaretçi kayıtlarının CSV/PDF çıktısı ve saklama
-süresi (KVKK) ayarı. Bugün kayıtlar veritabanında duruyor ama dışa aktarılmıyor.
+**SÜRÜMLÜ YAYIN — sıradaki büyük iş, tasarımı hazır: `docs/SURUMLU-YAYIN.md`.**
+Bugün taslak ile sahadaki eğitim aynı nesne; yayındaki eğitimi düzenlemek için
+taslağa almak, yani kiosk'tan düşürmek gerekiyor. Ayrıca `oturum.egitimSurum`
+kaydediliyor ama o sürümün İÇERİĞİ saklanmıyor — "bu kişi neyi izledi"
+sorusunun bugün cevabı yok. Belge kararları ve üç adımlı sırayı taşıyor;
+başlamadan önce oku.
