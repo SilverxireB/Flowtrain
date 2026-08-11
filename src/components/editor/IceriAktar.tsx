@@ -32,11 +32,26 @@ import { yol } from "@/lib/yol";
 export default function IceriAktar({
   onPdfKartlari,
   onPptxKartlari,
+  sade = false,
 }: {
   /** PDF: sayfa görüntüsü + türetilmiş başlık. */
   onPdfKartlari: (kartlar: { gorselId: string; baslik: string }[]) => Promise<void>;
   /** PPTX: gerçek metin kartları. */
   onPptxKartlari: (kartlar: { baslik: string; metin: string; gorselIdler: string[] }[]) => Promise<void>;
+  /**
+   * KARTI OLAN EĞİTİMDEKİ SADE KİP.
+   *
+   * Kapı eskiden YALNIZ bomboş eğitimde çiziliyordu (`sayfalar.length === 0`).
+   * Tek kart eklendiği anda PDF/PPTX yükleme yolu ortadan kalkıyordu — oysa
+   * iki eylem de kartları SONA EKLİYOR, gizlemenin teknik bir sebebi yok.
+   * Kullanıcı bunu "yükleme çalışmıyor" diye bildirdi ve haklıydı: özellik
+   * duruyordu, kapısı yoktu.
+   *
+   * Boş eğitimde büyük çağrı olarak kalıyor (ürünün en önemli tek özelliği,
+   * ilk ekranda görünmeli); kart varken kart ekleme düğmelerinin yanında
+   * sade bir düğmeye iniyor. TEK BİLEŞEN: ikinci bir kopya zamanla ayrışırdı.
+   */
+  sade?: boolean;
 }) {
   const [durum, setDurum] = useState<string | null>(null);
   const [hata, setHata] = useState<string | null>(null);
@@ -72,6 +87,52 @@ export default function IceriAktar({
     }
   }
 
+  /* Dosya girdisi ve geri bildirim şeritleri iki kipte de aynı — yalnız
+     çevresindeki kabuk değişiyor. */
+  const dosyaGirdisi = (
+    <input
+      ref={girdi}
+      type="file"
+      accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx"
+      onChange={sec}
+      className="hidden"
+    />
+  );
+  const geriBildirim = (
+    <>
+      {durum ? (
+        <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-accent" aria-live="polite">
+          <Icon name="hourglass" size={16} /> {durum}
+        </p>
+      ) : null}
+      {not ? (
+        <p className="mt-3 rounded-xl border border-line bg-paper px-4 py-3 text-sm text-muted" aria-live="polite">
+          {not}
+        </p>
+      ) : null}
+      {hata ? (
+        <p
+          role="alert"
+          className="mt-3 rounded-xl border border-brand/30 bg-brand-soft px-4 py-3 text-sm font-semibold text-brand-dark"
+        >
+          {hata}
+        </p>
+      ) : null}
+    </>
+  );
+
+  if (sade) {
+    return (
+      <div className="w-full">
+        <button onClick={() => girdi.current?.click()} disabled={!!durum} className="btn-ghost text-sm">
+          <Icon name="upload" size={16} /> {durum ? "Çalışıyor…" : "PDF / PowerPoint yükle"}
+        </button>
+        {dosyaGirdisi}
+        {geriBildirim}
+      </div>
+    );
+  }
+
   return (
     <div className="card border-dashed p-5">
       <div className="flex flex-wrap items-center gap-4">
@@ -89,33 +150,10 @@ export default function IceriAktar({
         <button onClick={() => girdi.current?.click()} disabled={!!durum} className="btn-ghost">
           {durum ? "Çalışıyor…" : "Dosya seç"}
         </button>
-        <input
-          ref={girdi}
-          type="file"
-          accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx"
-          onChange={sec}
-          className="hidden"
-        />
+        {dosyaGirdisi}
       </div>
 
-      {durum ? (
-        <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-accent" aria-live="polite">
-          <Icon name="hourglass" size={16} /> {durum}
-        </p>
-      ) : null}
-      {not ? (
-        <p className="mt-4 rounded-xl border border-line bg-paper px-4 py-3 text-sm text-muted" aria-live="polite">
-          {not}
-        </p>
-      ) : null}
-      {hata ? (
-        <p
-          role="alert"
-          className="mt-4 rounded-xl border border-brand/30 bg-brand-soft px-4 py-3 text-sm font-semibold text-brand-dark"
-        >
-          {hata}
-        </p>
-      ) : null}
+      {geriBildirim}
     </div>
   );
 }
@@ -148,9 +186,14 @@ async function pdfAktar(
     const tuval = document.createElement("canvas");
     tuval.width = Math.min(olcek.width, 2200);
     tuval.height = Math.round((tuval.width / olcek.width) * olcek.height);
-    const ctx = tuval.getContext("2d")!;
     const goruntu = sayfa.getViewport({ scale: (tuval.width / olcek.width) * 2 });
-    await sayfa.render({ canvas: tuval, canvasContext: ctx, viewport: goruntu }).promise;
+    /* YALNIZ `canvas` VERİLİR — eskiden `canvasContext` de birlikte
+       gönderiliyordu. pdf.js'in kendi sözleşmesi bunu desteklemiyor:
+       `canvasContext` geriye dönük uyumluluk içindir ve kullanılacaksa
+       `canvas` null olmak ZORUNDA (bkz. pdfjs-dist RenderParameters).
+       Eski hâlin gerçek tarayıcıda bozuk olduğu ÖLÇÜLMEDİ; burada sözleşmeye
+       uyuluyor, o kadar. */
+    await sayfa.render({ canvas: tuval, viewport: goruntu }).promise;
 
     const parca = await new Promise<Blob | null>((c) => tuval.toBlob(c, "image/jpeg", 0.86));
     if (!parca) throw new Error(`Sayfa ${n} görüntüye çevrilemedi.`);

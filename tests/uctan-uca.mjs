@@ -992,6 +992,87 @@ try {
   await s.getByRole("button", { name: "Kapat" }).click();
   await s.waitForTimeout(300);
 
+  /* 24. PDF İÇE AKTARMA — "yükle" kapısı ürünün en önemli tek özelliği.
+     Fabrikada İSG sunumu ve prosedür PDF'i zaten var; "gel bunları bizim
+     editörde yeniden yaz" demek uyarlamayı öldürür.
+
+     NEDEN UÇTAN UCA: çevirim TARAYICIDA oluyor (pdf.js + canvas + worker).
+     Birim sınav bunu göremez, ve bozulduğunda EKRAN HATA VERMİYOR — sadece
+     "Sayfa 1/2 dönüştürülüyor…" da donuyor. Yani sessiz bozulma; tam da
+     sınavın yakalaması gereken cins.
+
+     PDF sınavın kendisi üretiyor (jspdf zaten bağımlılık): depoya ikilik
+     örnek dosya koymadan gerçek bir belge ile ölçülüyor. */
+  const { jsPDF } = await import("jspdf");
+  const belge = new jsPDF();
+  belge.setFontSize(24);
+  belge.text("Yuksekte Calisma", 20, 40);
+  belge.addPage();
+  belge.setFontSize(24);
+  belge.text("Ikinci Sayfa", 20, 40);
+  const pdfYolu = join(veri, "sinav-belgesi.pdf");
+  writeFileSync(pdfYolu, Buffer.from(belge.output("arraybuffer")));
+
+  await s.bringToFront();
+  await s.goto(`${ADRES}/egitimler`, { waitUntil: "networkidle" });
+  await s.fill('input[name="ad"]', "PDF Aktarma Denemesi");
+  await s.click('button:has-text("Oluştur")');
+  await s.waitForURL(/\/egitimler\/egt_/, { timeout: 15000 });
+
+  /* Kapı DİNAMİK yükleniyor (`ssr: false`), yani sayfa açılır açılmaz DOM'da
+     yok. Beklemeden bakmak yalancı kırmızı üretiyordu. */
+  let kapiVar = true;
+  try {
+    await s.waitForSelector("text=Elinizdeki dosyadan başlayın", { timeout: 20000 });
+  } catch {
+    kapiVar = false;
+  }
+  kontrol(kapiVar, "boş eğitimde 'yükle' kapısı görünüyor");
+
+  const pdfHatalari = [];
+  s.on("console", (m) => {
+    if (m.type() === "error") pdfHatalari.push(m.text().slice(0, 160));
+  });
+
+  await s.setInputFiles('input[type="file"]', pdfYolu);
+  /* Kart alanının BELİRMESİNİ bekliyoruz, sabit süre değil: dönüştürme
+     makineye göre saniyeler sürüyor ve sabit bekleme ya yavaş makinede
+     yalancı kırmızı ya hızlıda boşuna gecikme demek. */
+  let pdfBitti = true;
+  try {
+    await s.waitForSelector('input[placeholder="Başlık"]', { timeout: 60000 });
+  } catch {
+    pdfBitti = false;
+  }
+  kontrol(
+    pdfBitti,
+    pdfBitti
+      ? "PDF kartlara dönüştü"
+      : `PDF dönüştürme BİTMEDİ — ekranda: "${(await s.locator("[aria-live]").first().innerText().catch(() => "?")).trim()}"` +
+        (pdfHatalari.length ? ` · konsol: ${pdfHatalari.slice(0, 2).join(" | ")}` : ""),
+  );
+
+  if (pdfBitti) {
+    const baslikSayisi = await s.locator('input[placeholder="Başlık"]').count();
+    kontrol(baslikSayisi === 2, `iki sayfalık PDF iki kart üretti (${baslikSayisi})`);
+    const ilkBaslik = await s.locator('input[placeholder="Başlık"]').first().inputValue();
+    kontrol(/sinav-belgesi/.test(ilkBaslik), `kart başlığı dosya adından türedi (${ilkBaslik})`);
+    /* Görsel GERÇEKTEN yüklendi mi: kart görüntüsü diske düşmediyse kiosk
+       boş kart oynatır ve bunu ancak sahada fark ederiz. */
+    const gorselSayisi = await s.locator('img[src*="/api/medya/"]').count();
+    kontrol(gorselSayisi >= 1, `sayfa görüntüsü medyaya yüklendi (${gorselSayisi} görsel)`);
+
+    /* KARTI OLAN EĞİTİMDE DE YÜKLEME YOLU DURUYOR — bildirilen asıl sorun.
+       Kapı eskiden yalnız boş eğitimdeki büyük çağrıydı; kartlı eğitimde
+       kart listesinin altında KAPALI bir açılırın arkasında kalıyordu ve
+       kullanıcı "yükleme çalışmıyor" diye bildirdi. Artık kart ekleme
+       düğmelerinin yanında, açıkta. */
+    kontrol(
+      await s.getByRole("button", { name: /PDF \/ PowerPoint yükle/ }).isVisible(),
+      "kartı olan eğitimde de yükleme düğmesi açıkta duruyor",
+    );
+  }
+
   await tarayici.close();
   bitir();
 } catch (h) {

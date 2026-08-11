@@ -942,18 +942,22 @@ export default function Editor({
                   kilitli={kilitli}
                   onEkle={(kartlar) => calistir(() => metinKartlariEkleEylem(egitim.id, kartlar))}
                 />
+                {/* PDF/PPTX YÜKLEME KARTLI EĞİTİMDE DE DURUYOR. Kapı eskiden
+                    yalnız bomboş eğitimde vardı; ilk kart eklendiği anda
+                    kayboluyordu ve kullanıcı bunu "yükleme çalışmıyor" diye
+                    bildirdi. İki aktarma da kartları SONA ekliyor, gizlemenin
+                    sebebi yoktu. */}
+                {sayfalar.length > 0 ? (
+                  <IceriAktar sade onPdfKartlari={pdfKartlari} onPptxKartlari={pptxKartlari} />
+                ) : null}
               </div>
 
-              {sayfalar.length > 0 && !kilitli ? (
-                <details className="mt-4">
-                  <summary className="cursor-pointer text-sm font-semibold text-muted hover:text-ink">
-                    Başka bir sunum ya da PDF ekle
-                  </summary>
-                  <div className="mt-3">
-                    <IceriAktar onPdfKartlari={pdfKartlari} onPptxKartlari={pptxKartlari} />
-                  </div>
-                </details>
-              ) : null}
+              {/* Buradaki KAPALI açılır ("Başka bir sunum ya da PDF ekle")
+                  kaldırıldı: aynı iş artık kart ekleme düğmelerinin yanında,
+                  açık ve tek bir düğme. Kullanıcı yükleme yolunu bulamayıp
+                  "çalışmıyor" diye bildirdi — özellik duruyordu, kapısı kart
+                  listesinin altında kapalı bir üçgenin arkasındaydı. Üç ayrı
+                  giriş noktası tutmak yerine en çok bakılan yerde tek kapı. */}
             </section>
 
             {/* ── sorular ── */}
