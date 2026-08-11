@@ -40,8 +40,26 @@ export function gunFarki(a: string, b: string): number {
  */
 export function kapsamda(kisi: Kisi, kural: Kural): boolean {
   if (!kural.aktif) return false;
-  const k = kural.kosul;
-  return boyutUyar(k.bolum, kisi.bolum) && boyutUyar(k.hat, kisi.hat) && boyutUyar(k.gorev, kisi.gorev);
+  return kosulKapsar(kural.kosul, kisi);
+}
+
+/**
+ * Koşul bu kişiyi kapsıyor mu — kuraldan ve `aktif` bayrağından bağımsız.
+ *
+ * AYRI DURUYOR ÇÜNKÜ FORM DA BUNU KULLANIYOR: kural yazılırken "kaç kişiye
+ * gidecek" sayısı ekranda anlık gösteriliyor ve o sayı kaydedildikten sonraki
+ * gerçekle BİREBİR aynı olmak zorunda. İki ayrı eşleşme yazılsaydı biri
+ * gün içinde ötekinden ayrışır ve form yalan söylerdi.
+ *
+ * ÜÇ BOYUT VE İLE BAĞLI, boyut içi VEYA: kişi hem seçili bir bölümde, hem
+ * seçili bir hatta, hem de seçili bir görevde olmalı. Üçünden de seçim
+ * yapıldığında kesişim kolayca boşalır — sayacın var olma sebebi tam da bu.
+ */
+export function kosulKapsar(
+  kosul: Kural["kosul"],
+  kisi: { bolum?: string; hat?: string; gorev?: string },
+): boolean {
+  return boyutUyar(kosul.bolum, kisi.bolum) && boyutUyar(kosul.hat, kisi.hat) && boyutUyar(kosul.gorev, kisi.gorev);
 }
 
 /**

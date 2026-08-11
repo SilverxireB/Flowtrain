@@ -101,8 +101,13 @@ export default function SinifFormu({
     router.refresh();
   }
 
+  /* GENİŞLİK KABUKTAN GELİR. Bu iki sayfa kendi `max-w-3xl`ini taşıyordu:
+     kokpitin geri kalanı `sayfa-kap` (max-w-7xl) ile çizilirken burası
+     768px'te kalıyor, geniş ekranda sayfalar arasında gezerken içerik
+     bir daralıp bir genişliyordu. globals.css'teki "kokpitin tek
+     genişliği" kuralı tam olarak bunu yasaklıyor. */
   return (
-    <div className="max-w-3xl">
+    <div>
       {baslangic ? (
         /* DÜZELTMENİN NE OLDUĞU VE NE OLMADIĞI, kaydetmeden önce.
            "Düzeltme" kelimesi kullanıcıya eski satırın gideceğini düşündürür;

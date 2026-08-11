@@ -28,6 +28,25 @@ export default async function Atama() {
   const secenek = (alan: "bolum" | "hat" | "gorev") =>
     [...new Set(kisiler.map((k) => k[alan]).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, "tr"));
 
+  /**
+   * KOMBİNASYONLAR — formun "kaç kişiye gidecek" sayacı için.
+   *
+   * Bin kişilik listeyi istemciye taşımak yerine ayrık (bölüm, hat, görev)
+   * üçlüleri ve her birinin kaç kişi olduğu gönderiliyor: fabrikada birkaç yüz
+   * ayrık üçlü var, kişi sayısı ise binlerce. Sayaç aynı sonucu verir çünkü
+   * kapsam yalnız bu üç boyuta bakıyor (`kosulKapsar`).
+   */
+  const kombinasyonlar = (() => {
+    const harita = new Map<string, { bolum?: string; hat?: string; gorev?: string; adet: number }>();
+    for (const k of kisiler) {
+      const anahtar = `${k.bolum ?? ""}|${k.hat ?? ""}|${k.gorev ?? ""}`;
+      const v = harita.get(anahtar);
+      if (v) v.adet++;
+      else harita.set(anahtar, { bolum: k.bolum, hat: k.hat, gorev: k.gorev, adet: 1 });
+    }
+    return [...harita.values()];
+  })();
+
   const paketKuralSayisi = kurallar.filter((k) => k.grupId).length;
 
   return (
@@ -68,6 +87,7 @@ export default async function Atama() {
             bolumler={secenek("bolum")}
             hatlar={secenek("hat")}
             gorevler={secenek("gorev")}
+            kombinasyonlar={kombinasyonlar}
           />
         </section>
 

@@ -6,7 +6,7 @@
  * etmez (herkes fazladan eğitim alır), EKSİK atarsa hiç kimse "bana atanmamış"
  * demez — çünkü atanmadığını bilmez. Denetimde ortaya çıkar, o da geç olur.
  */
-import { kapsamda, sonTarih, atamalariCikar, atamaDurumu, gunEkle, ayEkle, gunFarki } from "../src/lib/kurallar.ts";
+import { kapsamda, kosulKapsar, sonTarih, atamalariCikar, atamaDurumu, gunEkle, ayEkle, gunFarki } from "../src/lib/kurallar.ts";
 import { kontrol, esit, bitir } from "./yardim.mjs";
 
 const kisi = (o) => ({ sicil: "1", ad: "Test", ...o });
@@ -133,5 +133,34 @@ esit(gunEkle("2026-02-27", 3), "2026-03-02", "gün ekleme ay sınırını aşar"
 esit(ayEkle("2026-01-31", 1), "2026-03-03", "31 Ocak + 1 ay taşar (JS davranışı, bilinçli)");
 esit(gunFarki("2026-08-10", "2026-08-06"), 4, "gün farkı");
 esit(gunFarki("2026-08-01", "2026-08-06"), -5, "geçmiş tarih negatif");
+
+/* ── kosulKapsar: formdaki sayaç ile motorun AYNI kuralı ────────────────────
+   Sayaç kural yazılırken "kaç kişiye gidecek" diyor; kaydedildikten sonraki
+   gerçekle birebir aynı olmak zorunda. Bu yüzden ikisi de bu işlevden geçiyor
+   ve burada üç boyutun VE ile bağlandığı kilitleniyor — kullanıcının "1 yapınca
+   kimseye gitmiyor" dediği durumun kaynağı tam olarak bu kesişim. */
+{
+  const kisi = { bolum: "Bakım", hat: "Hat 1", gorev: "Bakımcı" };
+  kontrol(kosulKapsar({}, kisi), "boş koşul herkesi kapsar");
+  kontrol(kosulKapsar({ bolum: ["Bakım"] }, kisi), "tek boyut eşleşiyorsa kapsar");
+  kontrol(
+    !kosulKapsar({ bolum: ["Bakım"], gorev: ["Operatör"] }, kisi),
+    "boyutlar VE ile bağlı: görev tutmuyorsa kapsamaz",
+  );
+  kontrol(
+    !kosulKapsar({ bolum: ["Bakım"], hat: ["Hat 9"] }, kisi),
+    "üç boyuttan biri tutmayınca kesişim boşalır",
+  );
+  kontrol(kosulKapsar({ bolum: ["Bakım", "Boya"] }, kisi), "boyut içi VEYA");
+  kontrol(!kosulKapsar({ hat: ["Hat 1"] }, { bolum: "Bakım" }), "kişide olmayan boyut aranıyorsa kapsamaz");
+}
+
+/* Sayaçtaki `kosulKapsar` ile motordaki `kapsamda` aynı sonucu vermeli. */
+{
+  const kisi = { sicil: "1", ad: "A", bolum: "Bakım", hat: "Hat 1", gorev: "Bakımcı" };
+  const kural = { id: "k", egitimId: "e", kosul: { bolum: ["Bakım"] }, aktif: true };
+  esit(kapsamda(kisi, kural), kosulKapsar(kural.kosul, kisi), "form sayacı ile motor aynı cevabı veriyor");
+  esit(kapsamda(kisi, { ...kural, aktif: false }), false, "pasif kural kimseyi kapsamaz (kosulKapsar bunu bilmez)");
+}
 
 bitir("kurallar");

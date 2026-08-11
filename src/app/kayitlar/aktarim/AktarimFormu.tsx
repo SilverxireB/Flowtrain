@@ -76,8 +76,13 @@ export default function AktarimFormu({ takmalar }: { takmalar: Record<AktarimAla
     router.refresh();
   }
 
+  /* GENİŞLİK KABUKTAN GELİR. Bu iki sayfa kendi `max-w-3xl`ini taşıyordu:
+     kokpitin geri kalanı `sayfa-kap` (max-w-7xl) ile çizilirken burası
+     768px'te kalıyor, geniş ekranda sayfalar arasında gezerken içerik
+     bir daralıp bir genişliyordu. globals.css'teki "kokpitin tek
+     genişliği" kuralı tam olarak bunu yasaklıyor. */
   return (
-    <div className="max-w-3xl">
+    <div>
       <p className="card p-5 text-sm text-muted">
         Dış sistemden gelen eski tamamlamaları deftere alır. Kayıtlar{" "}
         <strong className="text-ink">Dış aktarım</strong> kaynağıyla işaretlenir. Aynı kişi, aynı eğitim ve aynı tarih

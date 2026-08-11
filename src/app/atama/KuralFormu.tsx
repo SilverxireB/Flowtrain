@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { kosulKapsar } from "@/lib/kurallar";
 import { useFormState, useFormStatus } from "react-dom";
 import Icon from "@/components/Icon";
 import { kuralEkleEylem } from "./eylemler";
@@ -22,16 +23,50 @@ export default function KuralFormu({
   bolumler,
   hatlar,
   gorevler,
+  kombinasyonlar,
 }: {
   egitimler: { id: string; ad: string; yayinda: boolean }[];
   paketler: { id: string; ad: string; egitimSayisi: number }[];
   bolumler: string[];
   hatlar: string[];
   gorevler: string[];
+  /** Ayrık (bölüm, hat, görev) üçlüleri ve her birinin kişi sayısı. */
+  kombinasyonlar: { bolum?: string; hat?: string; gorev?: string; adet: number }[];
 }) {
   const [hata, gonder] = useFormState(kuralEkleEylem, null);
   const [hedefTipi, setHedefTipi] = useState<"egitim" | "paket">("egitim");
   const [secili, setSecili] = useState<Record<string, string[]>>({ bolum: [], hat: [], gorev: [] });
+  /**
+   * SON TARİH TEK SEÇİM.
+   *
+   * Eskiden iki alan yan yana duruyordu ("işe girişten sonra gün" + "sabit
+   * tarih") ve altında "ikisi de doluysa erken olan geçerlidir" yazıyordu.
+   * İkisinin birbiriyle ne yaptığı okunmadan anlaşılmıyordu; kural yazan kişi
+   * ikisini de doldurup neyin geçerli olduğunu kestiremiyordu. Artık üç
+   * seçenekten biri: yok · işe girişe göre · sabit tarih. Motor değişmedi —
+   * yalnız aynı anda tek alan gönderiliyor.
+   */
+  const [sonTarihKipi, setSonTarihKipi] = useState<"yok" | "iseGiris" | "sabit">("yok");
+
+  /**
+   * KAÇ KİŞİYE GİDECEK — anlık.
+   *
+   * Üç boyut VE ile bağlı: kişi hem seçili bir bölümde, hem seçili bir hatta,
+   * hem de seçili bir görevde olmalı. Üçünden de seçim yapılınca kesişim
+   * kolayca boşalıyor ve kural "hiç kimseye" yazılıyordu — üstelik bu ancak
+   * kaydettikten sonra fark ediliyordu. Sayı, kaydedildikten sonraki gerçekle
+   * BİREBİR aynı olsun diye kapsam kuralının kendisinden (`kosulKapsar`)
+   * geçiyor; forma özel ikinci bir eşleşme yazılsaydı ayrışırdı.
+   */
+  const kapsanan = useMemo(
+    () =>
+      kombinasyonlar.reduce(
+        (t, k) => (kosulKapsar({ bolum: secili.bolum, hat: secili.hat, gorev: secili.gorev }, k) ? t + k.adet : t),
+        0,
+      ),
+    [kombinasyonlar, secili],
+  );
+  const toplam = useMemo(() => kombinasyonlar.reduce((t, k) => t + k.adet, 0), [kombinasyonlar]);
 
   function degistir(alan: string, deger: string) {
     setSecili((s) => ({
@@ -105,18 +140,52 @@ export default function KuralFormu({
       <Coklu ad="hat" etiket="Hat" secenekler={hatlar} secili={secili.hat} degistir={degistir} />
       <Coklu ad="gorev" etiket="Görev" secenekler={gorevler} secili={secili.gorev} degistir={degistir} />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold">İşe girişten sonra (gün)</span>
-          <input name="iseGirisIcindeGun" type="number" min={1} placeholder="Örn. 3" className="input-base" />
-          <span className="mt-1 block text-xs text-muted">Yeni girenler için kişiye özel son tarih üretir.</span>
-        </label>
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold">Sabit son tarih</span>
-          <input name="sonTarih" type="date" className="input-base" />
-          <span className="mt-1 block text-xs text-muted">İkisi de doluysa erken olan geçerlidir.</span>
-        </label>
-      </div>
+      <fieldset>
+        <legend className="mb-1.5 text-sm font-semibold">Son tarih</legend>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["yok", "Son tarih yok"],
+              ["iseGiris", "İşe girişe göre"],
+              ["sabit", "Sabit tarih"],
+            ] as const
+          ).map(([deger, etiket]) => (
+            <button
+              key={deger}
+              type="button"
+              onClick={() => setSonTarihKipi(deger)}
+              aria-pressed={sonTarihKipi === deger}
+              className={`chip dokunma-44 text-sm ${sonTarihKipi === deger ? "border-accent bg-accent-soft text-accent-dark" : ""}`}
+            >
+              {etiket}
+            </button>
+          ))}
+        </div>
+
+        {sonTarihKipi === "yok" ? (
+          <p className="mt-2 text-xs text-muted">Eğitim atanır ama gecikme sayılmaz — süresiz açık kalır.</p>
+        ) : null}
+
+        {sonTarihKipi === "iseGiris" ? (
+          <label className="mt-2 block max-w-xs">
+            <span className="sr-only">İşe girişten sonra kaç gün</span>
+            <input name="iseGirisIcindeGun" type="number" min={1} placeholder="Örn. 30" className="input-base" />
+            <span className="mt-1 block text-xs text-muted">
+              Herkesin son tarihi KENDİ işe giriş tarihine göre hesaplanır. Yeni girenler için doğru olan budur; eski
+              personelin tarihi çoktan geçmiş sayılır ve eğitim onlarda <strong className="text-ink">gecikmiş</strong>{" "}
+              görünür.
+            </span>
+          </label>
+        ) : null}
+
+        {sonTarihKipi === "sabit" ? (
+          <label className="mt-2 block max-w-xs">
+            <span className="sr-only">Sabit son tarih</span>
+            <input name="sonTarih" type="date" className="input-base" />
+            <span className="mt-1 block text-xs text-muted">Herkes için aynı tarih.</span>
+          </label>
+        ) : null}
+      </fieldset>
 
       {hata ? (
         <p role="alert" className="rounded-xl border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark">
@@ -124,7 +193,33 @@ export default function KuralFormu({
         </p>
       ) : null}
 
-      <Gonder />
+      {/* SAYI DÜĞMENİN YANINDA: kural yazan kişi "kaydet"e basmadan ÖNCE kaç
+          kişiye gideceğini görmeli. Sıfır çıkması bir hata değil, bir cevaptır
+          — ve en sık sebebi üç boyutun VE ile bağlanması, yani kesişimin
+          boşalması. Onu da burada söylüyoruz, kaydettikten sonra değil. */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Gonder />
+        <span
+          aria-live="polite"
+          className={`text-sm font-semibold ${kapsanan === 0 ? "text-brand-dark" : "text-muted"}`}
+        >
+          {kapsanan === 0 ? (
+            <>Bu seçimle hiç kimse kapsanmıyor</>
+          ) : (
+            <>
+              <strong className="text-ink">{kapsanan}</strong> kişiye gidecek
+              {kapsanan === toplam ? " (listedeki herkes)" : ` · listede ${toplam} kişi`}
+            </>
+          )}
+        </span>
+      </div>
+      {kapsanan === 0 && (secili.bolum.length > 0 || secili.hat.length > 0 || secili.gorev.length > 0) ? (
+        <p className="text-xs text-muted">
+          Bölüm, hat ve görev <strong className="text-ink">birlikte</strong> aranır: kişi üçünü de karşılamalı.
+          Örneğin bakımdaki herkese yazmak için yalnız <strong className="text-ink">Bakım</strong> seçin, hat ve görev
+          boş kalsın.
+        </p>
+      ) : null}
     </form>
   );
 }
