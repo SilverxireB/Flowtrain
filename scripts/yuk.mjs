@@ -128,12 +128,9 @@ for (let i = 0; i < EGITIM; i++) {
   const e = depo.egitimOlustur(`${KATEGORILER[i % KATEGORILER.length]} — Eğitim ${i + 1}`, "yuk");
   egitimIdleri.push(e.id);
   depo.egitimGuncelle(e.id, {
-    // Beşte biri taslak: gerçek katalogda hep yayında olmayan içerik bulunur.
-    durum: i % 5 === 0 ? "taslak" : "yayin",
     kategori: KATEGORILER[i % KATEGORILER.length],
     zorunlu: i % 4 === 0,
     tekrarAy: i % 3 === 0 ? 12 : undefined,
-    surum: 1 + (i % 4),
     sureDk: 15 + (i % 5) * 10,
   });
   // Sayfa ve soru sayısı panonun anomali taramasını gerçekçi kılar:
@@ -143,6 +140,24 @@ for (let i = 0; i < EGITIM; i++) {
   }
   for (let q = 0; q < 8; q++) {
     depo.soruEkle(e.id, { tip: "tekSecim", metin: `Soru ${q + 1}?`, secenekler: ["A", "B", "C", "D"], dogru: [q % 4] });
+  }
+
+  /* YAYIN GERÇEK YOLDAN — `durum: "yayin"` yamasıyla değil.
+     Sürümlü yayından sonra saha yalnız ANLIK GÖRÜNTÜSÜ olan eğitimi görüyor
+     (`depo.sahadakiEgitimler`). Durum alanını elle yazmak, katalogda "yayında"
+     görünüp hiçbir kişiye düşmeyen 48 eğitim üretirdi: ölçüm boş kümeyi ölçer,
+     her ölçüt rahatça geçer ve betik hiçbir şey söylemezdi.
+
+     Beşte biri taslak kalıyor (gerçek katalogda hep yayınlanmamış içerik
+     vardır). Yayınlananların bir kısmı BİRDEN ÇOK sürüm bırakıyor: sürüm
+     tablosunun kabarması artık her atama okumasının maliyetine giriyor,
+     ölçünün onu görmesi gerek. */
+  if (i % 5 !== 0) {
+    for (let y = 0; y <= i % 4; y++) {
+      // İçerik aynıysa yeni sürüm açılmaz; her turda bir kart değişiyor.
+      if (y > 0) depo.sayfaGuncelle(depo.sayfalariGetir(e.id)[0].id, { metin: `Gövde sürüm ${y}`.repeat(20) });
+      depo.yayinla(e.id, "yuk");
+    }
   }
 }
 

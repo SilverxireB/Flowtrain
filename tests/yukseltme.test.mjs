@@ -135,6 +135,12 @@ function eskiKurulumKur(kuralSemasi) {
   d.prepare(
     "INSERT INTO egitim (id,ad,surum,durum,hazirlayan,olusturma,guncelleme) VALUES (?,?,?,?,?,?,?)",
   ).run("egt_eski2", "Forklift", 1, "yayin", "yonetici", zaman, zaman);
+  /* TASLAKTAKİ eğitim — sürümlü yayın göçünün ELEDİĞİ hâl. `onaylayan` dolu:
+     bir zamanlar yayınlanmış, sonra taslağa alınmış. İçeriği o günden beri
+     değişmiş olabilir, dolayısıyla "sürüm 2" diye görüntülenemez. */
+  d.prepare(
+    "INSERT INTO egitim (id,ad,surum,durum,hazirlayan,onaylayan,olusturma,guncelleme) VALUES (?,?,?,?,?,?,?,?)",
+  ).run("egt_eski3", "Kimyasal", 2, "taslak", "yonetici", "mudur", zaman, zaman);
   d.prepare("INSERT INTO sayfa (id,egitimId,sira,tip,baslik,asgariSure) VALUES (?,?,?,?,?,?)").run(
     "sf_eski1",
     "egt_eski1",
@@ -166,6 +172,11 @@ eski.d
   .run("krl_1", "egt_eski1", '{"bolum":["Kaynak"]}', "2026-12-31", 1);
 eski.d.prepare("INSERT INTO kural (id,egitimId,kosul,aktif) VALUES (?,?,?,?)").run("krl_2", "egt_eski1", '{"hat":["Hat 1"]}', 1);
 eski.d.prepare("INSERT INTO kural (id,egitimId,kosul,aktif) VALUES (?,?,?,?)").run("krl_3", "egt_eski2", '{"gorev":["Forklift"]}', 0);
+// Editörde açılmış bölüm başlığı — anlık görüntüye girmezse yayınlanan
+// eğitim bölümsüz kalır.
+eski.d
+  .prepare("INSERT INTO ayar (anahtar,deger) VALUES (?,?)")
+  .run("bolumler:egt_eski1", '{"sf_eski1":"Giriş"}');
 eski.d.close();
 
 const d = await dbAc(eski.klasor);
@@ -264,9 +275,44 @@ esit(eskiOturum.sorulanSoruIdleri, "[]", "eski oturumun soru seti boş dizi");
 esit(eskiOturum.puan, 90, "eski kaydın puanı korundu");
 esit(eskiOturum.sonuc, "gecti", "eski kaydın sonucu korundu");
 esit(d.prepare("SELECT hataliDeneme FROM pin WHERE sicil='1001'").get().hataliDeneme, 0, "eski PIN sayacı sıfırdan başlıyor");
-esit(d.prepare("SELECT COUNT(*) n FROM egitim").get().n, 2, "eğitimler yerinde");
+esit(d.prepare("SELECT COUNT(*) n FROM egitim").get().n, 3, "eğitimler yerinde");
 esit(d.prepare("SELECT COUNT(*) n FROM sayfa").get().n, 1, "sayfalar yerinde");
 esit(d.prepare("SELECT COUNT(*) n FROM soru").get().n, 1, "sorular yerinde");
+
+/* ── SAHADAKİ EĞİTİMLERİN ANLIK GÖRÜNTÜSÜ ────────────────────────────────
+   Sürümlü yayın göçü (`docs/SURUMLU-YAYIN.md`). Bu göç olmasaydı, okuma yeri
+   yayına çevrildiğinde (2. adım) görüntüsü olmayan her eğitim sahadan
+   DÜŞERDİ: yükseltmenin ertesi sabahı kioska gelen işçi "size atanmış eğitim
+   yok" görürdü. Yeni kurulumda hiç görünmeyen, YALNIZ yükseltmede çıkan bir
+   hata — bu dosyanın var olma sebebinin aynısı. */
+const y1 = d.prepare("SELECT * FROM yayinSurum WHERE egitimId='egt_eski1'").get();
+kontrol(!!y1, "sahadaki eğitimin anlık görüntüsü göçte alındı");
+esit(y1.surum, 3, "SÜRÜM NUMARASI KAYDIRILMADI (var olan kayıtlar bu numaraya atıf yapıyor)");
+esit(y1.ad, "Yüksekte Çalışma", "künye eğitimden dolduruldu");
+esit(y1.yayinlayan, "yonetici", "onaylayanı olmayan eski kayıtta hazırlayan yazıldı");
+esit(y1.bolumler, '{"sf_eski1":"Giriş"}', "bölüm başlıkları da anlık görüntüye alındı");
+
+const g1Sayfalar = d.prepare("SELECT * FROM yayinSayfa WHERE yayinId=?").all(y1.id);
+esit(g1Sayfalar.length, 1, "yayınlanan kart anlık görüntüye girdi");
+esit(g1Sayfalar[0].sayfaId, "sf_eski1", "kart kimliği korundu (bölüm başlığı ona bağlı)");
+esit(g1Sayfalar[0].baslik, "Emniyet kemeri", "kart içeriği taşındı");
+const g1Sorular = d.prepare("SELECT * FROM yayinSoru WHERE yayinId=?").all(y1.id);
+esit(g1Sorular.length, 1, "soru anlık görüntüye girdi");
+esit(g1Sorular[0].dogru, "[0]", "cevap anahtarı taşındı");
+
+esit(
+  d.prepare("SELECT COUNT(*) n FROM yayinSurum WHERE egitimId='egt_eski2'").get().n,
+  1,
+  "kartsız da olsa sahadaki eğitimin görüntüsü alınır (bugünkü davranışı bozmamak için)",
+);
+/* TASLAKTAKİ eğitim DIŞARIDA: içeriği yayınlandığı andakinden farklı olabilir
+   ve onu "sürüm 2" diye kaydetmek denetime yalan söylerdi. İlk yayınında
+   numara 3 olur (`surum.ts` — sonrakiSurum). */
+esit(
+  d.prepare("SELECT COUNT(*) n FROM yayinSurum WHERE egitimId='egt_eski3'").get().n,
+  0,
+  "taslaktaki eğitimin anlık görüntüsü ALINMAZ",
+);
 
 /* ── Yabancı anahtar ihlali yok ──────────────────────────────────────────
    Göç `foreign_keys = OFF` ile çalışıyor (tablo bir an için DROP ediliyor);
@@ -296,6 +342,18 @@ kontrol(
   "ikinci açılış geçici tablo bırakmadı",
 );
 esit(d2.pragma("foreign_key_check"), [], "ikinci açılıştan sonra da yabancı anahtar ihlali yok");
+/* Anlık görüntü göçü de bir kez çalışır: her açılışta yeniden alsaydı
+   (egitimId, surum) tekilliğine takılıp uygulamayı hiç açtırmazdı. */
+esit(
+  d2.prepare("SELECT COUNT(*) n FROM yayinSurum").get().n,
+  2,
+  "ikinci açılış ikinci bir anlık görüntü almadı",
+);
+esit(
+  d2.prepare("SELECT COUNT(*) n FROM yayinSayfa").get().n,
+  1,
+  "ikinci açılışta anlık görüntü kartları çoğalmadı",
+);
 
 /* ══ 2. YARIM YÜKSELTİLMİŞ ŞEMA (grupId var ama egitimId hâlâ NOT NULL) ════
    Ara sürümlerin bıraktığı hâl: paket kuralı bir ÜYE eğitime çapalanmıştı.

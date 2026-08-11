@@ -31,7 +31,9 @@ export default async function Ziyaretciler() {
   zdepo.eskileriTemizle();
 
   const sorular = zdepo.sorulariGetir();
-  const yayindakiler = depo.yayindakiEgitimler();
+  /* SAHADAKİLER — kayıt eyleminin süzgeciyle AYNI kaynak. Ayrı iki liste
+     olsaydı görevlinin seçtiği bilgilendirme kayıt sırasında sessizce düşerdi. */
+  const yayindakiler = depo.sahadakiEgitimler();
   const varsayilanlar = zdepo.varsayilanEgitimler();
   const bugun = simdi();
 

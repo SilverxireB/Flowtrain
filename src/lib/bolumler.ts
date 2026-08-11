@@ -12,6 +12,12 @@
  * ÜSTÜNDE bölüm başlar" demektir. Sıra numarasına bağlansaydı araya tek kart
  * eklemek bütün başlıkları bir aşağı kaydırırdı; karta bağlıyken bölüm kendi
  * ilk kartıyla birlikte taşınır.
+ *
+ * NEDEN `src/lib` (eskiden editörün yanındaydı): yayın anlık görüntüsü bu
+ * satırı da almak zorunda (`depo.yayinla`), yoksa yayınlanan eğitim bölümsüz
+ * kalır. Depo katmanının editör klasöründen içe aktarım yapması bağımlılığı
+ * ters çevirirdi; anahtar biçimini iki yere kopyalamak ise ilk değişiklikte
+ * sessizce ayrışırdı.
  */
 
 /** sayfaId → o kartın üstünde başlayan bölümün adı. */

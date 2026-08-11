@@ -255,6 +255,83 @@ CREATE TABLE IF NOT EXISTS medya (
   altMetin TEXT,
   kutuphaneDisi INTEGER NOT NULL DEFAULT 0
 );
+
+/* ── YAYINLANMIŞ SÜRÜM (anlık görüntü) ─────────────────────────────────────
+   Taslak ile yayın AYRI İKİ NESNE. egitim/sayfa/soru tabloları TASLAKTIR ve
+   editör onlara yazmaya devam eder; saha aşağıdaki satırları oynatır.
+
+   Bu tablolar KAYITTIR: yayınlanan bir sürümün içeriği bir daha değişmez
+   (CLAUDE.md 7). Değişiklik yeni bir sürümdür. Bu yüzden burada UPDATE eden
+   bir depo işlevi yoktur, yalnız INSERT.
+
+   egitimId'de YABANCI ANAHTAR YOK — bilerek. Eğitim silinse bile "bu kişi şu
+   gün tam olarak neyi izledi" sorusunun cevabı ayakta kalmalı; oturum ve
+   ziyaretciOturum tabloları aynı sebeple bağsız duruyor. Denetimde işe yarayan şey
+   kaydın kendisi, bağlantısı değil.
+
+   DİKKAT: burası bir şablon dize; yorumlarda ters tırnak KULLANILMAZ. */
+CREATE TABLE IF NOT EXISTS yayinSurum (
+  id TEXT PRIMARY KEY,
+  egitimId TEXT NOT NULL,
+  surum INTEGER NOT NULL,
+  ad TEXT NOT NULL,
+  aciklama TEXT,
+  gecmeNotu INTEGER NOT NULL DEFAULT 70,
+  denemeHakki INTEGER NOT NULL DEFAULT 2,
+  soruSayisi INTEGER NOT NULL DEFAULT 5,
+  karisik INTEGER NOT NULL DEFAULT 1,
+  tekrarAy INTEGER,
+  kategori TEXT NOT NULL DEFAULT '',
+  zorunlu INTEGER NOT NULL DEFAULT 0,
+  sureDk INTEGER,
+  egitmen TEXT,
+  /* Bölüm başlıkları anlık görüntünün İÇİNDE: taslaktaki ayar satırı
+     ("bolumler:<egitimId>") sonra değişir ve o an yayınlanan düzen kaybolurdu. */
+  bolumler TEXT NOT NULL DEFAULT '{}',
+  yayinlayan TEXT NOT NULL,
+  yayinZamani TEXT NOT NULL
+);
+/* Aynı eğitimde aynı sürüm numarası İKİ KEZ olamaz: kayıt sürüm numarasına
+   atıf yapıyor, ikizi olan numara denetimde hiçbir şey ifade etmez. */
+CREATE UNIQUE INDEX IF NOT EXISTS ix_yayinSurum_egitim ON yayinSurum(egitimId, surum);
+
+/* Anlık görüntü satırları TASLAK KİMLİĞİNİ korur (sayfaId/soruId yeniden
+   üretilmez, anahtar (yayinId, sayfaId) çiftidir). Üç şey buna bağlı:
+    · bölüm başlıkları sayfa kimliğine bağlı — yeni kimlikle her yayında
+      yeniden eşlenmesi gerekirdi,
+    · oturum.sayfaSureleri ve oturum.sorulanSoruIdleri sürümler arasında aynı
+      kartı/soruyu gösterir,
+    · soruIstatistik (içerik kalite sinyali) soru kimliğiyle toplanıyor; her
+      yayında kimlik değişseydi sinyal sürüm sürüm parçalanırdı. */
+CREATE TABLE IF NOT EXISTS yayinSayfa (
+  yayinId TEXT NOT NULL REFERENCES yayinSurum(id) ON DELETE CASCADE,
+  sayfaId TEXT NOT NULL,
+  sira INTEGER NOT NULL,
+  tip TEXT NOT NULL,
+  baslik TEXT NOT NULL DEFAULT '',
+  metin TEXT,
+  metinKarsi TEXT,
+  gorselId TEXT,
+  gorselIdler TEXT NOT NULL DEFAULT '[]',
+  videoId TEXT,
+  asgariSure INTEGER NOT NULL DEFAULT 8,
+  PRIMARY KEY (yayinId, sayfaId)
+);
+CREATE INDEX IF NOT EXISTS ix_yayinSayfa_yayin ON yayinSayfa(yayinId, sira);
+
+CREATE TABLE IF NOT EXISTS yayinSoru (
+  yayinId TEXT NOT NULL REFERENCES yayinSurum(id) ON DELETE CASCADE,
+  soruId TEXT NOT NULL,
+  sira INTEGER NOT NULL,
+  tip TEXT NOT NULL,
+  metin TEXT NOT NULL,
+  secenekler TEXT NOT NULL,
+  dogru TEXT NOT NULL,
+  gorselId TEXT,
+  aciklama TEXT,
+  PRIMARY KEY (yayinId, soruId)
+);
+CREATE INDEX IF NOT EXISTS ix_yayinSoru_yayin ON yayinSoru(yayinId, sira);
 `;
 
 /**
@@ -343,6 +420,68 @@ function gocleriUygula(d: Database.Database): void {
   // Sütunu göç garanti ettikten SONRA: şemanın içinde olsaydı var olan
   // kurulumda betiği yarıda keserdi (yukarıdaki nota bkz).
   d.exec("CREATE INDEX IF NOT EXISTS ix_kural_grup ON kural(grupId)");
+
+  sahadakileriAnlikGoruntuyeAl(d);
+}
+
+/**
+ * SÜRÜMLÜ YAYIN GÖÇÜ — sahadaki eğitimlerin anlık görüntüsünü bir kez alır.
+ *
+ * NEDEN ŞART: sürümlü yayından önce yayınlanmış eğitimlerin anlık görüntüsü
+ * yok. Okuma yeri yayına çevrildiğinde (2. adım) görüntüsü olmayan eğitim
+ * sahadan DÜŞERDİ — yükseltmenin ertesi sabahı kioska gelen işçi "size
+ * atanmış eğitim yok" görürdü. Bu, işin tamamını çözmeye çalıştığı sorunun
+ * ta kendisi.
+ *
+ * İçerik olduğu gibi alınır çünkü yayındaki eğitimin editörü zaten kilitli:
+ * `egitim/sayfa/soru` satırları o eğitim için yayınlanan içeriğin KENDİSİDİR.
+ * Sürüm numarası da olduğu gibi kalır — var olan kayıtlar (`oturum.egitimSurum`)
+ * o numaraya atıf yapıyor ve numara kaydırılsaydı hepsi sahipsiz kalırdı.
+ *
+ * TASLAKTAKİ eğitimler bilerek DIŞARIDA: taslağa alınmış bir eğitimin içeriği
+ * yayınlandığı andakinden farklı olabilir ve onu "sürüm N" diye kaydetmek
+ * denetime yalan söylerdi. Onların ilk yayını N+1 alır (`surum.ts`).
+ *
+ * Bir kez çalışır: eğitimin bir görüntüsü varsa hiç dokunulmaz.
+ */
+function sahadakileriAnlikGoruntuyeAl(d: Database.Database): void {
+  const eksik = d
+    .prepare(
+      `SELECT * FROM egitim e WHERE e.durum='yayin'
+         AND NOT EXISTS (SELECT 1 FROM yayinSurum y WHERE y.egitimId = e.id)`,
+    )
+    .all() as Record<string, unknown>[];
+  if (eksik.length === 0) return;
+
+  const bolumOku = d.prepare("SELECT deger FROM ayar WHERE anahtar=?");
+  const surumYaz = d.prepare(
+    `INSERT INTO yayinSurum (id,egitimId,surum,ad,aciklama,gecmeNotu,denemeHakki,soruSayisi,karisik,
+       tekrarAy,kategori,zorunlu,sureDk,egitmen,bolumler,yayinlayan,yayinZamani)
+     SELECT ?, id, surum, ad, aciklama, gecmeNotu, denemeHakki, soruSayisi, karisik,
+       tekrarAy, kategori, zorunlu, sureDk, egitmen, ?, COALESCE(onaylayan, hazirlayan), guncelleme
+     FROM egitim WHERE id=?`,
+  );
+  const sayfaYaz = d.prepare(
+    `INSERT INTO yayinSayfa (yayinId,sayfaId,sira,tip,baslik,metin,metinKarsi,gorselId,gorselIdler,videoId,asgariSure)
+     SELECT ?, id, sira, tip, baslik, metin, metinKarsi, gorselId, gorselIdler, videoId, asgariSure
+     FROM sayfa WHERE egitimId=? ORDER BY sira`,
+  );
+  const soruYaz = d.prepare(
+    `INSERT INTO yayinSoru (yayinId,soruId,sira,tip,metin,secenekler,dogru,gorselId,aciklama)
+     SELECT ?, id, ROW_NUMBER() OVER (ORDER BY id), tip, metin, secenekler, dogru, gorselId, aciklama
+     FROM soru WHERE egitimId=?`,
+  );
+
+  d.transaction(() => {
+    for (const e of eksik) {
+      const egitimId = e.id as string;
+      const yayinId = `yay_goc_${egitimId}`;
+      const bolum = bolumOku.get(`bolumler:${egitimId}`) as { deger: string } | undefined;
+      surumYaz.run(yayinId, bolum?.deger ?? "{}", egitimId);
+      sayfaYaz.run(yayinId, egitimId);
+      soruYaz.run(yayinId, egitimId);
+    }
+  })();
 }
 
 /**

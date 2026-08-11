@@ -19,7 +19,7 @@ import YayinKontrol, { YayinRozeti, kartSorunlu, yayinKontrolu } from "@/compone
 import { KartEkleMenusu } from "@/components/editor/KartTipiMenusu";
 import BolumAyraci from "./BolumAyraci";
 import KartHaritasi, { type HaritaSatiri } from "./KartHaritasi";
-import type { BolumHaritasi } from "./bolumler";
+import type { BolumHaritasi } from "@/lib/bolumler";
 import { kartGorselleri, type MedyaOzet } from "@/lib/editorMedya";
 import { KART_ETIKET, SORU_ETIKET, type Egitim, type KartTipi, type Sayfa, type Soru, type SoruTipi } from "@/lib/tipler";
 import type { Rol } from "@/lib/depo";
@@ -38,6 +38,7 @@ import {
   soruGuncelleEylem,
   soruSilEylem,
   taslagaAlEylem,
+  yayindanGeriDonEylem,
   yayinlaEylem,
 } from "@/app/eylemler";
 import {
@@ -70,6 +71,7 @@ export default function Editor({
   sayfalar,
   sorular,
   rol,
+  yayinDurumu,
   zorSoruIdleri,
   kolaySoruIdleri,
   istatistik,
@@ -84,13 +86,18 @@ export default function Editor({
   sayfalar: Sayfa[];
   sorular: Soru[];
   rol: Rol;
+  /**
+   * Son yayınlanan sürüm ve taslağın ondan farklı olup olmadığı; hiç
+   * yayınlanmadıysa `null`. Karşılaştırma SUNUCUDA yapılır (`surum.ts`).
+   */
+  yayinDurumu: { surum: number; zaman: string; degisiklikVar: boolean } | null;
   zorSoruIdleri: string[];
   /** Yeterince denenmiş ve HİÇ yanlış yapılmamış sorular. */
   kolaySoruIdleri: string[];
   istatistik: { soruId: string; deneme: number; yanlis: number }[];
   medyalar: MedyaOzet[];
   kategoriler: string[];
-  /** Kartın kopyalanabileceği diğer TASLAK eğitimler. */
+  /** Kartın kopyalanabileceği diğer eğitimler (hedefin TASLAĞINA yazılır). */
   hedefEgitimler: { id: string; ad: string }[];
   /** Kayıtta duran ama diskte bulunmayan medya kimlikleri. */
   kirikGorselIdler: string[];
@@ -168,8 +175,52 @@ export default function Editor({
   );
 
   const yayinaHazir = sayfalar.length > 0;
-  /** Yayındayken hiçbir içerik kontrolü çalışmaz (sunucu da reddeder). */
-  const kilitli = yayinda;
+  /**
+   * EDİTÖR ARTIK HİÇ KİLİTLENMİYOR.
+   *
+   * Eskiden `kilitli = yayinda` idi ve bunun bedeli görünürdü: yayındaki bir
+   * eğitimde tek bir yazım hatasını düzeltmek için eğitimi kiosktan düşürmek
+   * gerekiyordu. Sürümlü yayınla düzenleme TASLAĞA yazılıyor, saha son
+   * yayınlanan sürümü oynatıyor — yani düzenlemenin sahaya sızma yolu YOK.
+   *
+   * Değişken duruyor ve alt bileşenlere geçmeye devam ediyor: `kilitli` bir
+   * yüzey sözleşmesi (satır, harita, ayraç hepsi onu bekliyor) ve ileride
+   * başka bir sebeple (ör. salt okunur rol) geri gelebilir. Bugün sabit `false`.
+   */
+  const kilitli = false;
+
+  /** Yayınlanmamış değişiklik — rozetin ve "yayındaki hâline dön"ün koşulu. */
+  const yayinlanmamisVar = !!yayinDurumu?.degisiklikVar;
+
+  /**
+   * GÖVDEYİ YENİDEN KURMA ANAHTARI — içerik SUNUCUDAN toptan değişince.
+   *
+   * Editördeki alanlar KONTROLSÜZ (`defaultValue`), bilerek: her tuş vuruşunu
+   * React durumuna bağlamak, otomatik kayıt ve canlı önizleme ile birlikte
+   * imleci oynatıyordu. Bunun bedeli tek bir yerde ortaya çıkıyor —
+   * "yayındaki hâline dön". Kartlar aynı KİMLİKLE geri geliyor (bölüm
+   * başlıkları ve soru istatistiği bunun için kimliği koruyor), React
+   * satırları yeniden kurmuyor ve alanlarda ESKİ yazı kalıyor: sunucu doğru,
+   * ekran yanlış. Uçtan uca sınav bunu yakaladı.
+   *
+   * ANAHTAR YÜK TAŞIYOR — ölçüldü: `key` kaldırılınca uçtan uca sınav geri
+   * dönüşten sonra alanda hâlâ eski yazıyı buluyor.
+   *
+   * Anahtarı eylemin İÇİNDEN artırmak çözmez: `calistir` önce eylemi koşuyor,
+   * `router.refresh()` ondan SONRA dönüyor — yeniden kurma taze veri gelmeden
+   * olur ve hiçbir işe yaramaz. Bu yüzden ölçüt SUNUCUNUN cevabı: "taslak
+   * yayınla aynı" durumuna GEÇİŞ.
+   * Bu geçiş yalnız iki yerde olur — geri dönüş ve yayınlama; ikisinde de
+   * kullanıcı bir düğmeye basmıştır, kimse yazarken imlecini kaybetmez. Ters
+   * yön (ilk tuş vuruşuyla "değişiklik var" olmak) BİLEREK dışarıda.
+   */
+  const [tazeleme, setTazeleme] = useState(0);
+  const oncekiDegisiklik = useRef(yayinlanmamisVar);
+  useEffect(() => {
+    if (oncekiDegisiklik.current && !yayinlanmamisVar) setTazeleme((n) => n + 1);
+    oncekiDegisiklik.current = yayinlanmamisVar;
+  }, [yayinlanmamisVar]);
+
 
   const gosterilen = useMemo(() => sayfalar.map((s) => birlestir(s, anlik[s.id])), [sayfalar, anlik]);
 
@@ -530,34 +581,104 @@ export default function Editor({
         ust="/egitimler"
         ustAd="Eğitimler"
         baslik={egitim.ad}
-        not={yayinda ? `Yayında · sürüm ${egitim.surum}` : "Taslak"}
+        not={
+          yayinda
+            ? `Yayında · sürüm ${egitim.surum}`
+            : yayinDurumu
+              ? `Taslak · sahada değil (son sürüm ${yayinDurumu.surum})`
+              : "Taslak"
+        }
         rehberBolum="hazirlama"
         sag={
           <>
-            {!yayinda ? <YayinRozeti liste={kontrol} /> : null}
+            {/* YAYINLANMAMIŞ DEĞİŞİKLİK ROZETİ — uyarı değil, bilgi.
+                Taslak ile yayın ayrı iki nesne olduğu için hiçbir şey
+                kaybolmuyor; korkutan bir "kaydedilmedi" uyarısı yerine
+                sahadaki hâlle arasındaki farkı söyleyen bir rozet duruyor. */}
+            {yayinlanmamisVar && yayinDurumu ? (
+              <span
+                className="chip hidden border-accent/40 bg-accent/10 text-xs text-accent sm:inline-flex"
+                title={`Sahada hâlâ sürüm ${yayinDurumu.surum} oynuyor. Taslak kaydedildi, yayınlanmadı.`}
+              >
+                <Icon name="pencil" size={14} /> Yayınlanmamış değişiklik
+              </span>
+            ) : null}
+            {!yayinda || yayinlanmamisVar ? <YayinRozeti liste={kontrol} /> : null}
             <button
               onClick={() => setProva(true)}
               disabled={sayfalar.length === 0}
               className="btn-ghost text-sm"
-              title="Kiosk'ta nasıl görüneceğini gösterir; hiçbir kayıt düşmez"
+              title="Taslağın kiosk'ta nasıl görüneceğini gösterir; hiçbir kayıt düşmez"
             >
               <Icon name="play" size={16} /> Dene
             </button>
+
+            {/* YAYINDAKİ HÂLİNE DÖN. Yayınlamanın simetriği ve `hazirlayan`
+                yetkisiyle: sahaya bir şey çıkarmıyor, taslağı yayındakine
+                eşitliyor. Onay isteniyor çünkü yayınlanmamış düzenlemeler
+                gider — yayınlanmış sürüm ise yerinde kalır. */}
+            {yayinlanmamisVar && yayinDurumu ? (
+              <button
+                onClick={() =>
+                  confirm(
+                    {
+                      title: `Sürüm ${yayinDurumu.surum} hâline dönülsün mü?`,
+                      message:
+                        "Taslaktaki yayınlanmamış değişiklikler gider ve içerik sahadaki hâline eşitlenir. " +
+                        "Yayınlanmış sürüm olduğu gibi kalır.",
+                      confirmLabel: "Yayındaki hâline dön",
+                    },
+                    () =>
+                      calistir(async () => {
+                        await yayindanGeriDonEylem(egitim.id);
+                        // Kaydedilmemiş tuş vuruşlarının önizleme katmanı da
+                        // gider; kart kimliğine bağlı olduğu için temizlenmezse
+                        // yayındaki metnin üstünde eski yazı kalırdı.
+                        setAnlik({});
+                        show(`Taslak sürüm ${yayinDurumu.surum} hâline döndü.`);
+                      }),
+                  )
+                }
+                className="btn-ghost text-sm"
+                title="Taslağı son yayınlanan sürümden yeniden kurar"
+              >
+                <Icon name="undo" size={16} /> Yayındaki hâline dön
+              </button>
+            ) : null}
+
             {onaylayabilir ? (
-              yayinda ? (
-                <button onClick={() => calistir(() => taslagaAlEylem(egitim.id))} className="btn-ghost text-sm">
-                  Taslağa al
-                </button>
-              ) : (
+              <>
+                {yayinda ? (
+                  /* "SAHADAN İNDİR" — eskiden "Taslağa al" idi ve anlamı
+                     değişti. Düzenlemek için artık gerekmiyor; bu düğme
+                     eğitimi GERÇEKTEN kiosktan düşürür. Eski adıyla kalsaydı
+                     alışkanlıkla basan hazırlayan, vardiya ortasında eğitimi
+                     sahadan kaldırmış olurdu. */
+                  <button
+                    onClick={() => calistir(() => taslagaAlEylem(egitim.id))}
+                    className="btn-ghost text-sm"
+                    title="Eğitim kiosk, ziyaretçi ve amir tabletinde görünmez olur. Düzenlemek için gerekmez."
+                  >
+                    <Icon name="lock" size={16} /> Sahadan indir
+                  </button>
+                ) : null}
                 <button
                   onClick={() => calistir(() => yayinlaEylem(egitim.id))}
-                  disabled={!yayinaHazir}
+                  disabled={!yayinaHazir || (yayinda && !yayinlanmamisVar)}
                   className="btn-primary text-sm"
-                  title={yayinaHazir ? "" : "En az bir sayfa gerekir"}
+                  title={
+                    !yayinaHazir
+                      ? "En az bir sayfa gerekir"
+                      : yayinda && !yayinlanmamisVar
+                        ? "Yayınlanmamış değişiklik yok"
+                        : yayinDurumu
+                          ? `Sürüm ${yayinDurumu.surum + 1} olarak yayınlanır`
+                          : "Sürüm 1 olarak yayınlanır"
+                  }
                 >
                   <Icon name="check" size={16} /> Yayınla
                 </button>
-              )
+              </>
             ) : (
               <span className="chip text-xs text-muted" title="Yayına almayı onaylayan rolü yapar">
                 <Icon name="lock" size={14} /> Onay bekler
@@ -612,16 +733,31 @@ export default function Editor({
         </div>
 
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_26rem] xl:items-start">
-          <div className="min-w-0 space-y-8">
-            {yayinda ? (
-              /* Yayındaki eğitim bir KAYITTIR: tamamlanmış oturumlar "sürüm N"e
-                 atıf yapıyor. İçeriği yerinde değiştirmek, insanların kayıtta
-                 yazandan başka bir şeyden sınav olmuş görünmesi demek. */
-              <p className="rounded-xl border border-orta/40 bg-orta/5 px-4 py-3 text-sm">
-                <strong>Yayında — düzenleme kapalı.</strong>{" "}
+          {/* `key` yalnız "taslak = yayın" durumuna GEÇİLİNCE değişir —
+              gerekçe `tazeleme` tanımında. */}
+          <div key={tazeleme} className="min-w-0 space-y-8">
+            {yayinlanmamisVar && yayinDurumu ? (
+              /* KORKUTMAYAN AMA AÇIK OLAN ŞERİT.
+                 Eskiden burada "Yayında — düzenleme kapalı" yazıyordu ve
+                 düzenlemek için eğitimi kiosktan düşürmek gerekiyordu. Artık
+                 düzenleme sahaya çıkmıyor; söylenmesi gereken tek şey, ekranda
+                 görülenin sahadakinden FARKLI olduğu. Hiçbir şey kaybolmuyor,
+                 dolayısıyla bir uyarı değil bir durum bildirimi. */
+              <p className="rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm">
+                <strong>Bu değişiklikler sahada yok.</strong>{" "}
+                {yayinda
+                  ? `Kiosk, ziyaretçi ve amir tabletinde hâlâ sürüm ${yayinDurumu.surum} oynuyor.`
+                  : `Eğitim sahadan indirilmiş; en son sürüm ${yayinDurumu.surum} yayınlanmıştı.`}{" "}
                 {onaylayabilir
-                  ? "Değişiklik için önce Taslağa alın; yeniden yayınlandığında sürüm numarası artar."
-                  : "Değişiklik için onaylayan rolündeki bir kişi eğitimi taslağa almalı."}
+                  ? `Yayınladığınızda sürüm ${yayinDurumu.surum + 1} açılır ve eski sürüm kayıtlar için saklanmaya devam eder.`
+                  : "Yayına almayı onaylayan rolündeki bir kişi yapar."}
+              </p>
+            ) : null}
+
+            {yayinda && !yayinlanmamisVar ? (
+              <p className="rounded-xl border border-iyi/40 bg-iyi/5 px-4 py-3 text-sm">
+                <strong>Yayında ve sahayla aynı.</strong> Yazdığınız her değişiklik taslağa kaydedilir; sahadaki
+                sürüm siz yayınlayana kadar değişmez.
               </p>
             ) : null}
 

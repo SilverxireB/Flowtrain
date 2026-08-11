@@ -112,8 +112,13 @@ export async function oturumBaslat(sicil: string, egitimId: string): Promise<{ h
   const kisi = await personelKaynagi().bul(temiz);
   if (!kisi) return { hata: "Bu sicil personel listesinde bulunamadı." };
 
-  const egitim = depo.egitimGetir(egitimId);
-  if (!egitim || egitim.durum !== "yayin") return { hata: "Eğitim yayında değil." };
+  /* SAHA YAYINLANMIŞ SÜRÜMÜ OYNATIR, taslağı değil.
+     Hazırlayan 7. kartı yazarken kioska gelen işçi, o kartın yarım hâlini
+     değil son yayınlanan hâlini görür; kaydına düşen sürüm numarası da
+     gerçekten izlediği içeriğe işaret eder (`docs/SURUMLU-YAYIN.md`). */
+  const saha = depo.sahadakiIcerik(egitimId);
+  if (!saha) return { hata: "Eğitim yayında değil." };
+  const egitim = saha.egitim;
 
   // Bu eğitim bu kişiye GERÇEKTEN atanmış ve açık mı: atanmamış bir eğitim
   // için kayıt üretmek, denetimde "almadığı eğitimi almış görünen kişi" demek.
@@ -139,10 +144,10 @@ export async function oturumBaslat(sicil: string, egitimId: string): Promise<{ h
      yeniden üretilseydi, arada havuza tek bir soru eklenmesi permütasyonu
      değiştirip kişiyi HİÇ GÖRMEDİĞİ sorulardan puanlardı; sorular silinseydi
      set boşalıp sınavsız "geçti" kaydı üretirdi. */
-  const sinav = sinaviKur(depo.sorulariGetir(egitimId), egitim.soruSayisi, egitim.karisik, tohumla(kimlik("tohum")));
+  const sinav = sinaviKur(saha.sorular, egitim.soruSayisi, egitim.karisik, tohumla(kimlik("tohum")));
   const oturum = depo.oturumBaslat({
     egitimId,
-    egitimSurum: egitim.surum,
+    egitimSurum: saha.yayin.surum,
     sicil: temiz,
     gozeten: kokpit?.kullanici,
     cihaz: kokpit ? "amir-tableti" : "kiosk",
@@ -151,7 +156,7 @@ export async function oturumBaslat(sicil: string, egitimId: string): Promise<{ h
   depo.izBirak(kokpit?.kullanici ?? "kiosk", `oturum açıldı: ${temiz} · ${egitim.ad}`);
 
   const pinYok = !depo.pinVarMi(temiz);
-  const sayfalar = depo.sayfalariGetir(egitimId);
+  const sayfalar = saha.sayfalar;
   return {
     veri: {
       oturumId: oturum.id,
@@ -231,14 +236,24 @@ export async function oturumTamamla(
     depo.izBirak(oturum.gozeten ?? "kiosk", `ilk PIN belirlendi: ${oturum.sicil}`);
   }
 
-  /* ── PUANLAMA SUNUCUDA ─────────────────────────────────────────────────── */
-  const egitim = depo.egitimGetir(oturum.egitimId);
+  /* ── PUANLAMA SUNUCUDA VE OTURUMUN SÜRÜMÜNDEN ──────────────────────────
+     Kişi oturumu hangi sürümle açtıysa ondan puanlanır: arada yeni bir sürüm
+     yayınlansa bile gördüğü soru, gördüğü şık sırası ve o günkü geçme notu
+     geçerlidir. Taslaktan okunsaydı, oturum açıkken yapılan bir düzeltme
+     kişiyi HİÇ GÖRMEDİĞİ bir cevap anahtarıyla puanlardı.
+
+     Yayın bulunamazsa taslağa düşülür: yükseltme anında AÇIK kalmış bir
+     oturumun kapanamaması, işçinin bitirdiği eğitimi ve bir deneme hakkını
+     birden yakması demek olurdu. */
+  const oynatilan = depo.yayinGetir(oturum.egitimId, oturum.egitimSurum);
+  const egitim = oynatilan ?? depo.egitimGetir(oturum.egitimId);
   if (!egitim) return { hata: "Eğitim bulunamadı." };
 
   // Sorular OTURUMUN KENDİ kaydından okunur: hangi soruların sorulduğu bilgisi
-  // de, doğru cevaplar da istemciden GELMEZ — ve arada havuz değişse bile
-  // kişi gördüğü sorulardan puanlanır.
-  const sorulan = depo.sorulariKimlikle(oturum.sorulanSoruIdleri);
+  // de, doğru cevaplar da istemciden GELMEZ.
+  const sorulan = oynatilan
+    ? depo.yayinSorulariKimlikle(oturum.egitimId, oturum.egitimSurum, oturum.sorulanSoruIdleri)
+    : depo.sorulariKimlikle(oturum.sorulanSoruIdleri);
   const p = puanla(sorulan, gonderi.cevaplar);
 
   /* SINAVSIZ EĞİTİM = "okudum, onaylıyorum" kaydı.

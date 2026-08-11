@@ -7,7 +7,7 @@ import * as depo from "@/lib/depo";
 import { kaydiGonder, personelKaynagi, sonKayitGonderimHatasi } from "@/lib/adaptorlar";
 import { SABLONLAR } from "@/lib/sablonlar";
 import { nrm } from "@/lib/arama";
-import { bolumAnahtari, bolumleriCoz } from "@/app/egitimler/[id]/bolumler";
+import { bolumAnahtari, bolumleriCoz } from "@/lib/bolumler";
 import type { KartTipi, Soru, SoruTipi } from "@/lib/tipler";
 
 /* ── kimlik ───────────────────────────────────────────────────────────────── */
@@ -186,19 +186,24 @@ const HAZIRLAYAN_ALANLARI = [
 ] as const;
 
 /**
- * YAYINDAKİ EĞİTİM DEĞİŞTİRİLEMEZ.
+ * YAYINDAKİ EĞİTİMİN EDİTÖRÜ ARTIK KİLİTLİ DEĞİL — ve bu bir gevşetme değil.
  *
- * Alan beyaz listesi dört göz kuralını alan bazında kapatıyordu ama içerik
- * bazında açık bırakıyordu: `hazirlayan`, yayındaki bir eğitimin sorularını,
- * sayfalarını ve geçme notunu onaysız değiştirebiliyordu. Kayıtlar "sürüm N"e
- * atıf yaptığı ve sürüm artmadığı için denetimde hiçbir iz kalmıyordu —
- * yani insanlar, kayıtta yazandan BAŞKA bir içerikten sınav olmuş oluyordu.
+ * Eski kapı ("yayındaysa hiçbir alanı değiştirme") gerçek bir açığı
+ * kapatıyordu: içerik yerinde değişiyor, kayıtlar "sürüm N"e atıf yapmaya
+ * devam ediyor ve insanlar kayıtta yazandan BAŞKA bir içerikten sınav olmuş
+ * görünüyordu. Sürümlü yayınla (`docs/SURUMLU-YAYIN.md`) o açık kaynağında
+ * kapandı: düzenleme TASLAĞA yazılıyor, saha yalnız yayınlanmış anlık
+ * görüntüyü oynatıyor ve yayınlanan sürüm bir daha değişmiyor.
  *
- * Değişiklik için eğitim önce taslağa alınır; o da `onaylayan` yetkisi ister.
+ * Kapının bedeli görünürdü: yayındaki eğitimde bir yazım hatasını düzeltmek
+ * için eğitimi kiosktan düşürmek gerekiyordu — vardiya ortasında gelen işçi
+ * "size atanmış eğitim yok" görüyordu.
+ *
+ * DÖRT GÖZ KURALI YERİNDE: yayınlamak hâlâ `onaylayan` yetkisi ister
+ * (`yayinlaEylem`) ve `HAZIRLAYAN_ALANLARI` beyaz listesi `durum`/`surum`/
+ * `onaylayan` alanlarını dışarıda tutmaya devam ediyor. Hazırlayan taslağı
+ * istediği gibi yazar; sahaya çıkaran ikinci gözdür.
  */
-function taslakMi(egitimId: string): boolean {
-  return depo.egitimGetir(egitimId)?.durum !== "yayin";
-}
 
 /**
  * Kategori serbest metindir ama "İSG" / "isg" / "ısg" ÜÇ AYRI kategori olmamalı:
@@ -217,7 +222,6 @@ function kategoriyiYaklastir(girilen: string): string {
 
 export async function egitimGuncelleEylem(id: string, yama: Record<string, unknown>): Promise<void> {
   const ben = kapi("hazirlayan", `/egitimler/${id}`);
-  if (!taslakMi(id)) return;
   const suzulmus: Record<string, unknown> = {};
   for (const alan of HAZIRLAYAN_ALANLARI) {
     if (yama[alan] !== undefined) suzulmus[alan] = yama[alan];
@@ -263,29 +267,60 @@ export async function egitimSilEylem(id: string): Promise<void> {
 
 /**
  * YAYINLAMA — onaylayan yetkisi ister.
+ *
  * Hazırlayan kendi yazdığını tek başına yayına alamaz: içerik kalitesinin
- * tek güvencesi bu ikinci göz. Yayına alınan her sürüm numarası artar, çünkü
- * kayıt hangi SÜRÜMÜN izlendiğini tutuyor.
+ * tek güvencesi bu ikinci göz.
+ *
+ * Yayınlamak artık o anki taslağın ANLIK GÖRÜNTÜSÜNÜ alır (`depo.yayinla`):
+ * sürüm numarası gerçek bir içeriğe bağlanır, "bu kişi neyi izledi" sorusunun
+ * cevabı denetimde durur. Sürüm numarası kararı depoda ve `surum.ts`te —
+ * burada arıtılmış bir aritmetik yoktur.
  */
 export async function yayinlaEylem(id: string): Promise<void> {
   const ben = kapi("onaylayan", `/egitimler/${id}`);
   const e = depo.egitimGetir(id);
   if (!e) return;
-  if (depo.sayfalariGetir(id).length === 0) return;
-  depo.egitimGuncelle(id, {
-    durum: "yayin",
-    onaylayan: ben.kullanici,
-    surum: e.durum === "yayin" ? e.surum : e.surum + (e.onaylayan ? 1 : 0),
-  });
-  depo.izBirak(ben.kullanici, `eğitimi yayınladı: ${e.ad}`);
+  const sonuc = depo.yayinla(id, ben.kullanici);
+  // Kartsız eğitim yayınlanmaz — sahada tamamlanamayan bir eğitim görünürdü.
+  if (!sonuc) return;
+  depo.izBirak(
+    ben.kullanici,
+    sonuc.yeni
+      ? `eğitimi yayınladı: ${e.ad} · sürüm ${sonuc.surum}`
+      : `eğitimi sahaya geri aldı: ${e.ad} · sürüm ${sonuc.surum} (içerik değişmedi)`,
+  );
   revalidatePath(`/egitimler/${id}`);
   revalidatePath("/egitimler");
 }
 
+/**
+ * SAHADAN İNDİR. Artık "düzenleyebilmek için" değil, GERÇEKTEN indirmek için:
+ * eğitim kioskta, ziyaretçi tabletinde ve amir tabletinde görünmez olur.
+ * Düzenlemek için taslağa almak gerekmiyor (yayın kilidi kalktı).
+ */
 export async function taslagaAlEylem(id: string): Promise<void> {
   const ben = kapi("onaylayan", `/egitimler/${id}`);
   depo.egitimGuncelle(id, { durum: "taslak" });
-  depo.izBirak(ben.kullanici, `eğitimi taslağa aldı: ${id}`);
+  depo.izBirak(ben.kullanici, `eğitimi sahadan indirdi (taslağa aldı): ${id}`);
+  revalidatePath(`/egitimler/${id}`);
+  revalidatePath("/egitimler");
+}
+
+/**
+ * YAYINDAKİ HÂLİNE DÖN — taslağı yayınlanmış sürümden yeniden kurar.
+ *
+ * `hazirlayan` yetkisi ister, `onaylayan` değil: bu bir YAYINLAMA değil, bir
+ * düzenleme adımı — sahada hiçbir şey değişmez, taslak yayındakine eşitlenir.
+ *
+ * Yayınlanmamış düzenlemeler gider; ekran bunu onay kutusuyla soruyor.
+ * Yayınlanmış sürüm ise yerinde durmaya devam eder — geri dönmek bir kaydı
+ * silmez, yalnız taslağı ondan kopyalar.
+ */
+export async function yayindanGeriDonEylem(id: string, surum?: number): Promise<void> {
+  const ben = kapi("hazirlayan", `/egitimler/${id}`);
+  const donulen = depo.yayindanGeriDon(id, surum);
+  if (donulen === null) return;
+  depo.izBirak(ben.kullanici, `taslağı yayına döndürdü: ${id} · sürüm ${donulen}`);
   revalidatePath(`/egitimler/${id}`);
   revalidatePath("/egitimler");
 }
@@ -294,7 +329,6 @@ export async function taslagaAlEylem(id: string): Promise<void> {
 
 export async function sayfaEkleEylem(egitimId: string, tip: KartTipi): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
-  if (!taslakMi(egitimId)) return;
   depo.sayfaEkle(egitimId, { tip });
   revalidatePath(`/egitimler/${egitimId}`);
 }
@@ -309,7 +343,6 @@ export async function sayfalariTopluEkleEylem(
   kartlar: { gorselId: string; baslik: string }[],
 ): Promise<void> {
   const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
-  if (!taslakMi(egitimId)) return;
   for (const k of kartlar) {
     depo.sayfaEkle(egitimId, { tip: "kural", baslik: k.baslik, gorselId: k.gorselId });
   }
@@ -329,7 +362,6 @@ export async function metinKartlariEkleEylem(
   kartlar: { tip: KartTipi; baslik: string; metin: string }[],
 ): Promise<void> {
   const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
-  if (!taslakMi(egitimId)) return;
   for (const k of kartlar) {
     if (!k.baslik.trim() && !k.metin.trim()) continue;
     depo.sayfaEkle(egitimId, { tip: k.tip, baslik: k.baslik, metin: k.metin });
@@ -340,21 +372,18 @@ export async function metinKartlariEkleEylem(
 
 export async function sayfaGuncelleEylem(egitimId: string, id: string, yama: Record<string, unknown>): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
-  if (!taslakMi(egitimId)) return;
   depo.sayfaGuncelle(id, yama);
   revalidatePath(`/egitimler/${egitimId}`);
 }
 
 export async function sayfaSilEylem(egitimId: string, id: string): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
-  if (!taslakMi(egitimId)) return;
   depo.sayfaSil(id);
   revalidatePath(`/egitimler/${egitimId}`);
 }
 
 export async function sayfalariSiralaEylem(egitimId: string, sirali: string[]): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
-  if (!taslakMi(egitimId)) return;
   depo.sayfalariSirala(egitimId, sirali);
   revalidatePath(`/egitimler/${egitimId}`);
 }
@@ -382,7 +411,6 @@ function baslangicSiklari(tip: SoruTipi): { secenekler: string[]; dogru: number[
 
 export async function soruEkleEylem(egitimId: string, tip: SoruTipi): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
-  if (!taslakMi(egitimId)) return;
   depo.soruEkle(egitimId, { tip, metin: "", ...baslangicSiklari(tip) });
   revalidatePath(`/egitimler/${egitimId}`);
 }
@@ -401,7 +429,6 @@ export async function onerilenSorulariEkleEylem(
   sorular: { tip: SoruTipi; metin: string; secenekler: string[]; dogru: number[] }[],
 ): Promise<void> {
   const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
-  if (!taslakMi(egitimId)) return;
   for (const s of sorular) {
     if (!s.metin.trim()) continue;
     depo.soruEkle(egitimId, { tip: s.tip, metin: s.metin, secenekler: s.secenekler, dogru: s.dogru });
@@ -412,14 +439,12 @@ export async function onerilenSorulariEkleEylem(
 
 export async function soruGuncelleEylem(egitimId: string, id: string, yama: Partial<Soru>): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
-  if (!taslakMi(egitimId)) return;
   depo.soruGuncelle(id, yama);
   revalidatePath(`/egitimler/${egitimId}`);
 }
 
 export async function soruSilEylem(egitimId: string, id: string): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
-  if (!taslakMi(egitimId)) return;
   depo.soruSil(id);
   revalidatePath(`/egitimler/${egitimId}`);
 }

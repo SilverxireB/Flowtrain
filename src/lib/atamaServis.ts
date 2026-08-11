@@ -22,10 +22,16 @@ async function malzeme() {
   const kisiler = await personelKaynagi().listele();
   // Paket kuralları burada üyelerine açılmış gelir; motor yalnız eğitim bilir.
   const kurallar = depo.kurallariCozulmus().filter((k) => k.aktif);
-  const egitimler = new Map(depo.egitimleriListele().map((e) => [e.id, e]));
-  // YAYINDA OLMAYAN eğitim kimseye atanmaz: taslak bir eğitim kiosk'ta
-  // görünseydi, hazırlayan yarım bıraktığı içeriği hatta yayınlamış olurdu.
-  const yayindakiKurallar = kurallar.filter((k) => egitimler.get(k.egitimId)?.durum === "yayin");
+  /* SAHADAKİ hâlleriyle: künye (geçme notu, deneme hakkı, TEKRAR SÜRESİ)
+     yayınlanan sürümden gelir. Taslaktan okunsaydı, hazırlayan tekrar
+     süresini 12 aydan 6 aya çektiği anda — daha hiçbir şey yayınlanmadan —
+     yüzlerce kişi "süresi doldu" görünürdü.
+
+     YAYINDA OLMAYAN eğitim listede hiç yok, dolayısıyla kimseye atanmaz:
+     taslak bir eğitim kiosk'ta görünseydi, hazırlayan yarım bıraktığı içeriği
+     hatta yayınlamış olurdu. */
+  const egitimler = new Map(depo.sahadakiEgitimler().map((e) => [e.id, e]));
+  const yayindakiKurallar = kurallar.filter((k) => egitimler.has(k.egitimId));
   return { kisiler, kurallar: yayindakiKurallar, egitimler };
 }
 

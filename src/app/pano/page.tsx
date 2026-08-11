@@ -63,7 +63,13 @@ export default async function Pano() {
   const anomaliler = depo
     .egitimleriListele()
     .flatMap((e) => {
-      const beklenen = beklenenSure(depo.sayfalariGetir(e.id));
+      /* Beklenen süre YAYINLANAN karttan ölçülür, taslaktan değil: kişiler
+         yayınlanan sürümü izledi. Taslakta uzatılan bir asgari süre, hiç
+         yayınlanmadan bütün eski kayıtları "olağandışı hızlı" gösterirdi.
+         Hiç yayını yoksa (yalnız taslak) taslağa düşülür — ölçü yine de
+         hiç ölçmemekten iyidir. */
+      const sayfalar = depo.sonYayinIcerigi(e.id)?.sayfalar ?? depo.sayfalariGetir(e.id);
+      const beklenen = beklenenSure(sayfalar);
       if (beklenen <= 0) return [];
       const olculenler = depo
         .oturumlariGetir({ egitimId: e.id })

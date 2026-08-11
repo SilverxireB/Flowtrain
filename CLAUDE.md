@@ -60,6 +60,12 @@ büyük punto, az seçenek. Onaylar `ConfirmDialog` ile (native `confirm` yok).
   `depo.kurallariCozulmus()` paket kurallarını üyelerine açar; `kurallar.ts`
   saf mantık olarak kalır ve paketten haberi olmaz. Pakete sonradan eklenen
   eğitim, kural yeniden yazılmadan kapsanır.
+- **Taslak ≠ yayın.** `egitim/sayfa/soru` TASLAKTIR, editör oraya yazar;
+  `yayinSurum/yayinSayfa/yayinSoru` "Yayınla" anının anlık görüntüsüdür ve
+  KAYITTIR — yayınlanan sürüm bir daha değişmez, değişiklik yeni sürümdür.
+  Anlık görüntü satırları taslağın KİMLİĞİNİ korur (anahtar `(yayinId, sayfaId)`):
+  bölüm başlıkları, `oturum.sayfaSureleri` ve `soruIstatistik` hep o kimliğe
+  bağlı; yenilenseydi üçü de sürüm sürüm parçalanırdı.
 - **`Oturum.kaynak`** kaydın nereden doğduğunu söyler: `kiosk · amir · sinif ·
   aktarim`. Sınıf eğitimi ve dış aktarım kayıtları ekranda kart döndürmeden
   `depo.oturumKaydet()` ile yazılır — her eğitim kioskta verilmez, ama kayıt
@@ -114,10 +120,14 @@ misafirle sulandırırdı.
 
 - `npm test` — saf mantık ve şema (kurallar · sinav · anomali · csv · pin ·
   sinir · yetki · ziyaretci · qr · aktarım · paket · erişilebilirlik ·
-  oynatıcı · **yükseltme** · **güvenlik**), 16 dosya / ~760 doğrulama.
+  oynatıcı · **sürüm** · **yükseltme** · **güvenlik**), 25 dosya / ~1100
+  doğrulama.
 - `npm run e2e` — GERÇEK tarayıcı + GERÇEK sunucu, tüm zincir. Geçici veri
   klasörü kurar, kurulumun verisine dokunmaz. **Playwright gerekir:**
   `npm install --no-save playwright && npx playwright install chromium`.
+  **Bugün 139/141.** Düşen iki satır BİLİNEN ve İLGİSİZ bir açık: sınıf/aktarım
+  kaydından sonra özet paneli hiç çıkmıyor ve form sıfırlanıyor (kayıtlar
+  yazılıyor). Sınavdaki yorumlar teşhisi taşıyor; geçsin diye gevşetilmedi.
 - `node scripts/yuk.mjs` — fabrika ölçeğinde başarım (1000 kişi · 60 eğitim ·
   20 000 kayıt). Kabul ölçütü: kiosk 1 sn, kokpit 3 sn. Ölçüt aşılırsa çıkış
   kodu 1. **Demo veride görünmeyen kareli maliyetler yalnız burada çıkar.**
@@ -133,9 +143,10 @@ uçtan uca sınav yakaladı. Bu yüzden **parametre yakalayıp birden çok kez
 OPM adaptörü (v1.5) · self-host kurulum paketi/Docker · SMS dürtme modülü (v2).
 MVP dışı bırakılanlar `docs/KAPSAM.md`te listeli.
 
-**SÜRÜMLÜ YAYIN — sıradaki büyük iş, tasarımı hazır: `docs/SURUMLU-YAYIN.md`.**
-Bugün taslak ile sahadaki eğitim aynı nesne; yayındaki eğitimi düzenlemek için
-taslağa almak, yani kiosk'tan düşürmek gerekiyor. Ayrıca `oturum.egitimSurum`
-kaydediliyor ama o sürümün İÇERİĞİ saklanmıyor — "bu kişi neyi izledi"
-sorusunun bugün cevabı yok. Belge kararları ve üç adımlı sırayı taşıyor;
-başlamadan önce oku.
+**SÜRÜMLÜ YAYIN — BİTTİ (3/3). Tasarım ve yapılanlar: `docs/SURUMLU-YAYIN.md`.**
+Taslak ile yayın ayrı iki nesne: `yayinSurum/yayinSayfa/yayinSoru` tabloları
+"Yayınla" anının anlık görüntüsünü tutuyor. Editör her zaman TASLAĞA yazar
+(kilit yok), saha her zaman son yayınlanan sürümü oynatır, puanlama oturumun
+kendi sürümünden yapılır. Yayındaki eğitimi düzenlemek için artık kiosktan
+düşürmek gerekmiyor; "Sahadan indir" gerçekten sahadan indirir.
+Kapsam dışı bırakılan: sürüm karşılaştırma (diff) ekranı.

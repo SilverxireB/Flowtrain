@@ -138,6 +138,45 @@ export interface Egitim {
 }
 
 /**
+ * YAYINLANMIŞ SÜRÜM — bir eğitimin "Yayınla" anındaki anlık görüntüsünün künyesi.
+ *
+ * `Egitim` TASLAKTIR: editör ona yazar, sürekli değişir. Saha bu kaydı
+ * oynatır. İkisini ayırmanın sebebi (`docs/SURUMLU-YAYIN.md`) tek cümleyle:
+ * yayındaki eğitimi düzenlemek için onu kiosktan düşürmek gerekmesin, ve
+ * `oturum.egitimSurum` gerçek bir içeriğe bağlansın.
+ *
+ * YAYINLANDIKTAN SONRA DEĞİŞMEZ — kayıt sayılır (CLAUDE.md 7). Değişiklik
+ * yeni bir sürümdür.
+ */
+export interface YayinSurum {
+  id: string
+  egitimId: string
+  surum: number
+  ad: string
+  aciklama?: string
+  gecmeNotu: number
+  denemeHakki: number
+  soruSayisi: number
+  karisik: boolean
+  tekrarAy?: number
+  kategori: string
+  zorunlu: boolean
+  sureDk?: number
+  egitmen?: string
+  /** sayfaId → o kartın üstünde başlayan bölümün adı (yayın anındaki hâli). */
+  bolumler: Record<string, string>
+  yayinlayan: string
+  yayinZamani: string
+}
+
+/** Künye + o sürümün kartları ve soruları — oynatıcıya giden tam paket. */
+export interface YayinIcerik {
+  yayin: YayinSurum
+  sayfalar: Sayfa[]
+  sorular: Soru[]
+}
+
+/**
  * EĞİTİM PAKETİ — atama kuralı tek eğitime değil pakete de yazılabilir.
  * Pakete sonradan eklenen eğitim kural yeniden yazılmadan kapsanır.
  */

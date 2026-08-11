@@ -78,10 +78,18 @@ for (const yasak of ["durum", "onaylayan", "surum"]) {
   kontrol(!beyazListe.includes(`"${yasak}"`), `hazırlayan '${yasak}' alanını yazamaz`);
 }
 
-/* ── 5b. Yayındaki eğitim düzenlenemez ─────────────────────────────────────
-   Alan beyaz listesi dört göz kuralını ALAN bazında kapatıyor; bu kapı da
-   İÇERİK bazında kapatıyor. Biri olmadan diğeri yarım. */
-kontrol(/function taslakMi\(/.test(eylemler?.metin ?? ""), "yayın kilidi yardımcısı duruyor");
+/* ── 5b. Düzenleme sahaya SIZMAZ ───────────────────────────────────────────
+   BURADAKİ KURAL DEĞİŞTİ (`docs/SURUMLU-YAYIN.md`, 3. adım). Eskiden
+   "yayındaki eğitimin hiçbir alanı değiştirilemez" (`taslakMi` kapısı) diye
+   ölçülüyordu. O kapı gerçek bir açığı kapatıyordu ama yanlış yerden: bedeli,
+   yayındaki bir yazım hatasını düzeltmek için eğitimi kioskTAN DÜŞÜRMEKti.
+
+   Açığın kendisi artık kaynağında kapalı: düzenleme TASLAĞA yazılıyor, saha
+   yalnız yayınlanmış anlık görüntüyü oynatıyor (bunu `guvenlik.test.mjs` 4i
+   kaynakta sabitliyor) ve yayınlanan sürüm bir daha DEĞİŞMİYOR. Aşağıdaki iki
+   ölçüm o son cümlenin bekçisi — biri düşerse kilidin koruduğu şey de düşer.
+
+   1) Düzenleme eylemleri hâlâ bir kapıdan geçiyor (yetkisiz yazma yok). */
 for (const fn of [
   "egitimGuncelleEylem",
   "sayfaEkleEylem",
@@ -94,15 +102,36 @@ for (const fn of [
   "soruSilEylem",
 ]) {
   const govde = eylemler?.metin.match(new RegExp(`export async function ${fn}\\([\\s\\S]*?\\n}`))?.[0] ?? "";
-  kontrol(/taslakMi\(/.test(govde), `${fn} yayındaki eğitimi reddediyor`);
+  kontrol(/kapi\("hazirlayan"/.test(govde), `${fn} hazırlayan kapısından geçiyor`);
+}
+
+/* 2) Yayınlamak ve sahadan indirmek ONAYLAYAN yetkisi ister — dört göz
+      kuralının içerik tarafındaki karşılığı buydu ve yerinde duruyor. */
+for (const fn of ["yayinlaEylem", "taslagaAlEylem"]) {
+  const govde = eylemler?.metin.match(new RegExp(`export async function ${fn}\\([\\s\\S]*?\\n}`))?.[0] ?? "";
+  kontrol(/kapi\("onaylayan"/.test(govde), `${fn} onaylayan yetkisi istiyor (dört göz)`);
+}
+
+/* 3) YAYINLANMIŞ SÜRÜM DEĞİŞTİRİLEMEZ. Anlık görüntü tabloları kayıttır
+      (CLAUDE.md 7): depoda onlara yazan tek ifade INSERT olmalı. Bir UPDATE
+      eklenmesi, "bu kişi neyi izledi" cevabını sessizce oynatılabilir yapardı
+      — kilidin gerçekten koruduğu şey buydu. */
+const depoKaynak = kaynaklar.find((k) => k.yol.replace(/\\/g, "/").endsWith("src/lib/depo.ts"))?.metin ?? "";
+kontrol(depoKaynak.length > 0, "depo kaynağı okundu");
+for (const tablo of ["yayinSurum", "yayinSayfa", "yayinSoru"]) {
+  kontrol(
+    !new RegExp(`UPDATE\\s+${tablo}`, "i").test(depoKaynak) && !new RegExp(`DELETE\\s+FROM\\s+${tablo}`, "i").test(depoKaynak),
+    `${tablo} tablosuna UPDATE/DELETE yok (yayınlanan sürüm kayıttır)`,
+  );
 }
 
 /* ── 5c. Sınav seti oturumda SABİT ────────────────────────────────────────
    Bitişte havuzdan yeniden üretilirse, arada havuz değişince kişi hiç
-   görmediği sorulardan puanlanır. */
+   görmediği sorulardan puanlanır. Set oturumda sabit OLMAKLA kalmıyor,
+   oturumun kendi SÜRÜMÜNDEN okunuyor (2. adım). */
 kontrol(
-  kioskEylem && /sorulariKimlikle\(oturum\.sorulanSoruIdleri\)/.test(kioskEylem.metin),
-  "puanlama oturumun sabitlenmiş soru setinden yapılıyor",
+  kioskEylem && /yayinSorulariKimlikle\(oturum\.egitimId, oturum\.egitimSurum, oturum\.sorulanSoruIdleri\)/.test(kioskEylem.metin),
+  "puanlama oturumun sabitlenmiş soru setinden ve kendi sürümünden yapılıyor",
 );
 
 /* ── 6. Küçültücü tuzağı ───────────────────────────────────────────────────

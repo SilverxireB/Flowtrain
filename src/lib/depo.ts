@@ -1,8 +1,17 @@
 import "server-only";
+import { bolumAnahtari, bolumleriCoz } from "./bolumler";
 import { db, kimlik, simdi } from "./db";
 import { ozetDogru, ozetle, tuzUret } from "./parola";
 import * as pinIslem from "./pin";
-import type { Egitim, Grup, Kural, Medya, Oturum, Sayfa, Soru } from "./tipler";
+import {
+  oynanacakYayin,
+  sahayaUygula,
+  sonYayin,
+  sonrakiSurum,
+  yayinlanmamisDegisiklikVar,
+  type ImzaIcerik,
+} from "./surum";
+import type { Egitim, Grup, Kural, Medya, Oturum, Sayfa, Soru, YayinIcerik, YayinSurum } from "./tipler";
 import { ASGARI_SURE_VARSAYILAN, SINAV_VARSAYILAN } from "./tipler";
 
 /* ── satır ↔ nesne dönüşümleri ─────────────────────────────────────────────
@@ -359,6 +368,495 @@ export function soruIstatistikleri(egitimId: string): { soruId: string; deneme: 
        FROM soruIstatistik i JOIN soru s ON s.id = i.soruId WHERE s.egitimId=?`,
     )
     .all(egitimId) as { soruId: string; deneme: number; yanlis: number }[];
+}
+
+/* ── yayınlanmış sürüm (anlık görüntü) ─────────────────────────────────────
+   Taslak ile yayın ayrı iki nesne (`docs/SURUMLU-YAYIN.md`). Yukarıdaki
+   egitim/sayfa/soru işlevleri TASLAĞA bakar ve editör onlara yazmaya devam
+   eder; buradakiler sahanın oynattığı kayda bakar.
+
+   BURADA UPDATE YOKTUR. Yayınlanan sürüm kayıttır (CLAUDE.md 7): içeriği
+   değişmez, değişiklik yeni bir sürümdür. Hangi sürümün oynatılacağı ve
+   yeni sürümün numarası kararları `surum.ts`te — saf ve sınavlı. */
+
+function yayindan(r: Satir): YayinSurum {
+  return {
+    id: r.id as string,
+    egitimId: r.egitimId as string,
+    surum: r.surum as number,
+    ad: r.ad as string,
+    aciklama: (r.aciklama as string) ?? undefined,
+    gecmeNotu: r.gecmeNotu as number,
+    denemeHakki: r.denemeHakki as number,
+    soruSayisi: r.soruSayisi as number,
+    karisik: !!r.karisik,
+    tekrarAy: (r.tekrarAy as number) ?? undefined,
+    kategori: (r.kategori as string) ?? "",
+    zorunlu: !!r.zorunlu,
+    sureDk: (r.sureDk as number) ?? undefined,
+    egitmen: (r.egitmen as string) ?? undefined,
+    bolumler: bolumleriCoz((r.bolumler as string) ?? "{}"),
+    yayinlayan: r.yayinlayan as string,
+    yayinZamani: r.yayinZamani as string,
+  };
+}
+
+/** Bir eğitimin tüm sürümleri, yenisi başta ("3. sürüme dön" listesi). */
+export function yayinlariGetir(egitimId: string): YayinSurum[] {
+  const cikti: YayinSurum[] = [];
+  for (const r of db().prepare("SELECT * FROM yayinSurum WHERE egitimId=? ORDER BY surum DESC").all(egitimId)) {
+    cikti.push(yayindan(r as Satir));
+  }
+  return cikti;
+}
+
+/**
+ * Sahanın oynatacağı sürüm.
+ *
+ * Seçim SQL'de değil `surum.ts`te: `ORDER BY surum DESC LIMIT 1` de aynı
+ * cevabı verirdi ama sınavlanamaz ve ikinci okuma yerinde farklı yazılırdı.
+ * Bir eğitimin sürüm sayısı avuç içi kadar — hepsini okumak bedava.
+ */
+export function sonYayinGetir(egitimId: string): YayinSurum | null {
+  return sonYayin(yayinlariGetir(egitimId));
+}
+
+export function yayinGetir(egitimId: string, surum: number): YayinSurum | null {
+  const r = db().prepare("SELECT * FROM yayinSurum WHERE egitimId=? AND surum=?").get(egitimId, surum) as
+    | Satir
+    | undefined;
+  return r ? yayindan(r) : null;
+}
+
+/**
+ * Sürümün kartları ve soruları.
+ *
+ * `Sayfa`/`Soru` tipleriyle döner ve KİMLİKLER TASLAKTAKİYLE AYNIDIR
+ * (bkz. `db.ts` şema notu): oynatıcı, sınav kurucu ve soru istatistiği
+ * anlık görüntüyü ayrı bir tip olarak tanımak zorunda kalmaz.
+ */
+export function yayinIcerigi(yayin: YayinSurum): YayinIcerik {
+  const sayfalar: Sayfa[] = [];
+  for (const ham of db().prepare("SELECT * FROM yayinSayfa WHERE yayinId=? ORDER BY sira").all(yayin.id)) {
+    const r = ham as Satir;
+    sayfalar.push({
+      id: r.sayfaId as string,
+      egitimId: yayin.egitimId,
+      sira: r.sira as number,
+      tip: r.tip as Sayfa["tip"],
+      baslik: r.baslik as string,
+      metin: (r.metin as string) ?? undefined,
+      metinKarsi: (r.metinKarsi as string) ?? undefined,
+      gorselId: (r.gorselId as string) ?? undefined,
+      gorselIdler: JSON.parse((r.gorselIdler as string) ?? "[]"),
+      videoId: (r.videoId as string) ?? undefined,
+      asgariSure: r.asgariSure as number,
+    });
+  }
+
+  const sorular: Soru[] = [];
+  for (const ham of db().prepare("SELECT * FROM yayinSoru WHERE yayinId=? ORDER BY sira").all(yayin.id)) {
+    const r = ham as Satir;
+    sorular.push({
+      id: r.soruId as string,
+      egitimId: yayin.egitimId,
+      tip: r.tip as Soru["tip"],
+      metin: r.metin as string,
+      secenekler: JSON.parse(r.secenekler as string),
+      dogru: JSON.parse(r.dogru as string),
+      gorselId: (r.gorselId as string) ?? undefined,
+      aciklama: (r.aciklama as string) ?? undefined,
+    });
+  }
+
+  return { yayin, sayfalar, sorular };
+}
+
+export function sonYayinIcerigi(egitimId: string): YayinIcerik | null {
+  const y = sonYayinGetir(egitimId);
+  return y ? yayinIcerigi(y) : null;
+}
+
+/* ── SAHANIN OKUDUĞU YER ───────────────────────────────────────────────────
+   Kiosk, ziyaretçi tableti ve amir tableti YALNIZ buradan okur. Taslağa bakan
+   bir oynatma yolu kalırsa, hazırlayan yazarken sahadaki işçi yarım içerik
+   görür — sürümlü yayının bütün sebebi bu.
+
+   Dönen `Egitim` künyesi yayınlanan sürümden gelir (`sahayaUygula`): geçme
+   notu, deneme hakkı ve tekrar süresi de sahaya ancak yayınlanınca çıkar. */
+
+/** Sahadaki eğitim — künyesi yayınlanan sürümden. Sahaya çıkmamışsa `null`. */
+export function sahadakiEgitim(egitimId: string): Egitim | null {
+  const e = egitimGetir(egitimId);
+  if (!e) return null;
+  const y = oynanacakYayin(e.durum, yayinlariGetir(egitimId));
+  return y ? sahayaUygula(e, y) : null;
+}
+
+export interface SahadakiIcerik {
+  /** Künyesi yayınlanan sürümden uygulanmış eğitim. */
+  egitim: Egitim;
+  yayin: YayinSurum;
+  sayfalar: Sayfa[];
+  sorular: Soru[];
+}
+
+/** Sahadaki eğitim + o sürümün kartları ve soruları — oynatıcının tek kapısı. */
+export function sahadakiIcerik(egitimId: string): SahadakiIcerik | null {
+  const e = egitimGetir(egitimId);
+  if (!e) return null;
+  const y = oynanacakYayin(e.durum, yayinlariGetir(egitimId));
+  if (!y) return null;
+  const icerik = yayinIcerigi(y);
+  return { egitim: sahayaUygula(e, y), yayin: y, sayfalar: icerik.sayfalar, sorular: icerik.sorular };
+}
+
+/**
+ * Sahadaki TÜM eğitimler — atama motorunun malzemesi.
+ *
+ * Sürümleri TEK sorguda okur: eğitim başına ayrı sorgu, 60 eğitimlik bir
+ * katalogda panonun her açılışına 60 sorgu eklerdi (`scripts/yuk.mjs` ölçütü
+ * kokpit için 3 sn).
+ */
+export function sahadakiEgitimler(): Egitim[] {
+  const surumler = new Map<string, YayinSurum[]>();
+  for (const r of db().prepare("SELECT * FROM yayinSurum").all()) {
+    const y = yayindan(r as Satir);
+    const liste = surumler.get(y.egitimId);
+    if (liste) liste.push(y);
+    else surumler.set(y.egitimId, [y]);
+  }
+
+  const cikti: Egitim[] = [];
+  for (const e of egitimleriListele()) {
+    const y = oynanacakYayin(e.durum, surumler.get(e.id) ?? []);
+    if (y) cikti.push(sahayaUygula(e, y));
+  }
+  return cikti;
+}
+
+/**
+ * Belirli bir SÜRÜMÜN soruları, verilen kimlik sırasıyla.
+ *
+ * Puanlama bunu kullanır: kişi oturumu hangi sürümle açtıysa o sürümden
+ * puanlanır. Taslaktan okunsaydı, oturum açıkken yapılan bir düzeltme
+ * (şıkkın sırası değişti, doğru cevap düzeltildi) kişiyi GÖRMEDİĞİ bir
+ * anahtarla puanlardı — ve kayıt yine "sürüm N" derdi.
+ */
+export function yayinSorulariKimlikle(egitimId: string, surum: number, idler: string[]): Soru[] {
+  if (idler.length === 0) return [];
+  const yayin = yayinGetir(egitimId, surum);
+  if (!yayin) return [];
+
+  const yer = idler.map(() => "?").join(",");
+  const karta = new Map<string, Soru>();
+  for (const ham of db()
+    .prepare(`SELECT * FROM yayinSoru WHERE yayinId=? AND soruId IN (${yer})`)
+    .all(yayin.id, ...idler)) {
+    const r = ham as Satir;
+    karta.set(r.soruId as string, {
+      id: r.soruId as string,
+      egitimId,
+      tip: r.tip as Soru["tip"],
+      metin: r.metin as string,
+      secenekler: JSON.parse(r.secenekler as string),
+      dogru: JSON.parse(r.dogru as string),
+      gorselId: (r.gorselId as string) ?? undefined,
+      aciklama: (r.aciklama as string) ?? undefined,
+    });
+  }
+  // Sıra oturumdakiyle aynı olmalı; `IN` sırayı korumaz.
+  return idler.map((id) => karta.get(id)).filter((s): s is Soru => !!s);
+}
+
+/** Taslağın yayınlanabilir parçaları — TEK okuma, hem imza hem yazım kullanır. */
+interface TaslakParcalari {
+  sayfalar: Sayfa[];
+  sorular: Soru[];
+  bolumler: Record<string, string>;
+}
+
+function taslakParcalari(egitimId: string): TaslakParcalari {
+  const sayfalar = sayfalariGetir(egitimId);
+  return {
+    sayfalar,
+    sorular: sorulariGetir(egitimId),
+    // Silinmiş kartların öksüz başlıkları burada elenir; anlık görüntüye
+    // hiçbir zaman ölü satır girmez.
+    bolumler: bolumleriCoz(ayarOku(bolumAnahtari(egitimId)), sayfalar.map((s) => s.id)),
+  };
+}
+
+/* İmza görünümü — taslak ile yayın AYNI GÖZLE bakılmalı, yoksa "değişiklik
+   var" rozeti hiç sönmez ya da hiç yanmaz. İki kurucu da satırları düz
+   yapılara çevirir; kimlik taşımazlar (gerekçe `surum.ts`). */
+
+function imzaSayfalari(sayfalar: Sayfa[], bolumler: Record<string, string>): ImzaIcerik["sayfalar"] {
+  const cikti: ImzaIcerik["sayfalar"] = [];
+  for (const s of sayfalar) {
+    cikti.push({
+      tip: s.tip,
+      baslik: s.baslik,
+      metin: s.metin,
+      metinKarsi: s.metinKarsi,
+      gorselId: s.gorselId,
+      gorselIdler: s.gorselIdler,
+      videoId: s.videoId,
+      asgariSure: s.asgariSure,
+      bolum: bolumler[s.id],
+    });
+  }
+  return cikti;
+}
+
+function imzaIcerigi(
+  ayarlar: ImzaIcerik["ayarlar"],
+  sayfalar: Sayfa[],
+  sorular: Soru[],
+  bolumler: Record<string, string>,
+): ImzaIcerik {
+  const soruListesi: ImzaIcerik["sorular"] = [];
+  for (const q of sorular) {
+    soruListesi.push({
+      tip: q.tip,
+      metin: q.metin,
+      secenekler: q.secenekler,
+      dogru: q.dogru,
+      gorselId: q.gorselId,
+      aciklama: q.aciklama,
+    });
+  }
+  return { ayarlar, sayfalar: imzaSayfalari(sayfalar, bolumler), sorular: soruListesi };
+}
+
+/** `Egitim` ve `YayinSurum` ayar alanları aynı adları taşıyor — tek kurucu yeter. */
+function ayarImzasi(k: Egitim | YayinSurum): ImzaIcerik["ayarlar"] {
+  return {
+    ad: k.ad,
+    aciklama: k.aciklama,
+    gecmeNotu: k.gecmeNotu,
+    denemeHakki: k.denemeHakki,
+    soruSayisi: k.soruSayisi,
+    karisik: k.karisik,
+    tekrarAy: k.tekrarAy,
+    kategori: k.kategori,
+    zorunlu: k.zorunlu,
+    sureDk: k.sureDk,
+    egitmen: k.egitmen,
+  };
+}
+
+/**
+ * Taslakta yayınlanmamış değişiklik var mı — editördeki rozetin cevabı.
+ *
+ * Hiç yayınlanmamış eğitimde EVET döner (tamamı yayınlanmamıştır).
+ */
+export function yayinlanmamisDegisiklik(egitimId: string): boolean {
+  const e = egitimGetir(egitimId);
+  if (!e) return false;
+  const parca = taslakParcalari(egitimId);
+  const onceki = sonYayinIcerigi(egitimId);
+  return yayinlanmamisDegisiklikVar(
+    imzaIcerigi(ayarImzasi(e), parca.sayfalar, parca.sorular, parca.bolumler),
+    onceki ? imzaIcerigi(ayarImzasi(onceki.yayin), onceki.sayfalar, onceki.sorular, onceki.yayin.bolumler) : null,
+  );
+}
+
+/**
+ * YAYINLA — o anki taslağın atomik anlık görüntüsünü alır.
+ *
+ * Kartsız eğitim yayınlanmaz (`null`): boş bir eğitim sahada "size atanmış
+ * eğitim" diye görünür ve tamamlanamaz.
+ *
+ * İÇERİK AYNIYSA YENİ SÜRÜM ÜRETİLMEZ (`yeni: false`), eğitim yalnız sahaya
+ * geri alınır. Taslağa alınıp hiç değiştirilmeden yayınlanan eğitim, ikizi
+ * olan bir sürüm numarası bırakmamalı — kayıt sürüm numarasına atıf yapıyor.
+ *
+ * Tek işlemde yazılır: anlık görüntü yarım kalıp `egitim.surum` ileri
+ * giderse, o numaraya atıf yapan kayıtların işaret ettiği içerik hiç var
+ * olmamış olurdu.
+ */
+export function yayinla(egitimId: string, yayinlayan: string): { surum: number; yeni: boolean } | null {
+  const e = egitimGetir(egitimId);
+  if (!e) return null;
+  const parca = taslakParcalari(egitimId);
+  if (parca.sayfalar.length === 0) return null;
+
+  const onceki = sonYayinIcerigi(egitimId);
+  const taslakImza = imzaIcerigi(ayarImzasi(e), parca.sayfalar, parca.sorular, parca.bolumler);
+  const oncekiImza = onceki
+    ? imzaIcerigi(ayarImzasi(onceki.yayin), onceki.sayfalar, onceki.sorular, onceki.yayin.bolumler)
+    : null;
+
+  if (onceki && !yayinlanmamisDegisiklikVar(taslakImza, oncekiImza)) {
+    egitimGuncelle(egitimId, { durum: "yayin", onaylayan: yayinlayan, surum: onceki.yayin.surum });
+    return { surum: onceki.yayin.surum, yeni: false };
+  }
+
+  const surum = sonrakiSurum(e.surum, onceki?.yayin.surum ?? null, !!e.onaylayan);
+  const yayinId = kimlik("yay");
+  const zaman = simdi();
+  const d = db();
+
+  const surumYaz = d.prepare(
+    `INSERT INTO yayinSurum (id,egitimId,surum,ad,aciklama,gecmeNotu,denemeHakki,soruSayisi,karisik,
+       tekrarAy,kategori,zorunlu,sureDk,egitmen,bolumler,yayinlayan,yayinZamani)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+  );
+  const sayfaYaz = d.prepare(
+    `INSERT INTO yayinSayfa (yayinId,sayfaId,sira,tip,baslik,metin,metinKarsi,gorselId,gorselIdler,videoId,asgariSure)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+  );
+  const soruYaz = d.prepare(
+    `INSERT INTO yayinSoru (yayinId,soruId,sira,tip,metin,secenekler,dogru,gorselId,aciklama)
+     VALUES (?,?,?,?,?,?,?,?,?)`,
+  );
+
+  d.transaction(() => {
+    surumYaz.run(
+      yayinId,
+      egitimId,
+      surum,
+      e.ad,
+      e.aciklama ?? null,
+      e.gecmeNotu,
+      e.denemeHakki,
+      e.soruSayisi,
+      e.karisik ? 1 : 0,
+      e.tekrarAy ?? null,
+      e.kategori,
+      e.zorunlu ? 1 : 0,
+      e.sureDk ?? null,
+      e.egitmen ?? null,
+      JSON.stringify(parca.bolumler),
+      yayinlayan,
+      zaman,
+    );
+    // Sıra BURADA sıkıştırılıyor: taslakta silinen kartlar `sira` sütununda
+    // boşluk bırakıyor ve anlık görüntüde 1..n olması karşılaştırmayı
+    // (ve ileride diff ekranını) okunur kılar.
+    parca.sayfalar.forEach((s, i) =>
+      sayfaYaz.run(
+        yayinId,
+        s.id,
+        i + 1,
+        s.tip,
+        s.baslik,
+        s.metin ?? null,
+        s.metinKarsi ?? null,
+        s.gorselId ?? null,
+        JSON.stringify(s.gorselIdler),
+        s.videoId ?? null,
+        s.asgariSure,
+      ),
+    );
+    parca.sorular.forEach((q, i) =>
+      soruYaz.run(
+        yayinId,
+        q.id,
+        i + 1,
+        q.tip,
+        q.metin,
+        JSON.stringify(q.secenekler),
+        JSON.stringify(q.dogru),
+        q.gorselId ?? null,
+        q.aciklama ?? null,
+      ),
+    );
+    egitimGuncelle(egitimId, { durum: "yayin", onaylayan: yayinlayan, surum });
+  })();
+
+  return { surum, yeni: true };
+}
+
+/**
+ * YAYINDAKİ HÂLİNE DÖN — taslağı bir yayınlanmış sürümden yeniden kurar.
+ *
+ * `surum` verilmezse en son yayın. Geri dönen sürüm numarası döner, hedef
+ * yoksa `null`.
+ *
+ * TASLAK SİLİNİYOR AMA KAYIT SİLİNMİYOR: taslak kayıt değildir, sahada
+ * karşılığı yoktur ve zaten yayınlanan hâli olduğu gibi duruyor. Bu yüzden
+ * "geri al" veri kaybı değil, iki nesneden birinin diğerine eşitlenmesidir.
+ *
+ * Kartlar ve sorular KENDİ ESKİ KİMLİKLERİYLE geri yazılır: bölüm başlıkları
+ * kart kimliğine bağlı (yeniden eşleme gerekmez) ve soru istatistiği
+ * (`soruIstatistik`) soru kimliğiyle toplanıyor — kimlik yenilenseydi
+ * içerik kalite sinyali her geri alışta sıfırlanırdı.
+ */
+export function yayindanGeriDon(egitimId: string, surum?: number): number | null {
+  const hedef = surum === undefined ? sonYayinGetir(egitimId) : yayinGetir(egitimId, surum);
+  if (!hedef) return null;
+  const icerik = yayinIcerigi(hedef);
+  const d = db();
+
+  d.transaction(() => {
+    d.prepare("DELETE FROM sayfa WHERE egitimId=?").run(egitimId);
+    d.prepare("DELETE FROM soru WHERE egitimId=?").run(egitimId);
+
+    const sayfaYaz = d.prepare(
+      `INSERT INTO sayfa (id,egitimId,sira,tip,baslik,metin,metinKarsi,gorselId,gorselIdler,videoId,asgariSure)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+    );
+    for (const s of icerik.sayfalar) {
+      sayfaYaz.run(
+        s.id,
+        egitimId,
+        s.sira,
+        s.tip,
+        s.baslik,
+        s.metin ?? null,
+        s.metinKarsi ?? null,
+        s.gorselId ?? null,
+        JSON.stringify(s.gorselIdler),
+        s.videoId ?? null,
+        s.asgariSure,
+      );
+    }
+
+    const soruYaz = d.prepare(
+      "INSERT INTO soru (id,egitimId,tip,metin,secenekler,dogru,gorselId,aciklama) VALUES (?,?,?,?,?,?,?,?)",
+    );
+    for (const q of icerik.sorular) {
+      soruYaz.run(
+        q.id,
+        egitimId,
+        q.tip,
+        q.metin,
+        JSON.stringify(q.secenekler),
+        JSON.stringify(q.dogru),
+        q.gorselId ?? null,
+        q.aciklama ?? null,
+      );
+    }
+
+    ayarYaz(bolumAnahtari(egitimId), JSON.stringify(hedef.bolumler));
+
+    /* Ayarlar TEK UPDATE ile yazılıyor, `egitimGuncelle` ile değil: yamada
+       `undefined` alanlar atlanıyor, yani anlık görüntüde BOŞ olan bir alan
+       (açıklama silinmişti, tekrar süresi kaldırılmıştı) taslakta olduğu gibi
+       kalırdı — "yayındaki hâline dön" yarım dönerdi. */
+    d.prepare(
+      `UPDATE egitim SET ad=?, aciklama=?, gecmeNotu=?, denemeHakki=?, soruSayisi=?, karisik=?,
+         tekrarAy=?, kategori=?, zorunlu=?, sureDk=?, egitmen=?, guncelleme=? WHERE id=?`,
+    ).run(
+      hedef.ad,
+      hedef.aciklama ?? null,
+      hedef.gecmeNotu,
+      hedef.denemeHakki,
+      hedef.soruSayisi,
+      hedef.karisik ? 1 : 0,
+      hedef.tekrarAy ?? null,
+      hedef.kategori,
+      hedef.zorunlu ? 1 : 0,
+      hedef.sureDk ?? null,
+      hedef.egitmen ?? null,
+      simdi(),
+      egitimId,
+    );
+  })();
+
+  return hedef.surum;
 }
 
 /* ── kural ────────────────────────────────────────────────────────────────── */

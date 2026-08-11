@@ -18,8 +18,10 @@ export const metadata = { title: "FlowTrain — Kiosk" };
  */
 export default function KioskSayfa({ searchParams }: { searchParams?: { egitim?: string | string[] } }) {
   const istenen = qrEgitimId(searchParams?.egitim);
-  const egitim = istenen ? depo.egitimGetir(istenen) : null;
-  const hedef = egitim && egitim.durum === "yayin" ? { id: egitim.id, ad: egitim.ad } : null;
+  // Etikette görünen ad da YAYINLANMIŞ sürümden: taslakta yeniden adlandırılan
+  // eğitim, kioskta oynatılacak olandan başka bir adla karşılamamalı.
+  const egitim = istenen ? depo.sahadakiEgitim(istenen) : null;
+  const hedef = egitim ? { id: egitim.id, ad: egitim.ad } : null;
 
   return <Kiosk hedef={hedef} hedefGecersiz={!!istenen && !hedef} />;
 }

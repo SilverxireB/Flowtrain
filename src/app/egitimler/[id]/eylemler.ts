@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { VERI_KLASORU } from "@/lib/db";
 import * as depo from "@/lib/depo";
 import { kapi } from "@/lib/kimlik";
-import { BOLUM_EN_UZUN, bolumAnahtari, bolumleriCoz } from "./bolumler";
+import { BOLUM_EN_UZUN, bolumAnahtari, bolumleriCoz } from "@/lib/bolumler";
 
 /**
  * EDİTÖRE ÖZEL SUNUCU EYLEMLERİ.
@@ -17,17 +17,11 @@ import { BOLUM_EN_UZUN, bolumAnahtari, bolumleriCoz } from "./bolumler";
  * nereye ait olduğu okunmaz olurdu.
  */
 
-/**
- * YAYINDAKİ EĞİTİM DEĞİŞTİRİLEMEZ — kök dosyadaki kapının aynısı.
- *
- * Kopyalanmış olması bilinçli: bu dosya kendi eylemlerinden sorumlu ve kapıyı
- * dışarıdan alsaydı, kök dosya değiştiğinde buradaki kapının da düştüğü fark
- * edilmezdi. Kayıtlar "sürüm N"e atıf yapıyor; içeriği yerinde değiştirmek
- * insanların kayıtta yazandan başka bir şeyden sınav olmuş görünmesi demek.
- */
-function taslakMi(egitimId: string): boolean {
-  return depo.egitimGetir(egitimId)?.durum !== "yayin";
-}
+/* YAYIN KİLİDİ KALKTI: buradaki `taslakMi` kapısı da kaldırıldı, gerekçesi
+   kök `app/eylemler.ts` içinde uzun uzun yazılı. Kısası: düzenleme artık
+   TASLAĞA yazılıyor ve sahaya çıkmıyor, dolayısıyla kilidin koruduğu şeyi
+   (kaydın atıf yaptığı içeriğin değişmezliği) anlık görüntünün kendisi
+   koruyor. Yayınlamak hâlâ `onaylayan` yetkisi ister. */
 
 /** Dosya adı olarak kullanılacak kimlik — `../` ile veri klasörünün dışına çıkılmasın. */
 function temizKimlik(id: string): string {
@@ -45,7 +39,6 @@ function temizKimlik(id: string): string {
  */
 export async function kartCogaltEylem(egitimId: string, sayfaId: string): Promise<void> {
   const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
-  if (!taslakMi(egitimId)) return;
 
   const sayfalar = depo.sayfalariGetir(egitimId);
   const kaynak = sayfalar.find((s) => s.id === sayfaId);
@@ -84,7 +77,6 @@ export async function kartCogaltEylem(egitimId: string, sayfaId: string): Promis
 export async function kartKopyalaEylem(egitimId: string, sayfaId: string, hedefId: string): Promise<void> {
   const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
   if (hedefId === egitimId) return;
-  if (!taslakMi(hedefId)) return;
 
   const kaynak = depo.sayfalariGetir(egitimId).find((s) => s.id === sayfaId);
   if (!kaynak) return;
@@ -120,7 +112,6 @@ export async function kartKopyalaEylem(egitimId: string, sayfaId: string, hedefI
  */
 export async function bolumBasligiEylem(egitimId: string, sayfaId: string, baslik: string): Promise<void> {
   const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
-  if (!taslakMi(egitimId)) return;
 
   const idler = depo.sayfalariGetir(egitimId).map((s) => s.id);
   if (!idler.includes(sayfaId)) return;
@@ -153,7 +144,6 @@ export async function pptxKartlariEkleEylem(
   kartlar: { baslik: string; metin: string; gorselIdler: string[] }[],
 ): Promise<void> {
   const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
-  if (!taslakMi(egitimId)) return;
 
   for (const k of kartlar) {
     const idler = k.gorselIdler.map(temizKimlik).filter((x) => x !== "");

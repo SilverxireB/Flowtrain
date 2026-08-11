@@ -36,12 +36,13 @@ export default function ZiyaretciTablet({ params }: { params: { id: string } }) 
   const durum = ilerleme(z.egitimIdleri, biten);
 
   /* İçerik SUNUCUDA hazırlanır: yayında olmayan ya da silinmiş bir eğitim
-     tablete hiç inmez. */
+     tablete hiç inmez. Oynanan YAYINLANMIŞ sürümdür — kayıt masası tableti
+     eline verirken hazırlayanın yarım bıraktığı taslak görünmemeli. */
   const adimlar = z.egitimIdleri
     .map((id) => {
-      const egitim = depo.egitimGetir(id);
-      if (!egitim || egitim.durum !== "yayin") return null;
-      return { egitim, sayfalar: depo.sayfalariGetir(id), bitti: biten.includes(id) };
+      const saha = depo.sahadakiIcerik(id);
+      if (!saha) return null;
+      return { egitim: saha.egitim, sayfalar: saha.sayfalar, bitti: biten.includes(id) };
     })
     .filter((a): a is NonNullable<typeof a> => a !== null);
 

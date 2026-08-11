@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { notFound } from "next/navigation";
 import Editor from "./Editor";
-import { bolumAnahtari, bolumleriCoz } from "./bolumler";
+import { bolumAnahtari, bolumleriCoz } from "@/lib/bolumler";
 import { VERI_KLASORU } from "@/lib/db";
 import { kartGorselleri, type MedyaOzet } from "@/lib/editorMedya";
 import { kapi } from "@/lib/kimlik";
@@ -44,12 +44,26 @@ export default function EgitimEditoru({ params }: { params: { id: string } }) {
     if (!existsSync(join(VERI_KLASORU, "medya", id.replace(/[^a-zA-Z0-9._-]/g, "")))) kirikGorselIdler.push(id);
   }
 
+  /* YAYIN DURUMU — editördeki rozetin ve "yayındaki hâline dön" düğmesinin
+     tek kaynağı. Karşılaştırma SUNUCUDA yapılıyor (`depo.yayinlanmamisDegisiklik`
+     → `surum.ts`): istemcide yeniden hesaplansaydı iki taraf zamanla ayrışır
+     ve rozet ya hiç sönmez ya hiç yanmazdı. */
+  const sonYayin = depo.sonYayinGetir(params.id);
+  const yayinDurumu = sonYayin
+    ? {
+        surum: sonYayin.surum,
+        zaman: sonYayin.yayinZamani,
+        degisiklikVar: depo.yayinlanmamisDegisiklik(params.id),
+      }
+    : null;
+
   return (
     <Editor
       egitim={egitim}
       sayfalar={sayfalar}
       sorular={sorular}
       rol={hesap.rol}
+      yayinDurumu={yayinDurumu}
       /* İÇERİK KALİTE SİNYALİ: çoğunluğun yanlış yaptığı soru, kötü İNSAN
          değil kötü SAYFA demektir. Hazırlayan bunu yüzüne görmezse düzeltmez. */
       zorSoruIdleri={zorSorular(istatistik).map((z) => z.soruId)}
@@ -58,11 +72,13 @@ export default function EgitimEditoru({ params }: { params: { id: string } }) {
       istatistik={istatistik}
       medyalar={medyalar}
       kategoriler={depo.kategorileriGetir()}
-      /* Kart YALNIZ taslağa kopyalanır: yayındakine kart eklemek, kayıtların
-         atıf yaptığı sürümü sessizce değiştirirdi. */
+      /* Hedef listesi artık YAYINDAKİLERİ de içeriyor: kart hedefin TASLAĞINA
+         kopyalanır, sahadaki sürüm kımıldamaz (yayın kilidinin kalkmasıyla
+         aynı gerekçe). Eskiden yayındaki eğitimler listeden düşüyordu ve
+         kullanıcı kartını taşıyacak yeri bulamıyordu. */
       hedefEgitimler={depo
         .egitimleriListele()
-        .filter((e) => e.id !== params.id && e.durum === "taslak")
+        .filter((e) => e.id !== params.id)
         .map((e) => ({ id: e.id, ad: e.ad }))}
       kirikGorselIdler={kirikGorselIdler}
       oksuzSayisi={oksuzSayisi}

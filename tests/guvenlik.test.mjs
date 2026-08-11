@@ -247,12 +247,44 @@ kontrol(/interface KioskKisi/.test(kioskEylem) && !/iseGiris:/.test(kioskEylem.m
   "işe giriş tarihi kiosk cevabında yok (ilk PIN kapısının sırrı)");
 
 /* 4h. QR HEDEFİ SUNUCUDA ÇÖZÜLÜYOR. Adres çubuğuna yazılan bir kimlikle
-   yayında olmayan eğitim açılmamalı. */
+   yayında olmayan eğitim açılmamalı.
+
+   Kapı `depo.sahadakiEgitim`: yalnız yayında OLAN ve yayınlanmış bir anlık
+   görüntüsü BULUNAN eğitim geçer (`durum === "yayin"` denetiminden dar).
+   Ham `egitimGetir` burada kullanılmamalı — taslak da geçerdi. */
+const kioskSayfa = oku("src/app/kiosk/page.tsx");
 kontrol(
-  /egitim && egitim\.durum === "yayin" \? \{ id: egitim\.id, ad: egitim\.ad \} : null/.test(oku("src/app/kiosk/page.tsx")),
-  "QR hedefi yalnız YAYINDAKİ eğitim için açılıyor",
+  /depo\.sahadakiEgitim\(istenen\)/.test(kioskSayfa) && !/depo\.egitimGetir/.test(kioskSayfa),
+  "QR hedefi yalnız SAHADAKİ eğitim için açılıyor",
 );
 kontrol(/hedefGecersiz/.test(kioskEkran), "geçersiz QR hedefi kullanıcıya söyleniyor");
+
+/* 4i. SAHA TASLAĞI OYNATMAZ (`docs/SURUMLU-YAYIN.md` — 2. adım).
+   Bu bir güvenlik kuralı kadar bir KAYIT kuralı: oynatılan içerik ile kayda
+   düşen sürüm numarası aynı şeyi göstermek zorunda. Oynatma yüzeylerinden
+   birinin taslağa geri dönmesi sessizdir — ekranda hiçbir şey değişmez,
+   yalnız kayıt anlamsızlaşır. Bu yüzden kural KAYNAKTA tutuluyor. */
+const oynatmaYuzeyleri = [
+  ["kiosk", kioskEylem],
+  ["ziyaretçi tableti", oku("src/app/ziyaretci/oyna/[id]/page.tsx")],
+];
+for (const [ad, kaynak] of oynatmaYuzeyleri) {
+  kontrol(/depo\.sahadaki(Icerik|Egitim)\(/.test(kaynak), `${ad} sahadaki (yayınlanmış) sürümü okuyor`);
+  kontrol(
+    !/depo\.sayfalariGetir\(/.test(kaynak) && !/depo\.sorulariGetir\(/.test(kaynak),
+    `${ad} taslak kart/soru tablosuna DOKUNMUYOR`,
+  );
+}
+/* Puanlama oturumun kendi sürümünden: oturum açıkken yapılan bir düzeltme
+   kişiyi görmediği cevap anahtarıyla puanlamamalı. */
+kontrol(
+  /depo\.yayinSorulariKimlikle\(oturum\.egitimId, oturum\.egitimSurum, oturum\.sorulanSoruIdleri\)/.test(kioskEylem),
+  "puanlama oturumun SÜRÜMÜNDEKİ sorulardan yapılıyor",
+);
+kontrol(
+  /depo\.yayinGetir\(oturum\.egitimId, oturum\.egitimSurum\)/.test(kioskEylem),
+  "geçme notu da oturumun sürümünden okunuyor",
+);
 
 /* ══ 5. XSS — kaçırılmamış HTML yok ════════════════════════════════════════
    React varsayılan olarak kaçırıyor; tek delik `dangerouslySetInnerHTML`.

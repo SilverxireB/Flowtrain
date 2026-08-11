@@ -2,7 +2,7 @@
 
 import { memo, useState } from "react";
 import Icon from "@/components/Icon";
-import { BOLUM_EN_UZUN } from "./bolumler";
+import { BOLUM_EN_UZUN } from "@/lib/bolumler";
 
 /**
  * BÖLÜM AYRACI — kart listesinde iki kartın arasına giren başlık satırı.

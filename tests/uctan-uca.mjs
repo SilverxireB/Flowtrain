@@ -227,12 +227,19 @@ try {
   await s.waitForTimeout(2000);
   kontrol(await s.getByText(/Yayında/).first().isVisible(), "eğitim yayına alındı");
 
-  /* YAYINDAKİ EĞİTİM SALT OKUNUR: kayıtlar "sürüm N"e atıf yapıyor; içeriği
-     yerinde değiştirmek insanların kayıtta yazandan başka bir şeyden sınav
-     olmuş görünmesi demek. */
-  kontrol(await s.getByText("Yayında — düzenleme kapalı.").isVisible(), "yayındaki eğitim kilitli uyarısı çıkıyor");
-  kontrol(await s.locator('input[placeholder="Başlık"]').first().isDisabled(), "yayındayken içerik alanları kapalı");
-  kontrol(await s.locator('button:has-text("Kart ekle")').isDisabled(), "yayındayken kart eklenemiyor");
+  /* YAYINDAKİ EĞİTİMİN EDİTÖRÜ AÇIK (`docs/SURUMLU-YAYIN.md`, 3. adım).
+     Eskiden burada "düzenleme kapalı" ölçülüyordu: kayıtlar "sürüm N"e atıf
+     yaptığı için içeriği yerinde değiştirmek denetimi bozuyordu. Artık
+     düzenleme TASLAĞA yazılıyor ve sahaya çıkmıyor, dolayısıyla kilide gerek
+     yok — kilidin bedeli, tek harflik bir düzeltme için eğitimi kiosktan
+     düşürmekti. */
+  kontrol(await s.getByText("Yayında ve sahayla aynı.").isVisible(), "yayındayken taslağın sahayla aynı olduğu yazıyor");
+  kontrol(await s.locator('input[placeholder="Başlık"]').first().isEnabled(), "yayındayken içerik alanları AÇIK");
+  kontrol(await s.locator('button:has-text("Kart ekle")').isEnabled(), "yayındayken kart eklenebiliyor");
+  kontrol(
+    await s.locator('button:has-text("Yayınla")').isDisabled(),
+    "değişiklik yokken Yayınla kapalı (ikizi olan sürüm üretilmez)",
+  );
 
   /* 7. Atama kuralı — Kaynak bölümü */
   await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
@@ -240,7 +247,7 @@ try {
 
   await s.selectOption('select[name="hedefId"]', { label: "Yüksekte Çalışma" });
   await s.getByRole("button", { name: "Kaynak", exact: true }).click();
-  await s.click('button:has-text("Kuralı ekle")');
+  await s.click('button:has-text("Atamayı ekle")');
   await s.waitForTimeout(2000);
   kontrol(await s.getByText("3 kişi").first().isVisible(), "kural Kaynak bölümündeki 3 kişiyi kapsıyor");
 
@@ -373,7 +380,7 @@ try {
   await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
   await s.selectOption('select[name="hedefId"]', { label: "İkinci Eğitim" });
   await s.getByRole("button", { name: "Kaynak", exact: true }).click();
-  await s.click('button:has-text("Kuralı ekle")');
+  await s.click('button:has-text("Atamayı ekle")');
   await s.waitForTimeout(2000);
 
   await k.click('button:has-text("Bitir")');
@@ -572,6 +579,16 @@ try {
   await s.waitForTimeout(500);
   await s.getByRole("alertdialog").getByRole("button", { name: "Kaydet" }).click();
   await s.waitForTimeout(2500);
+  /* ⚠ BİLİNEN AÇIK (11 Ağustos 2026) — sürümlü yayınla İLGİSİZ, düşük öncelikli.
+     Kaydet'ten sonra özet paneli HİÇ çıkmıyor ve form baştan sona sıfırlanıyor
+     (eğitim seçimi bile "Seçin…"e dönüyor). Ölçüldü: panel 700 ms'de de
+     2500 ms'de de yok, yani geç gelme değil — `sinifKaydetEylem` raporu doğru
+     döndürüyor ama `tazele()` + `router.refresh()` sonrası bileşen yeniden
+     kuruluyor ve yerel `rapor` durumu siliniyor.
+     ZARAR: eğitmen otuz kişilik listeyi kaydeder ve hiçbir onay görmez.
+     Kayıtlar YAZILIYOR — hemen aşağıdaki defter denetimleri bunu gösteriyor.
+     Bu satır bilerek KIRMIZI bırakıldı: geçecek şekilde gevşetmek, gerçek
+     bir kullanıcı sorununu sınavın içine gömmek olurdu. */
   kontrol(await s.getByText(/2 kayıt deftere yazıldı/).isVisible(), "sınıf kayıtları gerçekten yazıldı");
 
   /* Kayıt DEFTERDE ve KAYNAĞI doğru: sınıf kaydı kioskta yapılmış gibi
@@ -614,6 +631,9 @@ try {
   await s.waitForTimeout(500);
   await s.getByRole("alertdialog").getByRole("button", { name: "Aktar" }).click();
   await s.waitForTimeout(2500);
+  /* ⚠ Yukarıdaki sınıf kaydıyla AYNI bilinen açık: aktarımdan sonra da özet
+     paneli çıkmıyor, form sıfırlanıyor. Kayıt yazılıyor (altındaki defter
+     denetimleri geçiyor). Bilerek kırmızı. */
   kontrol(await s.getByText(/1 kayıt deftere yazıldı/).isVisible(), "geçmiş kayıt deftere alındı");
 
   await s.goto(`${ADRES}/kayitlar`, { waitUntil: "networkidle" });
@@ -675,7 +695,7 @@ try {
   await s.waitForTimeout(400);
   await s.selectOption('select[name="hedefId"]', { label: "Oryantasyon (1 eğitim)" });
   await s.getByRole("button", { name: "Montaj", exact: true }).click();
-  await s.click('button:has-text("Kuralı ekle")');
+  await s.click('button:has-text("Atamayı ekle")');
   await s.waitForTimeout(2500);
   kontrol(await s.getByText(/1 paket kuralı/).isVisible(), "paket kuralı listede paket olarak ayrılıyor");
 
@@ -841,6 +861,138 @@ try {
     }
     kontrol(durum !== 200 && !govde.includes("Ali Yılmaz"), `yol dolaşımı reddediliyor: ${kotuId}`);
   }
+
+  /* 23. SÜRÜMLÜ YAYIN — kayıt gerçekten bir İÇERİĞE atıf yapıyor mu?
+     (`docs/SURUMLU-YAYIN.md`, 2. adım: saha artık taslağı değil yayınlanan
+     sürümü oynatıyor.)
+
+     Bu zincir yalnız burada ölçülebilir: yayınla → kioskta oynat → içeriği
+     değiştirip yeniden yayınla → kioskta YENİ içeriğin, defterde ESKİ kaydın
+     eski sürüm numarasıyla durduğunu gör. Depo sınavı sürümlerin ayrı
+     durduğunu gösteriyor; gerçek soru, oynatıcının hangisini okuduğu. */
+  await s.bringToFront();
+  await s.goto(`${ADRES}/egitimler`, { waitUntil: "networkidle" });
+  await s.fill('input[name="ad"]', "Sürüm Denemesi");
+  await s.click('button:has-text("Oluştur")');
+  await s.waitForURL(/\/egitimler\/egt_/, { timeout: 15000 });
+  const surumYolu = new URL(s.url()).pathname;
+
+  await kartEkle(s, "Kural kartı");
+  await s.waitForTimeout(900);
+  const svBaslik = s.locator('input[placeholder="Başlık"]').first();
+  await svBaslik.fill("BİRİNCİ SÜRÜMÜN KARTI");
+  await svBaslik.blur();
+  await s.waitForTimeout(700);
+  const svSure = s.locator('input[type="number"][class*="w-20"]').first();
+  await svSure.fill("1");
+  await svSure.blur();
+  await s.waitForTimeout(700);
+
+  await s.click('button:has-text("Yayınla")');
+  await s.waitForTimeout(2000);
+  kontrol(await s.getByText("Yayında · sürüm 1").isVisible(), "ilk yayın 1. sürümü açar");
+
+  await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
+  await s.selectOption('select[name="hedefId"]', { label: "Sürüm Denemesi" });
+  await s.getByRole("button", { name: "Kaynak", exact: true }).click();
+  await s.click('button:has-text("Atamayı ekle")');
+  await s.waitForTimeout(2000);
+
+  /* 1. sürümü kioskta tamamla (1001'in PIN'i var, imza tek adım). */
+  await k.bringToFront();
+  await k.goto(`${ADRES}/kiosk`, { waitUntil: "networkidle" });
+  await k.fill("#kiosk-sicil", "1001");
+  await k.click('button:has-text("Devam")');
+  await k.waitForTimeout(1500);
+  await k.locator('button:has-text("Sürüm Denemesi")').click();
+  await k.waitForTimeout(3500);
+  kontrol(await k.getByText("BİRİNCİ SÜRÜMÜN KARTI").isVisible(), "kioskta yayınlanan sürümün kartı oynuyor");
+  await k.locator("button.kiosk-btn-primary").first().click();
+  await k.waitForTimeout(1200);
+  await k.locator('input[inputmode="numeric"]').first().fill("1234");
+  await k.click('button:has-text("Onayla ve bitir")');
+  await k.waitForTimeout(3000);
+  kontrol(await k.getByText("Tamamlandı").isVisible(), "1. sürüm kioskta tamamlandı");
+
+  /* İŞİN KALBİ: YAYINDAKİ EĞİTİMİ YERİNDE DÜZENLE — kiosktan düşürmeden.
+     Belgedeki doğrulama beklentisi tam olarak bu üç adım. */
+  await s.bringToFront();
+  await s.goto(`${ADRES}${surumYolu}`, { waitUntil: "networkidle" });
+  const svBaslik2 = s.locator('input[placeholder="Başlık"]').first();
+  kontrol(await svBaslik2.isEnabled(), "yayındaki eğitim taslağa alınmadan düzenlenebiliyor");
+  await svBaslik2.fill("İKİNCİ SÜRÜMÜN KARTI");
+  await svBaslik2.blur();
+  await s.waitForTimeout(1200);
+  kontrol(await s.getByText("Yayınlanmamış değişiklik").first().isVisible(), "yayınlanmamış değişiklik rozeti yanıyor");
+  kontrol(await s.getByText("Bu değişiklikler sahada yok.").isVisible(), "şerit farkı açıkça söylüyor");
+  kontrol(await s.getByText("Yayında · sürüm 1").isVisible(), "sahadaki sürüm numarası DEĞİŞMEDİ");
+
+  /* KİOSK HÂLÂ ESKİ SÜRÜMÜ OYNATIYOR. Ürünün bütün vaadi bu satırda:
+     hazırlayan 7. kartı yazarken vardiyadaki işçi eğitimini alabiliyor.
+     1002'nin bu eğitimde kaydı yok; oturum bilerek tamamlanmıyor. */
+  await k.bringToFront();
+  await k.goto(`${ADRES}/kiosk`, { waitUntil: "networkidle" });
+  await k.fill("#kiosk-sicil", "1002");
+  await k.click('button:has-text("Devam")');
+  await k.waitForTimeout(1500);
+  await k.locator('button:has-text("Sürüm Denemesi")').click();
+  await k.waitForTimeout(2500);
+  kontrol(
+    await k.getByText("BİRİNCİ SÜRÜMÜN KARTI").isVisible(),
+    "TASLAK DEĞİŞTİ AMA KİOSK HÂLÂ YAYINLANAN SÜRÜMÜ OYNATIYOR",
+  );
+  kontrol(!(await k.getByText("İKİNCİ SÜRÜMÜN KARTI").isVisible()), "yayınlanmamış kart sahaya sızmadı");
+  await k.click('button[aria-label="Eğitimden çık"]');
+  await k.waitForTimeout(800);
+
+  /* "YAYINDAKİ HÂLİNE DÖN" — taslağı sahadakine eşitler, veri kaybı yok. */
+  await s.bringToFront();
+  await s.click('button:has-text("Yayındaki hâline dön")');
+  await s.waitForTimeout(500);
+  await s.getByRole("alertdialog").getByRole("button", { name: "Yayındaki hâline dön" }).click();
+  await s.waitForTimeout(2500);
+  kontrol(
+    (await s.locator('input[placeholder="Başlık"]').first().inputValue()) === "BİRİNCİ SÜRÜMÜN KARTI",
+    "yayındaki hâline dön taslağı geri getirdi",
+  );
+  kontrol(
+    !(await s.getByText("Yayınlanmamış değişiklik").first().isVisible()),
+    "geri dönünce rozet söndü (taslak = yayın)",
+  );
+
+  /* ŞİMDİ GERÇEKTEN YAYINLA — 2. sürüm açılmalı. */
+  const svBaslik3 = s.locator('input[placeholder="Başlık"]').first();
+  await svBaslik3.fill("İKİNCİ SÜRÜMÜN KARTI");
+  await svBaslik3.blur();
+  await s.waitForTimeout(1200);
+  await s.click('button:has-text("Yayınla")');
+  await s.waitForTimeout(2500);
+  kontrol(await s.getByText("Yayında · sürüm 2").isVisible(), "değişen içerik 2. sürümü açar");
+
+  /* 9001'in bu eğitimde kaydı yok — yeni sürümü o görüyor. */
+  await k.bringToFront();
+  await k.goto(`${ADRES}/kiosk`, { waitUntil: "networkidle" });
+  await k.fill("#kiosk-sicil", "9001");
+  await k.click('button:has-text("Devam")');
+  await k.waitForTimeout(1500);
+  await k.locator('button:has-text("Sürüm Denemesi")').click();
+  await k.waitForTimeout(2500);
+  kontrol(await k.getByText("İKİNCİ SÜRÜMÜN KARTI").isVisible(), "yayınlandıktan sonra kiosk YENİ sürümü oynatıyor");
+  await k.click('button[aria-label="Eğitimden çık"]');
+  await k.waitForTimeout(800);
+
+  /* ESKİ KAYIT ESKİ SÜRÜME ATIF YAPMAYA DEVAM EDİYOR. İşin bütün sebebi bu:
+     kayıt "sürüm 1" diyorsa, 1. sürümün içeriği hâlâ okunabilir olmalı. */
+  await s.bringToFront();
+  await s.goto(`${ADRES}/kayitlar`, { waitUntil: "networkidle" });
+  await s.locator('button[aria-label="1001 · Sürüm Denemesi kaydını aç"]').click();
+  await s.waitForTimeout(600);
+  kontrol(
+    await s.getByText("Sürüm 1").isVisible(),
+    "1. sürümde alınan kayıt, 2. sürüm yayınlandıktan SONRA da sürüm 1 diyor",
+  );
+  await s.getByRole("button", { name: "Kapat" }).click();
+  await s.waitForTimeout(300);
 
   await tarayici.close();
   bitir();

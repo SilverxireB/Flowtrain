@@ -50,7 +50,9 @@ export async function ziyaretciKaydetEylem(_onceki: string | null, form: FormDat
   /* Kayıt yapanın insiyatifiyle EKLENENLER — varsayılanlar zaten listede ve
      çıkarılamaz, buradan yalnız EKLEME yapılabilir. */
   const elle = form.getAll("ekEgitim").map(String).filter(Boolean);
-  const yayinda = new Set(depo.yayindakiEgitimler().map((e) => e.id));
+  // SAHADAKİLER: yayında görünüp anlık görüntüsü olmayan bir eğitim listeye
+  // girseydi, tablet o adımda boş açılırdı.
+  const yayinda = new Set(depo.sahadakiEgitimler().map((e) => e.id));
   const egitimIdleri = [...new Set([...secilenEgitimler, ...elle])].filter((id) => yayinda.has(id));
 
   if (egitimIdleri.length === 0) {
@@ -95,10 +97,11 @@ export async function bilgilendirmeBaslatEylem(ziyaretciId: string, egitimId: st
   // yazarak kişiye verilmemiş bir bilgilendirmenin kaydı üretilmesin.
   if (!z.egitimIdleri.includes(egitimId)) return { hata: "Bu bilgilendirme bu ziyaretçiye verilmemiş." };
 
-  const egitim = depo.egitimGetir(egitimId);
-  if (!egitim || egitim.durum !== "yayin") return { hata: "Bilgilendirme yayında değil." };
+  // Ziyaretçi tableti de YAYINLANMIŞ sürümü oynatır (kioskla aynı gerekçe).
+  const saha = depo.sahadakiEgitim(egitimId);
+  if (!saha) return { hata: "Bilgilendirme yayında değil." };
 
-  const o = zdepo.oturumBaslat({ ziyaretciId, egitimId, egitimAdi: egitim.ad, egitimSurum: egitim.surum });
+  const o = zdepo.oturumBaslat({ ziyaretciId, egitimId, egitimAdi: saha.ad, egitimSurum: saha.surum });
   return { oturumId: o.id, egitimId };
 }
 
