@@ -59,6 +59,47 @@ body {
   }
 }
 
+/* ── YÜKLEME HALKASI ────────────────────────────────────────────────────────
+   Markanın O-halkası: dört renkli yay döner. Görsel dosyaya BAĞLI DEĞİL —
+   kapalı ağda bir PNG eksik diye bekleme ekranı boş kalamaz.
+
+   Renkler logo yaylarıyla aynı sırada (indigo · gül · amber · yeşil), maske
+   ile ortası boşaltılıyor; böylece dolu bir daire değil, halka dönüyor. */
+@keyframes yukleme-don {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes yukleme-nefes {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.yukleme-halka {
+  display: block;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  background: conic-gradient(#4f46e5, #e11d48, #d97706, #16a34a, #4f46e5);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
+  animation: yukleme-don 0.9s linear infinite;
+}
+
+/* HAREKETİ AZALT: dönme 0,01 ms'ye inince halka donmuş görünür. Dönmek yerine
+   nefes alsın — bekleme sürdüğü YİNE belli olsun. */
+@media (prefers-reduced-motion: reduce) {
+  .yukleme-halka {
+    animation: yukleme-nefes 1.6s ease-in-out infinite !important;
+  }
+}
+
 @layer components {
   /* Sayfa zemini: sakin, tek tonlu nötr yıkama (dikkat dağıtmayan) */
   .bg-wash {
