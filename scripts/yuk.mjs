@@ -555,6 +555,7 @@ await olc("Pano", "PDF özeti", KOKPIT_OLCUT, async () => {
       kategoriler: kategoriler.map((k) => ({ ad: k.ad, toplam: k.toplam, acik: k.acik })),
       zorunlu: { toplam: 0, acik: 0, oran: 0 },
       aylar: rapor.aylikTrend(tumOturumlar, bugun().slice(0, 7)).map((a) => ({ etiket: rapor.ayEtiketi(a.ay), gecti: a.gecti, kaldi: a.kaldi })),
+      gecikenToplam: atamaSatirlari.filter((s) => s.durum === "gecikti" || s.durum === "suresiDoldu" || s.durum === "kaldi").length,
       gecikenler: atamaSatirlari
         .filter((s) => s.durum === "gecikti" || s.durum === "suresiDoldu" || s.durum === "kaldi")
         .slice(0, 200)

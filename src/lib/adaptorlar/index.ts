@@ -1,5 +1,6 @@
-import { ayarOku } from "../depo";
-import type { KayitHedefi, PersonelKaynagi } from "../adaptor";
+import { ayarOku, egitimGetir, yayinGetir } from "../depo";
+import type { KayitBaglami, KayitHedefi, PersonelKaynagi } from "../adaptor";
+import type { Oturum } from "../tipler";
 import { csvPersonel } from "./csvPersonel";
 import { csvPersonelYonetim } from "./csvPersonelYonetim";
 import { dosyaKayit } from "./dosyaKayit";
@@ -63,6 +64,34 @@ export function sonKayitGonderimHatasi(): { zaman: string; mesaj: string } | nul
 }
 
 /**
+ * Kaydın yanında gidecek okunur bilgileri çözer (`KayitBaglami`).
+ *
+ * BURADA ÇÖZÜLÜYOR, hedefin içinde değil: hedef "adı nereden bulurum" diye
+ * personel kaynağına uzanırsa adaptör sınırı ters yönden delinir ve dosya
+ * hedefi CSV/OPM ayrımını tanımak zorunda kalır.
+ *
+ * Eğitim adı KAYDIN SÜRÜMÜNDEN okunuyor: kayıt "sürüm 2"ye atıf yapıyorsa
+ * belgede de o sürümün adı yazmalı, bugünkü taslağın adı değil. Sürüm
+ * görüntüsü yoksa taslağa düşülür.
+ *
+ * Çözüm başarısız olursa hata YUTULUR ve alan boş bırakılır: bir adın
+ * bulunamaması kaydın gönderilmesini engellememeli — kayıt her şeyden önce
+ * gelir.
+ */
+async function kayitBaglami(oturum: Oturum): Promise<KayitBaglami> {
+  try {
+    const kisi = await personelKaynagi().bul(oturum.sicil);
+    const yayin = yayinGetir(oturum.egitimId, oturum.egitimSurum);
+    return {
+      ad: kisi?.ad,
+      egitimAdi: yayin?.ad ?? egitimGetir(oturum.egitimId)?.ad,
+    };
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Tamamlanan oturumu dış hedefe gönderir.
  * Hata YUTULMAZ — çağıran `senkron: 'hata'` yazar ve kayıt yeniden denenmek
  * üzere bekler. Sessizce düşen bir eğitim kaydı denetimde yok sayılır.
@@ -73,7 +102,7 @@ export function sonKayitGonderimHatasi(): { zaman: string; mesaj: string } | nul
  */
 export async function kaydiGonder(oturum: Parameters<KayitHedefi["gonder"]>[0]): Promise<boolean> {
   try {
-    await kayitHedefi().gonder(oturum);
+    await kayitHedefi().gonder(oturum, await kayitBaglami(oturum));
     sonGonderimHatasi = null;
     return true;
   } catch (h) {

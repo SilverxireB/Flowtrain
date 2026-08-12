@@ -23,15 +23,29 @@ function kacir(v: unknown): string {
   return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+/**
+ * Çözülemeyen ad/eğitim için hücreye YAZILAN metin.
+ *
+ * Boş bırakmak "bilmiyoruz"u gizliyordu: belgeye bakan kişi sütunun hiç
+ * doldurulmadığını mı yoksa o kaydın kişisinin listeden düştüğünü mü
+ * bilemiyordu. Denetimde bu ikisi çok farklı iki şey.
+ */
+const COZULEMEDI = "(listede yok)";
+
 export const dosyaKayit: KayitHedefi = {
   ad: "Dosya çıktısı (kayitlar.csv)",
-  async gonder(oturum) {
+  async gonder(oturum, baglam) {
     const yol = DOSYA();
     if (!existsSync(yol)) writeFileSync(yol, BOM + BASLIK.join(";") + "\r\n", "utf8");
     const satir = [
       oturum.sicil,
-      "",
-      oturum.egitimId,
+      /* AD VE EĞİTİM ADI YAZILIR. Bu iki hücre eskiden boş ve ham kimlikti;
+         dosyanın var olma sebebi "kurulum kaldırılsa bile kayıt kurumun
+         elinde kalsın" iken, elde kalan şey isimsiz sicillerle anlamsız
+         `egt_...` kimliklerinden ibaretti — yani hiçbir denetimde
+         kullanılamazdı. */
+      baglam?.ad || COZULEMEDI,
+      baglam?.egitimAdi || `${COZULEMEDI} · ${oturum.egitimId}`,
       oturum.egitimSurum,
       oturum.baslangic,
       oturum.bitis ?? "",

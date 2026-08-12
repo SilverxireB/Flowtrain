@@ -84,6 +84,9 @@ export default async function Pano() {
 
   /* PDF özeti sunucuda hazırlanır: istemciye 400 satırlık ham liste yerine
      yalnız rapora girecek olan gider. */
+  const gecikenSatirlar = satirlar.filter(
+    (s) => s.durum === "gecikti" || s.durum === "suresiDoldu" || s.durum === "kaldi",
+  );
   const pdfOzeti = {
     toplam,
     tamam,
@@ -95,8 +98,10 @@ export default async function Pano() {
     kategoriler: kategoriler.map((k) => ({ ad: k.ad, toplam: k.toplam, acik: k.acik })),
     zorunlu,
     aylar: aylar.map((a) => ({ etiket: ayEtiketi(a.ay), gecti: a.gecti, kaldi: a.kaldi })),
-    gecikenler: satirlar
-      .filter((s) => s.durum === "gecikti" || s.durum === "suresiDoldu" || s.durum === "kaldi")
+    /* Sayı KIRPILMADAN önce hesaplanıyor; liste belgeye sığsın diye kırpılıyor
+       ama başlık gerçeği söylemeli (gerekçe `panoPdf.ts` → gecikenToplam). */
+    gecikenToplam: gecikenSatirlar.length,
+    gecikenler: gecikenSatirlar
       .slice(0, 200)
       .map((s) => ({
         ad: s.kisi?.ad ?? "",

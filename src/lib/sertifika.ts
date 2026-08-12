@@ -135,13 +135,17 @@ function sayfaCiz(doc: jsPDF, v: SertifikaVerisi, kunye: BelgeKunyesi, kalin: ()
   // Belge no defterdeki oturum kimliğidir; üretim anı ise belgenin ne zaman
   // BASILDIĞINI söyler. İkisi farklı şeydir: kayıt 2024'te doğmuş olabilir,
   // çıktısı bugün alınmıştır ve denetçi hangi kopyaya baktığını bilmelidir.
-  doc.text(`Belge no: ${v.belgeNo} · Üretim: ${kunye.uretim}`, KENAR, yukseklik - KENAR - 4);
+  /* İKİ SATIR, TEK SATIR DEĞİL. İkisi de aynı `y`ye yazılıyordu: soldaki
+     ~212pt, sağdaki ~340pt ve gövde 483pt — yani her belgede ~69pt çakışıyor,
+     üstelik çakışan yerde BELGE NUMARASI kalıyordu. Numara, kaydın denetimdeki
+     tek bağlantısı; okunamayan bir sertifika kaydı doğrulanamaz kılar. */
   doc.text(
     "Bu belge kayıt defterindeki tek bir kaydın çıktısıdır; kayıt düzenlenmez ve silinmez.",
     KENAR + govde,
-    yukseklik - KENAR - 4,
+    yukseklik - KENAR - 15,
     { align: "right" },
   );
+  doc.text(`Belge no: ${v.belgeNo} · Üretim: ${kunye.uretim}`, KENAR, yukseklik - KENAR - 4);
 }
 
 /**

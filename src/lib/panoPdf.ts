@@ -25,6 +25,16 @@ export interface PanoOzeti {
   /** Aylık tamamlanma seyri (eski → yeni). */
   aylar: { etiket: string; gecti: number; kaldi: number }[];
   gecikenler: { ad: string; sicil: string; egitim: string; sonTarih: string }[];
+  /**
+   * Geciken atamaların GERÇEK sayısı — listedeki satır sayısı değil.
+   *
+   * Liste belgeye sığsın diye kırpılıyor; başlık ise kırpılmış diziden
+   * sayıyordu, yani 350 geciken varken belge "Geciken ve eksikler (200)"
+   * diyordu ve kesildiğine dair tek kelime yoktu. Bu belge denetim
+   * toplantısına gidiyor; yanlış bir rakamı olgu gibi basmak, eksik belge
+   * basmaktan kötüdür.
+   */
+  gecikenToplam: number;
 }
 
 /**
@@ -152,10 +162,21 @@ export async function panoPdfKur(ozet: PanoOzeti, kunye: BelgeKunyesi): Promise<
   }
 
   // ── gecikenler ──
-  baslikYaz(`Geciken ve eksikler (${ozet.gecikenler.length})`);
-  if (ozet.gecikenler.length === 0) {
+  baslikYaz(`Geciken ve eksikler (${ozet.gecikenToplam})`);
+  if (ozet.gecikenToplam === 0) {
     doc.setTextColor(120, 113, 108);
     doc.text("Geciken kayıt yok.", KENAR, y);
+    y += 15;
+  } else if (ozet.gecikenToplam > ozet.gecikenler.length) {
+    /* KIRPMA SÖYLENİR. Okuyan kişi listenin tamamına baktığını sanmamalı;
+       tam liste CSV'de duruyor ve `/api/disa-aktar` süzgeçten bağımsız olarak
+       hepsini veriyor. */
+    doc.setTextColor(120, 113, 108);
+    doc.text(
+      `İlk ${ozet.gecikenler.length} satır gösteriliyor. Tam liste için panodaki CSV çıktısını alın.`,
+      KENAR,
+      y,
+    );
     y += 15;
   }
   for (const g of ozet.gecikenler) {

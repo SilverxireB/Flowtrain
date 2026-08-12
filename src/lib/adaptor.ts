@@ -78,6 +78,24 @@ export interface PersonelYonetimi {
   eslemeyiUygula(): { uygulanan: number; eslemesizKodlar: string[] }
 }
 
+/**
+ * Kaydın YANINDA giden okunur bilgiler.
+ *
+ * `Oturum` yalnız kimlik taşır (sicil, egitimId). Dışarıya çıkan bir belge ise
+ * kimlikle değil ADLA okunur: "10109369 · egt_m9x2..." satırı hiçbir denetimde
+ * işe yaramaz. Bu alanlar hedefe çözülmüş olarak verilir, çünkü ad kaynağını
+ * (CSV/OPM) hedefin kendisi TANIMAMALI — adaptör sınırı iki yönlü çalışır.
+ *
+ * Çözülemezse alanlar boş kalır ve hedef bunu kendisi işaretler; boş hücre
+ * "bilmiyoruz"u gizler, o yüzden yazan taraf açıkça belirtmelidir.
+ */
+export interface KayitBaglami {
+  /** Personel kaynağından çözülen ad. */
+  ad?: string
+  /** Kaydın atıf yaptığı SÜRÜMÜN adı; yoksa bugünkü taslağın adı. */
+  egitimAdi?: string
+}
+
 export interface KayitHedefi {
   ad: string
   /**
@@ -85,5 +103,5 @@ export interface KayitHedefi {
    * Başarısız olursa oturum `senkron: 'hata'` ile bekler ve yeniden denenir —
    * kayıt ASLA sessizce düşmez.
    */
-  gonder(oturum: Oturum): Promise<void>
+  gonder(oturum: Oturum, baglam?: KayitBaglami): Promise<void>
 }
