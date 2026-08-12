@@ -192,6 +192,7 @@ export default function Editor({
   /** Yayınlanmamış değişiklik — rozetin ve "yayındaki hâline dön"ün koşulu. */
   const yayinlanmamisVar = !!yayinDurumu?.degisiklikVar;
 
+
   /**
    * GÖVDEYİ YENİDEN KURMA ANAHTARI — içerik SUNUCUDAN toptan değişince.
    *
@@ -260,6 +261,37 @@ export default function Editor({
     () => yayinKontrolu(egitim, gosterilen, sorular, kirikGorselIdler),
     [egitim, gosterilen, sorular, kirikGorselIdler],
   );
+
+  /**
+   * SAHADA KİLİTLEYEN KUSURLA YAYINLAMA — engellenmez ama SORULUR.
+   *
+   * Ürünün ilkesi "engelleme, söyle" ve doğru: zorunlu tutulan her kontrol
+   * ikinci haftada anlamsız bir metin yazılarak aşılır. Ama kontrol listesinde
+   * "3 uyarı" yazan bir rozetle yayınlanan eğitimde işçinin karşısına
+   * cevaplanamayan bir soru ekranı çıkabiliyordu — kozmetik kusurla sahayı
+   * durduran kusur aynı sarı satırdaydı.
+   *
+   * Onay penceresi yalnız KİLİT varken açılıyor; temiz yayında tek tık
+   * korunuyor, yoksa her yayınlamaya sürtünme eklemiş olurduk.
+   */
+  const yayinla = useCallback(() => {
+    const kilitler = kontrol.filter((k) => k.durum === "kilit");
+    const gonder = () => calistir(() => yayinlaEylem(egitim.id));
+    if (kilitler.length === 0) return gonder();
+
+    confirm(
+      {
+        title: "Sahada kilitleyen kusurla yayınlansın mı?",
+        message:
+          `${kilitler.length} kusur işçinin ekranında ilerlemeyi durdurur:\n\n` +
+          kilitler.map((k) => `• ${k.metin}`).join("\n") +
+          "\n\nYine de yayınlayabilirsiniz; kayıt geçerli olur ama işçi o soruda takılır.",
+        confirmLabel: "Yine de yayınla",
+        danger: true,
+      },
+      gonder,
+    );
+  }, [kontrol, calistir, confirm, egitim.id]);
 
   /* HARİTA SATIRLARI. Her tuş vuruşunda yeniden kuruluyor ve bu İSTENEN
      davranış: başlığı yazarken haritadaki satır da anında düzeliyor, yani
@@ -663,7 +695,7 @@ export default function Editor({
                   </button>
                 ) : null}
                 <button
-                  onClick={() => calistir(() => yayinlaEylem(egitim.id))}
+                  onClick={() => yayinla()}
                   disabled={!yayinaHazir || (yayinda && !yayinlanmamisVar)}
                   className="btn-primary text-sm"
                   title={

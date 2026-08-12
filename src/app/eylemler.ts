@@ -66,6 +66,31 @@ export async function hesapEkleEylem(_onceki: string | null, form: FormData): Pr
   return null;
 }
 
+/**
+ * HESABIN ŞİFRESİNİ DEĞİŞTİRİR — devrin şartı.
+ *
+ * `depo.hesapSifreDegistir` yazılmıştı ama HİÇBİR YERDEN ÇAĞRILMIYORDU: ekranda
+ * şifre değiştirme yolu yoktu. `docs/CANLIYA-GECIS.md` devir maddesinde
+ * "yönetici hesabı fabrikadaki sorumluya verildi, ŞİFRESİ DEĞİŞTİRİLDİ" diyor —
+ * yani belge, ürünün yapamadığı bir adımı şart koşuyordu. Tek çare sunucu
+ * konsolundan `npm run sifre` idi ve o da yazılımcı işi.
+ *
+ * YÖNETİCİ KAPISI: bu eylem başkasının şifresini de değiştirebiliyor, o yüzden
+ * `yonetici` istiyor. Kendi şifresini değiştirmek de buradan geçiyor —
+ * yöneticinin kendi hesabı zaten bu ekranda.
+ *
+ * İZ BIRAKILIR ama şifre YAZILMAZ: denetimde "kimin şifresi ne zaman kim
+ * tarafından değiştirildi" sorusunun cevabı gerekir, şifrenin kendisi değil.
+ */
+export async function hesapSifreDegistirEylem(kullanici: string, yeniSifre: string): Promise<string | null> {
+  const ben = kapi("yonetici", "/ayarlar");
+  if (yeniSifre.length < 6) return "Şifre en az 6 karakter olmalı.";
+  if (!depo.hesapSifreDegistir(kullanici, yeniSifre)) return "Hesap bulunamadı.";
+  depo.izBirak(ben.kullanici, `hesap şifresi değiştirildi: ${kullanici}`);
+  revalidatePath("/ayarlar");
+  return null;
+}
+
 export async function hesapSilEylem(kullanici: string): Promise<void> {
   const ben = kapi("yonetici", "/ayarlar");
   // Kendini silme: yönetici kendini silerse kurulum kilitlenir ve kimse

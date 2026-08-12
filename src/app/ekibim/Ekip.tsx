@@ -54,7 +54,20 @@ export default function Ekip({ satirlar }: { satirlar: Satir[] }) {
     kilit.current = true;
     setHata(null);
 
-    const c = await oturumBaslat(sicil, egitimId);
+    /* AĞ KOPARSA KİLİT AÇILMALI: sunucu eylemi reddedilince `kilit.current =
+       false` satırına hiç gelinmiyordu ve düğme SESSİZCE ölüyordu — amir
+       vardiyada, yanında işçi, ekranda hiçbir şey yazmıyor ve tek çare sayfayı
+       yenilemek. Aynı kusur kioskta ve ziyaretçi tabletinde onarılmıştı;
+       buraya ulaşmamasının sebebi kuralı tutan sınavın dosya listesinde
+       `/ekibim` olmamasıydı (liste `erisim.test.mjs`te genişletildi). */
+    let c: Awaited<ReturnType<typeof oturumBaslat>>;
+    try {
+      c = await oturumBaslat(sicil, egitimId);
+    } catch {
+      kilit.current = false;
+      setHata("Bağlantı kurulamadı. Birkaç saniye sonra tekrar deneyin.");
+      return;
+    }
     kilit.current = false;
 
     if (c.hata) return setHata(c.hata);

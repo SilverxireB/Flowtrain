@@ -37,6 +37,15 @@ export default async function Ayarlar() {
   const kayitYolu = kayitDosyaYolu();
   const bekleyen = depo.bekleyenSenkronlar().length;
   const amirliOran = kisiler.length ? Math.round((kisiler.filter((k) => k.amirSicil).length / kisiler.length) * 100) : 0;
+  /* İŞE GİRİŞ DOLULUK — sahtecilik kapısının SESSİZ düşüşünü görünür kılar.
+     İlk PIN kurulurken kişiden işe giriş tarihi isteniyor; kimliği doğrulayan
+     tek şey bu (`kiosk/eylemler.ts`). Ama kontrol KOŞULLU: tarih yoksa kapı
+     hiç kurulmuyor ve kioskta duran biri iş arkadaşının siciline PIN
+     belirleyebiliyor. Personel dosyasında sütun yoksa bu hiçbir yerde
+     görünmüyordu — oran burada yazıyor. */
+  const iseGirisliOran = kisiler.length
+    ? Math.round((kisiler.filter((k) => k.iseGiris).length / kisiler.length) * 100)
+    : 0;
 
   return (
     <main className="bg-wash min-h-screen">
@@ -98,6 +107,16 @@ export default async function Ayarlar() {
                   : "Tüm kişilerde amir sicili tanımlı."
               }
               uyari={amirliOran < 100}
+            />
+            <Satir
+              etiket="İşe giriş tarihi doluluk"
+              deger={`%${iseGirisliOran}`}
+              not={
+                iseGirisliOran < 100
+                  ? "Tarihi olmayan kişilerde ilk PIN kurulurken kimlik sorusu SORULMAZ — başkasının sicilini girip onun adına PIN belirlemek kolaylaşır."
+                  : "İlk PIN'de kimlik sorusu herkes için çalışıyor."
+              }
+              uyari={iseGirisliOran < 100}
             />
             <Satir etiket="Kayıt hedefi" deger={kayitHedefi().ad} />
             <Satir

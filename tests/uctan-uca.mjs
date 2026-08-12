@@ -1096,6 +1096,128 @@ try {
     );
   }
 
+  /* 25. HATA SINIRI — kokpit çökerse ne görünüyor?
+     Personel kaynağı hata FIRLATIR (boş liste dönmek "fabrikada kimse yok"
+     demek olurdu) ve dört kokpit sayfası bunu yakalamadan çağırıyor. Hata
+     sınırı olmadan Next'in stok ekranı çıkıyordu: İngilizce, markasız,
+     "Application error… digest: …" — kapalı ağdaki fabrikada bu ekran ne
+     olduğunu da söylemez, ürünün geri kalanının çalıştığını da.
+
+     GERÇEK SENARYO KULLANILIYOR: OPM kaynağı yapılandırma olmadan seçiliyor.
+     Uydurma bir hata atmak yerine ürünün kendi hata yolunu tetiklemek, sınır
+     kadar YOLU da ölçüyor. Sonunda CSV'ye geri dönülüyor. */
+  await s.bringToFront();
+  await s.goto(`${ADRES}/ayarlar`, { waitUntil: "networkidle" });
+  /* SAYFADA ÜÇ AYRI "Kaydet" VAR (kurum adı, temel adres, adaptör). Tıklama
+     adaptör kartına sabitleniyor; `.first()` yanlış düğmeye basıyor ve ayar
+     hiç kaydedilmediği için sınav sessizce yeşil kalıyordu. */
+  const adaptorKarti = s.locator(".card").filter({ hasText: "Personel kaynağı" });
+  await s.getByLabel("Personel kaynağı").selectOption("opm");
+  /* ADRES ŞART: ürün YARIM yapılandırmayı bilerek reddediyor ("kurulumun
+     çalıştığı sanılırken çalışmaması" demek). O yüzden TAM ama ERİŞİLEMEZ bir
+     adres veriliyor — 127.0.0.1:9 bağlantıyı reddeder. Bu, gerçek bir ilk gün
+     senaryosu: OPM yapılandırılmış, servis ayakta değil ve kurulum henüz bir
+     kez bile başarılı okuma yapmamış (`opmPersonel.ts:235` tam burada
+     fırlatıyor). */
+  await s.getByLabel("OPM adresi").fill("http://127.0.0.1:9");
+  await adaptorKarti.getByRole("button", { name: /^Kaydet/ }).click();
+  await s.waitForTimeout(3000);
+
+  await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
+  const hataMetni = await s.locator("body").innerText();
+  kontrol(
+    hataMetni.includes("Bu sayfa açılamadı"),
+    `kaynak patlayınca Türkçe hata sayfası çıkıyor (görünen: ${hataMetni.slice(0, 90).replace(/\s+/g, " ")})`,
+  );
+  kontrol(
+    !/Application error|client-side exception/i.test(hataMetni),
+    "Next'in stok İngilizce hata ekranı görünmüyor",
+  );
+  kontrol(
+    await s.getByRole("link", { name: /Ayarlar/ }).isVisible(),
+    "hata sayfası düzeltmenin yapılacağı yeri gösteriyor (Ayarlar bağlantısı)",
+  );
+  kontrol(
+    await s.getByRole("button", { name: /Yeniden dene/ }).isVisible(),
+    "hata sayfasında yeniden deneme var",
+  );
+
+  /* Ayarlar KİLİTLENMEMELİ: düzeltmenin yapılacağı yer orası. */
+  await s.goto(`${ADRES}/ayarlar`, { waitUntil: "networkidle" });
+  kontrol(
+    !(await s.locator("body").innerText()).includes("Bu sayfa açılamadı"),
+    "Ayarlar sayfası kaynak patlamışken de açılıyor (kendi içinde yakalıyor)",
+  );
+
+  await s.getByLabel("Personel kaynağı").selectOption("csv");
+  await s.locator(".card").filter({ hasText: "Personel kaynağı" }).getByRole("button", { name: /^Kaydet/ }).click();
+  await s.waitForTimeout(2500);
+  await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
+  kontrol(
+    (await s.locator("body").innerText()).includes("kişi listede"),
+    "CSV'ye dönünce atama sayfası normale döndü",
+  );
+
+  /* 26. ŞİFRE DEĞİŞTİRME — devrin şartı, ürün bunu yapamıyordu.
+     `depo.hesapSifreDegistir` yazılıydı ama hiçbir yerden çağrılmıyordu;
+     `CANLIYA-GECIS.md` devir maddesi ise "şifresi değiştirildi" diyor. Tek
+     çare sunucu konsoluydu. Sınav ŞİFRENİN GERÇEKTEN DEĞİŞTİĞİNİ ölçüyor:
+     düğmenin varlığı değil, eski şifrenin artık çalışmaması. */
+  await s.bringToFront();
+  await s.goto(`${ADRES}/ayarlar`, { waitUntil: "networkidle" });
+  /* KENDİ HESABINI AÇIYOR: daha önceki bölümlerde açılan hesaplar silinmiş
+     olabilir; sınav bölümleri birbirinin durumuna yaslanmamalı. */
+  await s.fill('input[name="kullanici"]', "devir");
+  await s.fill('input[name="ad"]', "Devir Sorumlusu");
+  await s.fill('input[name="sifre"]', "ilksifre123");
+  await s.selectOption('select[name="rol"]', "hazirlayan");
+  await s.getByRole("button", { name: /Hesap ekle/ }).click();
+  await s.waitForTimeout(2500);
+
+  const hesapSatiri = s.locator("li").filter({ hasText: "devir" }).first();
+  await hesapSatiri.getByRole("button", { name: /Şifre/ }).click();
+  await s.waitForTimeout(400);
+  await hesapSatiri.getByPlaceholder("Yeni şifre").fill("yenisifre456");
+  await hesapSatiri.getByRole("button", { name: /Değiştir/ }).click();
+  await s.waitForTimeout(2500);
+  kontrol(
+    (await s.locator("body").innerText()).includes("şifresi değiştirildi"),
+    "şifre değişikliği kullanıcıya bildiriliyor",
+  );
+
+  /* ESKİ ŞİFRE ARTIK ÇALIŞMAMALI, YENİSİ ÇALIŞMALI — asıl ölçüm bu. */
+  const sifreBaglam = await tarayici.newContext();
+  const sf = await sifreBaglam.newPage();
+  await sf.goto(`${ADRES}/giris`, { waitUntil: "networkidle" });
+  await sf.fill('input[name="kullanici"]', "devir");
+  await sf.fill('input[name="sifre"]', "ilksifre123");
+  await sf.click('button[type="submit"]');
+  await sf.waitForTimeout(2000);
+  kontrol(sf.url().includes("/giris"), "eski şifre artık kabul edilmiyor");
+
+  await sf.fill('input[name="kullanici"]', "devir");
+  await sf.fill('input[name="sifre"]', "yenisifre456");
+  await sf.click('button[type="submit"]');
+  await sf.waitForTimeout(2500);
+  kontrol(!sf.url().includes("/giris"), "yeni şifreyle giriş yapılıyor");
+  await sifreBaglam.close();
+
+  /* Denetim izi: şifrenin kendisi YAZILMAZ, değiştirildiği yazılır. */
+  await s.goto(`${ADRES}/ayarlar`, { waitUntil: "networkidle" });
+  const ayarMetni = await s.locator("body").innerText();
+  kontrol(ayarMetni.includes("hesap şifresi değiştirildi"), "şifre değişikliği denetim izine düştü");
+  kontrol(!ayarMetni.includes("yenisifre456"), "şifrenin kendisi hiçbir yere yazılmıyor");
+
+  /* 27. İŞE GİRİŞ DOLULUK — sahtecilik kapısının sessiz düşüşü görünür mü?
+     İlk PIN'de kimlik sorusu KOŞULLU (`kiosk/eylemler.ts`): tarihi olmayan
+     kişide hiç sorulmuyor. Personel dosyasında sütun yoksa bu hiçbir yerde
+     görünmüyordu. */
+  kontrol(ayarMetni.includes("İşe giriş tarihi doluluk"), "işe giriş doluluk oranı Ayarlar'da yazıyor");
+  kontrol(
+    ayarMetni.includes("%100") && ayarMetni.includes("herkes için çalışıyor"),
+    "dosyada tarih dolu olduğu için kapı çalışıyor deniyor",
+  );
+
   await tarayici.close();
   bitir();
 } catch (h) {

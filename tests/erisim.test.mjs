@@ -231,9 +231,27 @@ kontrol(
 
 /* ── 15. Ağ koptuğunda kilit açılıyor ──────────────────────────────────────
    Sunucu eylemi reddedilince `kilit.current = false` satırına hiç gelinmiyor,
-   düğme sessizce ölüyordu. Tek çare tableti yeniden başlatmaktı. */
-for (const ad of ["app/kiosk/Kiosk.tsx", "components/oyun/EgitimOyun.tsx", "app/ziyaretci/oyna/[id]/Tablet.tsx"]) {
-  const d = kioskDosyalari.find((x) => x.yol.endsWith(ad));
+   düğme sessizce ölüyordu. Tek çare tableti yeniden başlatmaktı.
+
+   LİSTE KİOSK KLASÖRLERİNDEN DEĞİL, ELLE YAZILIYOR — ve bu bilinçli.
+   Kural eskiden `kioskDosyalari` üzerinden ölçülüyordu; o küme yalnız üç
+   kiosk kökünü kapsadığı için AMİR TABLETİ (`/ekibim`) kuralın dışında kaldı
+   ve orada gerçekten uygulanmamıştı (11 Ağustos 2026 incelemesi). Kusur
+   kodda değil, sınavın KAPSAMINDA idi.
+
+   Ölçüt "dokunmatik, tek elle kullanılan, sunucu eylemi başlatan yüzey";
+   `/ekibim` kokpit sınıflarını kullandığı için kiosk stil kümesine
+   giremiyor ama ağ kuralı onun için de geçerli. Buraya yeni bir oynatma
+   yüzeyi eklendiğinde bu listeye de eklenmeli. */
+const AG_KURALI = [
+  "app/kiosk/Kiosk.tsx",
+  "components/oyun/EgitimOyun.tsx",
+  "app/ziyaretci/oyna/[id]/Tablet.tsx",
+  "app/ekibim/Ekip.tsx",
+];
+for (const ad of AG_KURALI) {
+  const d = tumTsx.find((x) => x.yol.endsWith(ad));
+  kontrol(!!d, `${ad}: dosya bulundu`);
   kontrol(d && /\} catch \{/.test(d.metin), `${ad}: sunucu eylemi hatası yakalanıyor`);
 }
 

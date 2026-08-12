@@ -127,12 +127,12 @@ misafirle sulandırırdı.
 
 - `npm test` — saf mantık ve şema (kurallar · sinav · anomali · csv · pin ·
   sinir · yetki · ziyaretci · qr · aktarım · paket · erişilebilirlik ·
-  oynatıcı · sürüm · **pptx** · **yükseltme** · **güvenlik**), 26 dosya /
-  ~1160 doğrulama.
+  oynatıcı · sürüm · pptx · **yayın kontrolü** · **pdf metin** · **yükseltme** ·
+  **güvenlik**), 28 dosya / ~1240 doğrulama.
 - `npm run e2e` — GERÇEK tarayıcı + GERÇEK sunucu, tüm zincir. Geçici veri
   klasörü kurar, kurulumun verisine dokunmaz. **Playwright gerekir:**
   `npm install --no-save playwright && npx playwright install chromium`.
-  **Bugün 158/158.**
+  **Bugün 174/174.**
 - `node scripts/yuk.mjs` — fabrika ölçeğinde başarım (1000 kişi · 60 eğitim ·
   20 000 kayıt). Kabul ölçütü: kiosk 1 sn, kokpit 3 sn. Ölçüt aşılırsa çıkış
   kodu 1. **Demo veride görünmeyen kareli maliyetler yalnız burada çıkar.**
