@@ -29,6 +29,20 @@ import { yol } from "@/lib/yol";
  * PPTX neden slayt GÖRÜNTÜSÜ değil: pptx'te slaydı çizmek yazı tipi, tema,
  * SmartArt ve animasyon motorunu yeniden yazmak demek. Bunu yarım yapmak
  * PDF kapısından daha kötü bir sonuç verir; ayrıştırma ise ürünün ruhuna uygun.
+ *
+ * ⭐ VARSAYILAN YOL PDF (kullanıcı kararı, 29.08.2026).
+ * İki kapı da duruyor ama artık EŞİT DEĞİL. Sebep sahada ölçüldü: bir OKR
+ * slaydı aktarıldığında tablo hücreleri okuma sırasına dizilip "Key Result"
+ * ve "Objective" öksüz satırlara döndü — çünkü `pptx.ts` `a:tbl` okumuyor ve
+ * anlam YERLEŞİMDEYDİ. Kullanıcı: "sunumu çok düzgün şekilde yazılı
+ * aktaramayız, o özellik de diğeri gibi olmalı."
+ *
+ * PowerPoint'in kendi PDF çıktısı slaydı POWERPOINT'İN ÇİZDİĞİ GİBİ veriyor —
+ * bizim yeniden çizmeye çalışmamızın asla ulaşamayacağı sadakat. Bu yüzden
+ * ekran tek yol gösteriyor: "PowerPoint'te PDF olarak kaydet, onu yükle."
+ * PPTX kapısı SİLİNMEDİ, ikinci seçenek oldu: metni düzenlenebilir isteyen
+ * (arama, çeviri, ekran okuyucu) bilerek onu seçer. Yazılan 517 satırlık
+ * ayrıştırıcı da çöpe gitmiyor.
  */
 export default function IceriAktar({
   onPdfKartlari,
@@ -57,7 +71,11 @@ export default function IceriAktar({
   const [durum, setDurum] = useState<string | null>(null);
   const [hata, setHata] = useState<string | null>(null);
   const [not, setNot] = useState<string | null>(null);
-  const girdi = useRef<HTMLInputElement>(null);
+  /* İKİ AYRI GİRDİ: tek girdiye iki türü birden kabul ettirmek, dosya
+     seçicisinde "hangisini seçsem" sorusunu kullanıcıya geri veriyordu.
+     Ayrı düğme = ayrı `accept` = seçicide yalnız doğru dosyalar. */
+  const girdiPdf = useRef<HTMLInputElement>(null);
+  const girdiPptx = useRef<HTMLInputElement>(null);
   const kilit = useRef(false);
 
   async function sec(e: React.ChangeEvent<HTMLInputElement>) {
@@ -68,6 +86,8 @@ export default function IceriAktar({
     kilit.current = true;
     setHata(null);
     setNot(null);
+    /* Tür DOSYA ADINDAN okunuyor, hangi düğmeye basıldığından değil:
+       kullanıcı seçiciye "tüm dosyalar" deyip pptx de seçebiliyor. */
     const pptx = /\.pptx$/i.test(dosya.name);
 
     try {
@@ -90,14 +110,17 @@ export default function IceriAktar({
 
   /* Dosya girdisi ve geri bildirim şeritleri iki kipte de aynı — yalnız
      çevresindeki kabuk değişiyor. */
-  const dosyaGirdisi = (
-    <input
-      ref={girdi}
-      type="file"
-      accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx"
-      onChange={sec}
-      className="hidden"
-    />
+  const dosyaGirdileri = (
+    <>
+      <input ref={girdiPdf} type="file" accept="application/pdf,.pdf" onChange={sec} className="hidden" />
+      <input
+        ref={girdiPptx}
+        type="file"
+        accept="application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx"
+        onChange={sec}
+        className="hidden"
+      />
+    </>
   );
   const geriBildirim = (
     <>
@@ -125,10 +148,21 @@ export default function IceriAktar({
   if (sade) {
     return (
       <div className="w-full">
-        <button onClick={() => girdi.current?.click()} disabled={!!durum} className="btn-ghost text-sm">
-          <Icon name="upload" size={16} /> {durum ? "Çalışıyor…" : "PDF / PowerPoint yükle"}
-        </button>
-        {dosyaGirdisi}
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={() => girdiPdf.current?.click()} disabled={!!durum} className="btn-ghost text-sm">
+            <Icon name="upload" size={16} /> {durum ? "Çalışıyor…" : "PDF yükle"}
+          </button>
+          {/* İKİNCİL YOL SESSİZ DURUR: aynı ağırlıkta iki düğme, "hangisi
+              doğru" sorusunu geri verirdi. */}
+          <button
+            onClick={() => girdiPptx.current?.click()}
+            disabled={!!durum}
+            className="text-sm text-muted underline underline-offset-2 hover:text-ink disabled:opacity-40"
+          >
+            PowerPoint&apos;ten metin aktar
+          </button>
+        </div>
+        {dosyaGirdileri}
         {geriBildirim}
       </div>
     );
@@ -142,17 +176,33 @@ export default function IceriAktar({
         </span>
         <div className="min-w-0 flex-1">
           <p className="font-semibold">Elinizdeki dosyadan başlayın</p>
+          {/* TEK YOL GÖSTERİLİYOR. Sunum için "önce PDF olarak kaydet" demek
+              fazladan bir adım gibi duruyor ama sonucu kat kat iyi: slayt
+              PowerPoint'in çizdiği gibi geliyor. */}
           <p className="text-sm text-muted">
-            <strong className="text-ink">PowerPoint (.pptx)</strong> — her slaydın başlığı, metni ve resimleri
-            düzenlenebilir karta dönüşür. <strong className="text-ink">PDF</strong> — her sayfa görüntü olarak
-            eklenir; metni sonradan değiştiremezsiniz.
+            Her sayfa bir karta dönüşür. Sunumunuz varsa PowerPoint&apos;te{" "}
+            <strong className="text-ink">Farklı kaydet → PDF</strong> deyip buraya o dosyayı yükleyin — slaytlar
+            tablosuyla, şemasıyla, olduğu gibi gelir.
           </p>
         </div>
-        <button onClick={() => girdi.current?.click()} disabled={!!durum} className="btn-ghost">
-          {durum ? "Çalışıyor…" : "Dosya seç"}
+        <button onClick={() => girdiPdf.current?.click()} disabled={!!durum} className="btn-primary">
+          <Icon name="upload" size={16} /> {durum ? "Çalışıyor…" : "PDF seç"}
         </button>
-        {dosyaGirdisi}
+        {dosyaGirdileri}
       </div>
+
+      {/* İKİNCİL YOL — bilerek seçilir, önerilmez. */}
+      <p className="mt-3 border-t border-line pt-3 text-sm text-muted">
+        Metni sonradan düzenlemek, çevirmek ya da ekran okuyucuya okutmak istiyorsanız{" "}
+        <button
+          onClick={() => girdiPptx.current?.click()}
+          disabled={!!durum}
+          className="font-semibold text-accent underline underline-offset-2 disabled:opacity-40"
+        >
+          PowerPoint dosyasından metin aktarabilirsiniz
+        </button>
+        . Bu yolda slaydın yerleşimi gelmez: tablolar ve şemalar düz metne iner.
+      </p>
 
       {geriBildirim}
     </div>
