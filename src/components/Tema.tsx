@@ -25,7 +25,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Icon, { type IconName } from "@/components/Icon";
 
-export type TemaAdi = "acik" | "koyu";
+export type TemaAdi = "acik" | "koyu" | "siyah";
 /** Kullanıcının SEÇTİĞİ şey — "sistem" de geçerli bir seçim. */
 type Secim = TemaAdi | "sistem";
 
@@ -34,6 +34,10 @@ const ANAHTAR = "flowtrain-tema";
 const SECENEKLER: { deger: Secim; etiket: string; ikon: IconName }[] = [
   { deger: "acik", etiket: "Açık", ikon: "sun" },
   { deger: "koyu", etiket: "Koyu", ikon: "moon" },
+  /* SİYAH AYRI BİR TEMADIR, koyunun daha koyusu değil: tek renkli gri
+     rampa ve vurgusu logonun turuncusu. Sistem "koyu" derse `koyu`ya
+     düşer — siyah yalnız AÇIKÇA seçilir (FlowUI'da da öyle). */
+  { deger: "siyah", etiket: "Siyah", ikon: "palette" },
   { deger: "sistem", etiket: "Sistemi izle", ikon: "monitor" },
 ];
 
@@ -51,7 +55,7 @@ const SECENEKLER: { deger: Secim; etiket: string; ikon: IconName }[] = [
  * açılır — bir tercih kaybı, kırık bir sayfa değil.
  */
 export function TemaBetigi() {
-  const betik = `(function(){try{var s=localStorage.getItem(${JSON.stringify(ANAHTAR)});var t=(s==="acik"||s==="koyu")?s:(window.matchMedia("(prefers-color-scheme: dark)").matches?"koyu":"acik");document.documentElement.setAttribute("data-tema",t);}catch(e){document.documentElement.setAttribute("data-tema","acik");}})();`;
+  const betik = `(function(){try{var s=localStorage.getItem(${JSON.stringify(ANAHTAR)});var t=(s==="acik"||s==="koyu"||s==="siyah")?s:(window.matchMedia("(prefers-color-scheme: dark)").matches?"koyu":"acik");document.documentElement.setAttribute("data-tema",t);}catch(e){document.documentElement.setAttribute("data-tema","acik");}})();`;
   return <script dangerouslySetInnerHTML={{ __html: betik }} />;
 }
 
@@ -60,7 +64,7 @@ function kayitliSecim(): Secim {
   if (typeof localStorage === "undefined") return "sistem";
   try {
     const s = localStorage.getItem(ANAHTAR);
-    return s === "acik" || s === "koyu" ? s : "sistem";
+    return s === "acik" || s === "koyu" || s === "siyah" ? s : "sistem";
   } catch {
     return "sistem";
   }

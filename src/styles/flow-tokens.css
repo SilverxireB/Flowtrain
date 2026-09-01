@@ -261,6 +261,98 @@
   --flow-scroll-thumb-hover: #4550b8;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   SİYAH TEMA — FlowUI'ın `black`i, birebir.
+   ═══════════════════════════════════════════════════════════════════════
+   FlowUI'da `black` BAĞIMSIZ bir temadır: herkes her zaman seçebilir.
+   (10 Kasım anma teması FlowUI'da AYRI bir anahtardır — `anma` — ve
+   orada renk TÜMÜYLE kalkar. Bu blok onunla karıştırılmamalı.)
+
+   ⚠ YENİ TEMA = SÖZLEŞMEYİ EKSİKSİZ DOLDURMAK (FlowUI'ın kendi dersi).
+   Burada `koyu` bloğunun override ettiği 33 jetonun HEPSİ yeniden
+   verilir. Atlanan jeton koyudan değil AÇIK temadan sızar — çünkü
+   `:root, :root[data-tema="acik"]` kuralının `:root` yarısı bu temada da
+   eşleşiyor. Yamalı görünen tema hep bu yüzden çıkıyor.
+
+   KİMLİK: yüzeyler tek renkli gri rampa, marka grisi; vurgu logonun
+   TURUNCUSU (#f17e2b) — siyah zeminde Beko mavisi okunmuyor, FlowUI'ın
+   ölçtüğü karar bu. Grafik paleti ve logo renkleri tema üstü kalır. */
+:root[data-tema="siyah"] {
+  color-scheme: dark;
+
+  /* Zemin — tek renkli gri rampa */
+  --flow-bg: #0a0a0a;
+  --flow-surface: #141414;
+  --flow-surface-2: #1e1e1e;
+  --flow-hover: #262626;
+  --flow-border: #2e2e2e;
+
+  /* Cam */
+  --flow-glass: rgba(16, 16, 16, 0.8);
+  --flow-glass-thin: rgba(16, 16, 16, 0.4);
+  --flow-glass-border: rgba(255, 255, 255, 0.1);
+
+  /* Metin — rampa koyu temayla AYNI ŞEKİLDE düşer (ölçüldü, `surface`
+     üstünde): 16.9 → 11.8 → 8.5 → 5.7. Koyu temada 17.1 → 10.8 → 8.6
+     → 5.5; yani aradaki mesafeler korunuyor, yalnız ton nötrleşiyor. */
+  --flow-text: #f5f5f5;
+  --flow-text-2: #cfcfcf;
+  /* `--flow-govde` FlowUI'da bir jeton değil (Bootstrap gövde rengi),
+     karşılığı burada üretildi: text-2 ile muted'ın arasına, koyu
+     temadaki oranın aynısına oturuyor. */
+  --flow-govde: #b0b0b0;
+  --flow-text-muted: #8f8f8f;
+
+  /* Marka — tek renkli temada gri. Kimlik renkten değil VURGUDAN gelir. */
+  --flow-primary: #4a4a4a;
+  --flow-primary-strong: #383838;
+  --flow-primary-soft: rgba(255, 255, 255, 0.08);
+  --flow-primary-contrast: #ffffff;
+
+  /* ⚠ BAĞLANTI DA TURUNCU — ölçümle ve gözle karar verildi.
+     Önce mavi (#8093ee) bırakılmıştı: kontrastı yeterliydi (5.8:1) ve
+     "bağlantı mavidir" bir alışkanlık. Ama `text-accent` Tailwind'de
+     `--flow-link`e bağlı (marka rengi METİN olarak okunmadığı için) ve
+     hub kutucuklarının dokuz simgesi ondan besleniyor: gri sayfanın
+     ortasında dokuz mavi leke, temanın parçası değil kazası gibi
+     duruyordu. Siyahta kimlik TURUNCUDAN geliyor; bağlantı da o sesi
+     konuşur. Ölçüldü: `surface` 6.8:1 · `surface-2` 6.2:1.
+     Uyarı sarısıyla (`--flow-warning-text` #ffd27a) karışmıyor. */
+  --flow-link: #f17e2b;
+  --flow-logo-yazi: #ffffff;
+
+  /* VURGU LOGONUN TURUNCUSU — siyahta okunurluk için (FlowUI kararı).
+     Ölçüldü: `surface` üstünde 6.8:1. */
+  --flow-pill-accent: #f17e2b;
+  --flow-pill-glow: 0 0 14px -3px var(--flow-pill-accent);
+  --flow-pill-fill: transparent;
+  /* Kutu ışığı koyu temadaki gibi RENKLİ ve kutunun kendi renginden
+     türer — atlanırsa açık temanın düz siyah gölgesi sızardı. */
+  --flow-kutu-isik: 0 10px 26px -12px var(--flow-kutu-renk, var(--flow-pill-accent)),
+    0 0 20px -12px var(--flow-kutu-renk, var(--flow-pill-accent));
+
+  /* Anlam renkleri METİN olarak bir tık açık: tentli rozet zemininde
+     dolgu değeri eşiğin altında kalıyor. */
+  --flow-success-text: #6ee7a8;
+  --flow-warning-text: #ffd27a;
+  --flow-danger-text: #ff9b9b;
+  --flow-info-text: #8ec7ff;
+
+  /* Koyu zeminde palet renkleri olduğu gibi okunuyor. */
+  --flow-tint-text-mix: 100%;
+  --flow-palet-metin-mix: 72%;
+
+  /* Cam panel zemini — renk yok, gri rampa + turuncunun çok soluk tenti. */
+  --flow-panel-vurgu-1: #2e2e2e;
+  --flow-panel-vurgu-2: #4a3520;
+  --flow-panel-vurgu-opak: 68%;
+
+  /* Kaydırma çubuğu */
+  --flow-scroll-track: #111111;
+  --flow-scroll-thumb: #3a3a3a;
+  --flow-scroll-thumb-hover: #4a4a4a;
+}
+
 /* ---------- TEMA ÜSTÜ: marka, veri havuzu, biçim ---------- */
 :root {
   /* Marka logosunun dört yayı — tema üstü, ASLA değişmez. */

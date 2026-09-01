@@ -205,11 +205,17 @@ a {
     display: none;
   }
 
-  :root[data-tema="koyu"] .logo-isaret-acik {
+  /* ⚠ SEÇİCİ TEMA ADINA DEĞİL, ZEMİNİN KOYULUĞUNA BAKAR. Yalnız `koyu`
+     yazılıydı ve siyah tema gelince lacivert işaret siyah zeminde
+     kaybolmaya geri döndü. Yeni koyu tema eklendiğinde buraya da
+     yazılması gerekir — koyu zeminli her tema aynı işareti kullanır. */
+  :root[data-tema="koyu"] .logo-isaret-acik,
+  :root[data-tema="siyah"] .logo-isaret-acik {
     display: none;
   }
 
-  :root[data-tema="koyu"] .logo-isaret-koyu {
+  :root[data-tema="koyu"] .logo-isaret-koyu,
+  :root[data-tema="siyah"] .logo-isaret-koyu {
     display: inline;
   }
 

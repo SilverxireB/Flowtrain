@@ -52,6 +52,7 @@ kaldığını**, SIL lisanslı Encode Sans'ın kullanılabildiğini söyledi.
 | Köşe yarıçapı sayfada sabit yazılmaz | ✅ | 140 yerde `rounded-flow`/`-sm`'ye çevrildi (12/8px); hap biçimliler kural dışı, sınavla korunuyor |
 | Cam yüzey her temada kendi zemininden | 🔸 | token + `.flow-cam-*` sınıfları hazır, kullanan yüzey yok |
 | Tipografi: sayfa kendi fontunu getirmez | ✅ | tek yerde, `layout.tsx` |
+| **Siyah tema** | ✅ | FlowUI'ın `black`i birebir: gri rampa, marka grisi, vurgu logo turuncusu (#f17e2b). Sözleşme eksiksiz — 34/34 jeton, sınavla korunuyor |
 | Mevsimlik temalar | — | FlowTrain'de karşılığı yok; gerekirse üç token yeter |
 
 ### 2. İmza efektleri
@@ -304,3 +305,52 @@ bırakmak demek olurdu.
    çubuğu, zorunlu alan, cam panel, hover kuralı, veri-yok ayrımı
 7. **Yüzeyleri bu sınıflara bağlamak** — sınıflar tanımlı, kullanan yer henüz az
 8. Form ailesi — FlowSelect, FlowCheckbox (`accent-color` yetmiyor), sayı alanı
+
+
+---
+
+## SİYAH TEMA EKLENDİ (29.08.2026)
+
+FlowUI'ın `black` teması FlowTrain'e alındı: `:root[data-tema="siyah"]`,
+tema seçicide üçüncü seçenek. **Koyunun daha koyusu değil, ayrı bir tema** —
+yüzeyler tek renkli gri rampa, marka grisi, kimlik VURGUDAN geliyor.
+
+(FlowUI'da 10 Kasım anma teması AYRI bir anahtardır — `anma` — ve orada renk
+tümüyle kalkar. `black` ile karıştırılmamalı; FlowTrain'e gelen `black`.)
+
+**⚠ SÖZLEŞME EKSİKSİZ DOLDURULDU — FlowUI'ın kendi dersi.** `koyu` bloğunun
+override ettiği **34 jetonun hepsi** yeniden verildi. Atlanan jeton koyudan
+değil **açık temadan** sızardı: `:root, :root[data-tema="acik"]` kuralının
+`:root` yarısı siyahta da eşleşiyor. Sınav bunu artık kendi kontrol ediyor
+(`siyah tema sözleşmeyi eksiksiz dolduruyor`).
+
+Ölçülen metin rampası (`--flow-surface` üstünde) koyuyla aynı şekilde düşüyor:
+
+| | koyu | siyah |
+|---|---|---|
+| `--flow-text` | 17.1 | 16.9 |
+| `--flow-text-2` | 10.8 | 11.8 |
+| `--flow-govde` | 8.6 | 8.5 |
+| `--flow-text-muted` | 5.5 | 5.7 |
+
+`--flow-govde` FlowUI'da bir jeton değil (Bootstrap gövde rengi), karşılığı
+üretildi: **#b0b0b0** — text-2 ile muted'ın arasına, koyudaki oranın aynısına.
+Koyudaki tek kontrast istisnası (muted × surface-2 = 4.2) **siyahta yok**:
+orada 5.2, eşiğin üstünde.
+
+### İki kaçak yakalandı
+
+1. **Logo işareti.** `.logo-isaret-*` seçicisi yalnız `data-tema="koyu"`
+   yazıyordu; siyahta lacivert işaret siyah zeminde kaybolmaya geri
+   dönüyordu. Seçici tema adına değil **zeminin koyuluğuna** bakmalı.
+2. **Bağlantı rengi.** Önce mavi (#8093ee) bırakıldı — kontrastı yeterliydi
+   ve "bağlantı mavidir" bir alışkanlık. Ama Tailwind'de `text-accent`
+   `--flow-link`e bağlı (marka rengi metin olarak okunmuyor diye) ve hub
+   kutucuklarının **dokuz simgesi** ondan besleniyor: gri sayfanın ortasında
+   dokuz mavi leke, temanın parçası değil kazası gibi duruyordu. Siyahta
+   kimlik turuncudan geldiği için bağlantı da o sesi konuşuyor
+   (#f17e2b · surface 6.8:1 · surface-2 6.2:1; uyarı sarısıyla karışmıyor).
+
+**Yeni koyu tema eklenirse:** `koyu` bloğunun jeton listesini kopyala,
+değerleri ver, `.logo-isaret-*` seçicisine tema adını YAZ. Sınav geri kalanını
+söyler.

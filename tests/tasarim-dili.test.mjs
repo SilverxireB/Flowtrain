@@ -64,12 +64,16 @@ function blokAl(css, secici) {
 
 const acikBlok = blokAl(tokenler, ':root[data-tema="acik"]');
 const koyuBlok = blokAl(tokenler, ':root[data-tema="koyu"]');
+/* SİYAH — FlowUI'ın `black`i. Koyunun varyantı değil, ayrı tema. */
+const siyahBlok = blokAl(tokenler, ':root[data-tema="siyah"]');
 kontrol(acikBlok.length > 500, "açık tema bloğu bulundu");
 kontrol(koyuBlok.length > 500, "koyu tema bloğu bulundu");
+kontrol(siyahBlok.length > 500, "siyah tema bloğu bulundu");
 
 const jetonAdlari = (blok) => new Set([...blok.matchAll(/(--flow-[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
 const acikJetonlar = jetonAdlari(acikBlok);
 const koyuJetonlar = jetonAdlari(koyuBlok);
+const siyahJetonlar = jetonAdlari(siyahBlok);
 
 /* Yalnız AÇIK temada tanımlı olup koyuda olmayanlar RİSKLİDİR: koyu tema
    onları açıktan miras alır ve lacivert zeminde açık tema rengi kalır.
@@ -90,6 +94,13 @@ const MAZUR = new Set([
 const gercektenEksik = koyudaEksik.filter((t) => !MAZUR.has(t));
 esit(gercektenEksik, [], `koyu tema sözleşmeyi eksiksiz dolduruyor${gercektenEksik.length ? ` (eksik: ${gercektenEksik.join(", ")})` : ""}`);
 
+/* ⚠ SİYAH, KOYUNUN YAZDIĞI HER JETONU YAZMALI. Atlanan jeton koyudan
+   DEĞİL AÇIK TEMADAN sızar: `:root, :root[data-tema="acik"]` kuralının
+   `:root` yarısı siyahta da eşleşiyor. FlowUI'ın "yamalı tema" tuzağı
+   tam olarak bu. */
+const siyahtaEksik = [...koyuJetonlar].filter((t) => !siyahJetonlar.has(t));
+esit(siyahtaEksik, [], `siyah tema sözleşmeyi eksiksiz dolduruyor${siyahtaEksik.length ? ` (eksik: ${siyahtaEksik.join(", ")})` : ""}`);
+
 /* İki temanın da zorunlu çekirdeği. */
 for (const zorunlu of [
   "--flow-bg", "--flow-surface", "--flow-surface-2", "--flow-hover", "--flow-border",
@@ -98,7 +109,10 @@ for (const zorunlu of [
   "--flow-pill-accent", "--flow-pill-glow", "--flow-pill-fill",
   "--flow-logo-yazi",
 ]) {
-  kontrol(acikJetonlar.has(zorunlu) && koyuJetonlar.has(zorunlu), `${zorunlu} iki temada da tanımlı`);
+  kontrol(
+    acikJetonlar.has(zorunlu) && koyuJetonlar.has(zorunlu) && siyahJetonlar.has(zorunlu),
+    `${zorunlu} üç temada da tanımlı`,
+  );
 }
 
 /* `color-scheme` İKİ TEMADA DA bildirilmeli: tarayıcının kendi çizdiği
@@ -106,6 +120,7 @@ for (const zorunlu of [
    moduna göre açılıyor ve koyu sayfada beyaz bir liste patlıyor. */
 kontrol(/color-scheme:\s*light/.test(acikBlok), "açık tema color-scheme bildiriyor");
 kontrol(/color-scheme:\s*dark/.test(koyuBlok), "koyu tema color-scheme bildiriyor");
+kontrol(/color-scheme:\s*dark/.test(siyahBlok), "siyah tema color-scheme bildiriyor");
 
 /* ══ 1b. KONTRAST GÖRÜŞ DEĞİL, ÖLÇÜ ═══════════════════════════════════════
    Bu bölüm bir sorunun cevabı olarak doğdu: "buradaki renkler doğru
@@ -159,7 +174,7 @@ const ISTISNA = {
 const METIN_JETONLARI = ["--flow-text", "--flow-text-2", "--flow-text-muted", "--flow-govde", "--flow-link"];
 const ZEMIN_JETONLARI = ["--flow-bg", "--flow-surface", "--flow-surface-2"];
 
-for (const [temaAdi, blok] of [["açık", acikBlok], ["koyu", koyuBlok]]) {
+for (const [temaAdi, blok] of [["açık", acikBlok], ["koyu", koyuBlok], ["siyah", siyahBlok]]) {
   for (const metinAd of METIN_JETONLARI) {
     const metin = jetonDegeri(blok, metinAd);
     if (!metin || !HEX.test(metin)) continue;
@@ -187,7 +202,7 @@ for (const [temaAdi, blok] of [["açık", acikBlok], ["koyu", koyuBlok]]) {
    rengi (#a6b0cf koyu / #495057 açık) ve rampada sabit bir yeri yok:
    koyuda text-2'den sakin, açıkta text-2'den parlak. Sıraya sokmak
    FlowUI'da olmayan bir kural uydurmak olurdu. */
-for (const [temaAdi, blok] of [["açık", acikBlok], ["koyu", koyuBlok]]) {
+for (const [temaAdi, blok] of [["açık", acikBlok], ["koyu", koyuBlok], ["siyah", siyahBlok]]) {
   const zemin = jetonDegeri(blok, "--flow-bg");
   const sirali = ["--flow-text", "--flow-text-2", "--flow-text-muted"]
     .map((ad) => ({ ad, deger: jetonDegeri(blok, ad) }))
