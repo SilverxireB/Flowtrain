@@ -156,20 +156,14 @@ function kontrastOrani(a, b) {
   return (x + 0.05) / (y + 0.05);
 }
 
-/* ⚠ TEK İSTİSNA — GİZLENMİYOR, YAZILIYOR.
-   `--flow-text-muted` FlowUI'ın kendi değeri (#7d89c4) ve FlowUI'da da
-   `surface-2` üstünde 4.2:1 veriyor, yani kendi eşiğinin altında.
-   FlowTrain daha önce bu tonu #c3cbe4'e çekmişti (10.1:1) ama o zaman
-   text/text-2/muted birbirinden ayrışmıyor, tablolar ve künyeler tek
-   parlaklıkta düzleşiyordu — kullanıcının "tam benzeyemedi" dediği yer.
-   Karar: TON FlowUI ile aynı kalsın, açık kaydedilsin. Muted zaten
-   ikincil etiket rengidir; okunması gereken metin `--flow-text-2`. */
-const ISTISNA = {
-  "koyu --flow-text-muted --flow-surface-2": {
-    esik: 4.1,
-    sebep: "FlowUI'da da 4.2 · muted yalnız ikincil etiket",
-  },
-};
+/* İSTİSNA YOK — liste bilerek boş duruyor.
+   Bir süre `koyu --flow-text-muted × --flow-surface-2` burada 4.1 eşiğiyle
+   muaf tutuluyordu, çünkü FlowUI'ın kendi değeri (#7d89c4) orada 4.18
+   veriyor. Kullanıcı gerçek ekranda okuyamadığını söyledi; ton
+   yükseltildi ve muafiyete gerek kalmadı. Yeni bir muafiyet eklemeden
+   önce: ölçü eşiği tutturamıyorsa çözüm eşiği indirmek değil RENGİ
+   düzeltmektir. */
+const ISTISNA = {};
 
 const METIN_JETONLARI = ["--flow-text", "--flow-text-2", "--flow-text-muted", "--flow-govde", "--flow-link"];
 const ZEMIN_JETONLARI = ["--flow-bg", "--flow-surface", "--flow-surface-2"];

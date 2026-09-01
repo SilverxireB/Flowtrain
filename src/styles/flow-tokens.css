@@ -194,7 +194,16 @@
 
   --flow-text: #f2f5ff;
   --flow-text-2: #b8c4f2;
-  --flow-text-muted: #7d89c4;
+  /* ⚠ FLOWUI'IN DEĞERİNDEN BİLEREK AYRILIYORUZ (#7d89c4).
+     O ton `surface-2` üstünde 4.18 veriyor — FlowUI'ın KENDİ eşiğinin
+     (4.5) altı; oraya bakarken kullanıcı "mavide gri okunabilirliği
+     azaltıyor, gözüm acıdı" dedi ve ölçüm onu doğruladı. Lacivert
+     zeminde mavi-gri metin, parlaklık farkı yeterli olsa bile TON
+     yakınlığı yüzünden algıda daha da siliniyor.
+     Yeni ton rampayı bozmuyor — surface üstünde:
+       text 15.05 > text-2 9.54 > govde 7.60 > muted 6.39
+     ve üç zeminde de eşiğin üstünde (en kötü 5.48). */
+  --flow-text-muted: #949fd6;
   /* ⚠ FLOWUI'DAN BİLİNÇLİ SAPMA — KULLANICI KARARI.
      Ölçülen değer `rgb(166,176,207)` (#a6b0cf) idi ve birebir taşınmıştı;
      kullanıcı "koyu temada beyaz ağırlıklı olsun, görünüm az" dedi.

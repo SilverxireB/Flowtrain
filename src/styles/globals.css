@@ -10,29 +10,28 @@
   --font-display: var(--font-sans);
 }
 
-/* ⭐ TABAN PUNTO 13px — FLOW AİLESİNİN ÖLÇEĞİ.
-   Çalışan FlowUI'da ölçüldü: `body` 13px, satır yüksekliği 19.5px (1.5),
-   harf aralığı `normal`. FlowTrain 16px tabanlıydı, yani BÜTÜN arayüz
-   %23 daha iriydi. "Yaklaşıyor ama aynı değil" hissinin en büyük tek
-   sebebi buydu — renkleri eşitlemek ölçeği eşitlemiyor.
+/* ⚠ KÖK PUNTOSU DEĞİŞTİRİLMEZ — 29.08.2026'da geri alındı.
+   Burada `html { font-size: 13px }` yazıyordu. Amaç doğruydu (FlowUI'ın
+   gövde metni 13px), ama KOL YANLIŞTI: FlowUI kökü 16px'te bırakıp
+   `body`ye 0.8125rem yazıyor. Kökü kısınca `rem` tabanlı HER ŞEY %19
+   küçüldü — Tailwind'in punto, boşluk ve genişlik yardımcılarının tamamı.
+   Ölçülen bedel:
+     max-w-7xl  1280 → 1040px   (bütün kokpit 240px dar çiziliyordu)
+     w-48 harita 192 → 156px    (kart adları kırpılıyordu)
+     text-sm      14 → 11.4px   ("yazıları okurken gözüm acıdı")
+     kiosk düğme  20 → 16.25px  (ayrıca yamayla geri alınmıştı — bkz. aşağı)
+   Doğrusu: kök tarayıcı varsayılanında kalır, GÖVDE METNİ `body`ye
+   yazılır. Sınıfsız metin de böylece 13px olur, oranlar bozulmaz. */
 
-   KÖK (`html`) 13px YAPILIYOR, `body` değil: Tailwind'in bütün punto ve
-   boşluk yardımcıları `rem` tabanlı ve kökü izliyor. Yalnız `body`ye
-   yazılsaydı sınıfsız metin küçülür, `text-sm` yazan her yer 14px'te
-   kalırdı; ölçek yarım uygulanmış olurdu.
-
-   ⚠ KİOSK BU KURALIN DIŞINDA (aşağıda geri alınıyor). Orası bir metreden
-   ELDİVENLE okunuyor; %19 küçültmek güvenlik gerilemesi olurdu ve
-   `CLAUDE.md` kiosku zaten ayrı bir yüzey sayıyor. */
-html {
-  font-size: 13px;
-}
 
 /* GÖVDE METNİ SAKİN TONDA. FlowUI'da ölçüldü: `rgb(166,176,207)` — yani
    `--flow-text` (#f2f5ff) DEĞİL, ondan bir kademe sakin. Parlak beyaz gövde
    metni koyu lacivertin üstünde bağırıyor ve başlıkla gövde arasındaki
    hiyerarşiyi siliyordu; başlıklar `text-ink` ile ayrışmaya devam ediyor. */
 body {
+  /* GÖVDE METNİ 13px — FlowUI'da ölçülen değer (`0.8125rem`, kök 16px).
+     Kökten DEĞİL buradan verilir; bkz. yukarıdaki gerekçe. */
+  font-size: 0.8125rem;
   @apply bg-paper text-govde antialiased;
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
   /* Harf aralığı NORMAL — FlowUI'da ölçüldü. FlowTrain'de -0.011em vardı ve
@@ -370,8 +369,14 @@ a {
 
      Kiosk, giriş ve eğitim oynatıcı BİLEREK dışarıda: onlar tablet ve okuma
      yüzeyi, kokpit ölçüsüyle bağlı değil. */
+  /* ⚠ GENİŞLİK px — REM TUZAĞI (projede üçüncü kez). `max-w-7xl` 80rem
+     demek ve kök punto 13px olduğu için 1040px veriyor; oysa bu ölçü
+     16px köke göre seçilmiş bir Tailwind adımı, yani NİYET 1280px'ti.
+     Bütün kokpit yıllardır tasarlandığından 240px dar çiziliyordu —
+     kullanıcı "sağda solda bir sürü boşluk varken editör daralıyor"
+     derken gördüğü şey buydu. Ölçülen değer ölçüldüğü birimde yazılır. */
   .sayfa-kap {
-    @apply mx-auto w-full max-w-7xl px-5 sm:px-8;
+    @apply mx-auto w-full max-w-[1280px] px-5 sm:px-8;
   }
 
   .sayfa-govde {

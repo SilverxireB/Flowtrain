@@ -426,6 +426,30 @@ export async function sayfaSilEylem(egitimId: string, id: string): Promise<void>
 }
 
 /**
+ * ÇOK SAYIDA KARTI BİR HAMLEDE SİLER.
+ *
+ * NEDEN AYRI UÇ: elli iki kartlık bir sunumu geri almak, tek tek silmede
+ * elli iki tur (her biri onay + sunucu gidiş dönüşü + yeniden çizim)
+ * demekti — ölçüldü, kullanıcı PDF/PPTX denemesinden sonra otuz beş kartı
+ * böyle sildi. Döngüyü istemciye kurmak da çözüm değil: her `revalidatePath`
+ * listeyi baştan çiziyor, arada silinen kartın sırası kayıyor.
+ *
+ * TEK İŞLEMDE: `sayfaSil` bir kez sarmalanıyor, sayfa bir kez yenileniyor.
+ * Geri alma yine mümkün — istemci yedeği ve sıra indekslerini önceden
+ * alıyor, `sayfaGeriYukleEylem` her kart için sırayla çağrılıyor.
+ */
+export async function sayfalariSilEylem(egitimId: string, idler: string[]): Promise<number> {
+  const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
+  /* SIRA ÖNEMLİ DEĞİL ama TEKİLLİK önemli: aynı kimlik iki kez gelirse
+     ikinci silme sessizce hiçbir şey yapar, sayaç yanlış olurdu. */
+  const tekil = [...new Set(idler)];
+  for (const id of tekil) depo.sayfaSil(id);
+  depo.izBirak(ben.kullanici, `${tekil.length} kart sildi: ${egitimId}`);
+  revalidatePath(`/egitimler/${egitimId}`);
+  return tekil.length;
+}
+
+/**
  * Silinen kartı GERİ KOYAR — "Geri al" bildiriminin sunucu ucu.
  *
  * KAYIT DEĞİŞMEZLİĞİNİ İHLAL ETMEZ (CLAUDE.md 7). Dokunulan şey TASLAK:

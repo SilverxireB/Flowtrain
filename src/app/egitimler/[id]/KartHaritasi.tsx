@@ -58,6 +58,9 @@ function KartHaritasiIc({
   surukleId,
   birakIndeks,
   onSec,
+  secimKipi,
+  secililer,
+  onSecimDegis,
   onSurukleBasla,
   onSurukleBitir,
   onBirakYeri,
@@ -71,6 +74,11 @@ function KartHaritasiIc({
   /** Kartın BIRAKILACAĞI aralık (0..n). Araya çizgi buraya çizilir. */
   birakIndeks: number | null;
   onSec: (sayfaId: string) => void;
+  /** Toplu silme kipi: satırlar seçim kutusuna dönüşür. */
+  secimKipi: boolean;
+  secililer: Set<string>;
+  /** `aralik` = Shift ile tıklandı; son seçimden buraya kadar hepsi. */
+  onSecimDegis: (sayfaId: string, aralik: boolean) => void;
   onSurukleBasla: (sayfaId: string) => void;
   onSurukleBitir: () => void;
   onBirakYeri: (indeks: number) => void;
@@ -102,7 +110,7 @@ function KartHaritasiIc({
 
             <button
               type="button"
-              draggable={!kilitli}
+              draggable={!kilitli && !secimKipi}
               onDragStart={(e) => {
                 // Firefox sürüklemeyi veri konmadan başlatmıyor.
                 e.dataTransfer.setData("text/plain", s.id);
@@ -121,21 +129,45 @@ function KartHaritasiIc({
                 e.preventDefault();
                 onBirak();
               }}
-              onClick={() => onSec(s.id)}
-              aria-current={seciliId === s.id}
+              /* SEÇİM KİPİNDE TIKLAMA SEÇER, GEZMEZ. Aynı satır iki işi
+                 taşıyor; kip açıkken gezinme kapanıyor ki yanlışlıkla
+                 seçim bozulmasın. */
+              onClick={(e) => (secimKipi ? onSecimDegis(s.id, e.shiftKey) : onSec(s.id))}
+              aria-current={!secimKipi && seciliId === s.id}
+              aria-pressed={secimKipi ? secililer.has(s.id) : undefined}
               className={`flex w-full items-center gap-1.5 rounded-flow-sm px-1.5 py-1.5 text-left transition-colors ${
                 surukleId === s.id ? "opacity-40" : ""
               } ${
-                seciliId === s.id
+                (secimKipi ? secililer.has(s.id) : seciliId === s.id)
                   ? "bg-accent-soft text-accent-dark"
                   : "text-muted hover:bg-line/60 hover:text-ink"
               }`}
             >
-              <span className="w-5 shrink-0 text-right text-[11px] font-bold tabular-nums">{s.sira}</span>
+              {/* Kutu YALNIZ seçim kipinde; normalde sıra numarası duruyor.
+                  İkisini birden göstermek dar sütunda başlığa yer bırakmıyor. */}
+              {secimKipi ? (
+                <span
+                  aria-hidden
+                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border ${
+                    secililer.has(s.id) ? "border-accent bg-accent text-white" : "border-muted"
+                  }`}
+                >
+                  {secililer.has(s.id) ? <Icon name="check" size={11} /> : null}
+                </span>
+              ) : (
+                <span className="w-5 shrink-0 text-right text-xs font-bold tabular-nums">{s.sira}</span>
+              )}
               <span className="shrink-0" title={KART_ETIKET[s.tip]}>
                 <Icon name={KART_SIMGE[s.tip]} size={13} />
               </span>
-              <span className={`min-w-0 flex-1 truncate text-xs ${s.baslik ? "font-semibold" : "italic"}`}>
+              {/* ⚠ TEK SATIRA SIĞDIRMAK YERİNE İKİ SATIRA SAR. `truncate` ile
+                  "RELIABILITY DRIVES V…" ve "CO-PILOTS ARE THE M…" gibi
+                  ayırt edilemeyen adlar çıkıyordu — üstelik ardışık üç kart
+                  aynı başlığı taşıdığında harita işe yaramaz hâle geliyor.
+                  İki satır tavanı satır boyunu sabit tutar (duvarda
+                  öğrendiğimiz kural: ölçü veriye bakmaz), üçüncü satır
+                  yine kırpılır. */}
+              <span className={`min-w-0 flex-1 line-clamp-2 text-[13px] leading-tight ${s.baslik ? "font-semibold" : "italic"}`}>
                 {s.baslik || "(başlıksız)"}
               </span>
               {s.sorunlu ? (

@@ -31,6 +31,7 @@ import {
   sayfaGuncelleEylem,
   sayfaGeriYukleEylem,
   sayfaSilEylem,
+  sayfalariSilEylem,
   sayfalariSiralaEylem,
   sayfalariTopluEkleEylem,
   metinKartlariEkleEylem,
@@ -116,6 +117,13 @@ export default function Editor({
   const [ayarlarAcik, setAyarlarAcik] = useState(false);
   const soruSayisiRef = useRef<HTMLInputElement>(null);
   const [seciliId, setSeciliId] = useState<string | null>(null);
+  /* TOPLU SEÇİM — kip AÇIKÇA açılır. Kalıcı onay kutuları normal
+     düzenlemede gürültü; kırk kartlık listede ise tek tek silmek
+     kırk tur demek (kullanıcı gerçekten otuz beş kartı öyle sildi). */
+  const [secimKipi, setSecimKipi] = useState(false);
+  const [secililer, setSecililer] = useState<Set<string>>(new Set());
+  /* Shift ile aralık seçimi için SON dokunulan satır. */
+  const sonSecimRef = useRef<string | null>(null);
   const [seritAcik, setSeritAcik] = useState(false);
   /** Dar/orta ekranda harita çekmecesi açık mı? Geniş ekranda rayda duruyor. */
   const [haritaAcik, setHaritaAcik] = useState(false);
@@ -399,6 +407,111 @@ export default function Editor({
   const sayfaSec = useCallback((sayfaId: string) => setSeciliId(sayfaId), []);
 
   /**
+   * Seçimi çevirir. `aralik` (Shift) son dokunulan satırdan buraya kadar
+   * hepsini AÇAR — kapatmaz: ardışık kartları toplamak asıl iş, Shift ile
+   * yanlışlıkla otuz kartın seçimini kaldırmak geri alınması zor bir sürpriz
+   * olurdu.
+   */
+  const secimDegis = useCallback((sayfaId: string, aralik: boolean) => {
+    /* ⚠ ÇAPA GÜNCELLEYİCİNİN DIŞINDA OKUNUP YAZILIR. Önce `sonSecimRef`e
+       `setSecililer` geri çağrısının İÇİNDE dokunuyordum ve Shift ile aralık
+       hiç çalışmıyordu: React geliştirme kipinde güncelleyiciyi İKİ KEZ
+       çağırıyor (saflık denetimi), ikinci turda çapa zaten tıklanan satıra
+       eşitlenmiş oluyor ve aralık tek karta iniyordu. Güncelleyici SAF
+       kalmalı — yan etki dışarıda. */
+    const liste = gosterilenRef.current;
+    const son = sonSecimRef.current;
+    const a = son ? liste.findIndex((x) => x.id === son) : -1;
+    const b = liste.findIndex((x) => x.id === sayfaId);
+    sonSecimRef.current = sayfaId;
+
+    setSecililer((onceki) => {
+      const yeni = new Set(onceki);
+      /* ARALIK YALNIZ EKLER, KALDIRMAZ: ardışık kartları toplamak asıl iş;
+         Shift ile otuz kartın seçimini yanlışlıkla düşürmek geri alması zor
+         bir sürpriz olurdu. */
+      if (aralik && a >= 0 && b >= 0) {
+        for (let i = Math.min(a, b); i <= Math.max(a, b); i++) yeni.add(liste[i].id);
+        return yeni;
+      }
+      if (yeni.has(sayfaId)) yeni.delete(sayfaId);
+      else yeni.add(sayfaId);
+      return yeni;
+    });
+  }, []);
+
+  const secimKapat = useCallback(() => {
+    setSecimKipi(false);
+    setSecililer(new Set());
+    sonSecimRef.current = null;
+  }, []);
+
+  const tumunuSec = useCallback(() => {
+    setSecililer((onceki) =>
+      onceki.size === gosterilenRef.current.length ? new Set() : new Set(gosterilenRef.current.map((x) => x.id)),
+    );
+  }, []);
+
+  /**
+   * ÖNİZLEME KAYDIRMAYI İZLER.
+   *
+   * Eskiden önizleme yalnız bir karta TIKLANDIĞINDA değişiyordu. Beş kartlık
+   * eğitimde fark edilmez; elli iki kartlıkta kullanıcı aşağı kaydırıp
+   * "önizleme çalışmıyor" diyor — ölçüldü, açılışta hiçbir şey seçili
+   * olmadığı için ekran 1. kartta duruyordu, oysa 52. kart düzenleniyordu.
+   * Önizleme sağda SÜREKLİ duran bir panel; sürekli duran şey baktığın yeri
+   * göstermeli.
+   *
+   * ÖLÇÜT "en çok görünen" DEĞİL, EKRANIN ÜST ÜÇTE BİRİNE EN YAKIN kart:
+   * kartlar ekrandan uzun olabiliyor (görselli kart 900px'i geçiyor) ve
+   * kesişim oranı o durumda hep aynı kartı kazandırır. Sabit bir okuma
+   * çizgisi, gözün gerçekte baktığı yere karşılık geliyor.
+   *
+   * rAF ile kısılıyor: kaydırma olayı saniyede yüzlerce kez geliyor ve her
+   * birinde elli iki `getBoundingClientRect` okumak sayfayı kilitlerdi.
+   * Dar ekranda çalışmaz — orada liste ve önizleme aynı anda görünmüyor.
+   */
+  useEffect(() => {
+    let bekleyen = false;
+    const olc = () => {
+      bekleyen = false;
+      if (!genisEkran()) return;
+      const cizgi = window.innerHeight * 0.35;
+      let enIyi: string | null = null;
+      let enYakin = Number.POSITIVE_INFINITY;
+      for (const sayfa of gosterilenRef.current) {
+        const el = document.getElementById(kartDomKimligi(sayfa.id));
+        if (!el) continue;
+        const k = el.getBoundingClientRect();
+        if (k.bottom < 0 || k.top > window.innerHeight) continue;
+        /* Çizgi kartın İÇİNDEYSE uzaklık sıfırdır — uzun kart, kısa komşusuna
+           yenilmesin diye. */
+        const uzaklik =
+          k.top <= cizgi && k.bottom >= cizgi
+            ? 0
+            : Math.min(Math.abs(k.top - cizgi), Math.abs(k.bottom - cizgi));
+        if (uzaklik < enYakin) {
+          enYakin = uzaklik;
+          enIyi = sayfa.id;
+        }
+      }
+      if (enIyi && enIyi !== seciliIdRef.current) setSeciliId(enIyi);
+    };
+    const tetik = () => {
+      if (bekleyen) return;
+      bekleyen = true;
+      requestAnimationFrame(olc);
+    };
+    window.addEventListener("scroll", tetik, { passive: true });
+    window.addEventListener("resize", tetik);
+    tetik();
+    return () => {
+      window.removeEventListener("scroll", tetik);
+      window.removeEventListener("resize", tetik);
+    };
+  }, []);
+
+  /**
    * Karta ATLA: seç, görünür yap, istenirse ilk alanına odaklan.
    *
    * Odak bir sonraki çizim turunda aranıyor: dar ekranda "Önizleme" sekmesi
@@ -520,6 +633,64 @@ export default function Editor({
     },
     [calistir, confirm, egitim.id, show],
   );
+
+  /**
+   * SEÇİLİ KARTLARI BİR HAMLEDE SİLER — geri alınabilir.
+   *
+   * Yedek SİLMEDEN ÖNCE alınıyor (sunucu yanıtından sonra kartlar listede
+   * yok) ve sıra indeksleriyle birlikte. Geri alma BÜYÜKTEN KÜÇÜĞE gidiyor:
+   * `sayfaGeriYukleEylem` kartı verilen indekse koyuyor, küçükten başlarsak
+   * sonraki her ekleme bir öncekinin indeksini kaydırır ve kartlar karışık
+   * sırayla geri gelirdi.
+   *
+   * TEK BİLDİRİM, TEK "Geri al": kırk kart için kırk bildirim ekranı
+   * kaplardı. Öksüz dosya sayısı da burada söyleniyor — silinen kartların
+   * görselleri diskte kalıyor ve o bilgi bugün yalnız sayfanın en altındaki
+   * bakım şeridinde duruyor, kimse oraya bakmıyor.
+   */
+  const secilileriSil = useCallback(() => {
+    const liste = gosterilenRef.current;
+    const yedekler = liste
+      .map((s, i) => ({ s, i }))
+      .filter(({ s }) => secililer.has(s.id))
+      .map(({ s, i }) => ({
+        indeks: i,
+        veri: {
+          tip: s.tip,
+          baslik: s.baslik,
+          metin: s.metin,
+          metinKarsi: s.metinKarsi,
+          gorselId: s.gorselId,
+          gorselIdler: s.gorselIdler,
+          videoId: s.videoId,
+          asgariSure: s.asgariSure,
+        },
+      }));
+    if (yedekler.length === 0) return;
+
+    confirm(
+      {
+        title: `${yedekler.length} kart silinsin mi?`,
+        message: "Seçilen kartlar listeden çıkar. Geri alabilirsin.",
+        danger: true,
+        confirmLabel: `${yedekler.length} kartı sil`,
+      },
+      () =>
+        calistir(async () => {
+          const adet = await sayfalariSilEylem(egitim.id, [...secililer]);
+          secimKapat();
+          show(`${adet} kart silindi.`, "done", {
+            etiket: "Geri al",
+            onTikla: () =>
+              calistir(async () => {
+                for (const y of [...yedekler].sort((a, b) => b.indeks - a.indeks)) {
+                  await sayfaGeriYukleEylem(egitim.id, y.veri, y.indeks);
+                }
+              }),
+          });
+        }),
+    );
+  }, [calistir, confirm, egitim.id, secililer, secimKapat, show]);
 
   const sayfaTasi = useCallback(
     (sayfaId: string, yon: -1 | 1, odaklaGeri = false) => {
@@ -832,17 +1003,20 @@ export default function Editor({
           editör ve önizleme bugünkü genişliklerini AYNEN koruyor.
           Boşluğun yetmediği her yerde harita çekmeceye düşüyor (aşağıda).
 
-          `left` KABIN SOL KENARINA GÖRE hesaplanıyor (`50vw - 53.5rem`), ekranın
+          `left` KABIN SOL KENARINA GÖRE hesaplanıyor (`50vw - 816px`), ekranın
           soluna yapıştırılmıyor: 2560px'lik bir monitörde sabit `left` rayı
           içerikten yarım ekran uzağa düşürür, göz o mesafeyi her seferinde
           kat etmek zorunda kalırdı. Alt sınır 0.75rem — eşik genişlikte rayı
           ekran dışına taşırmamak için. */}
-      <aside className="fixed left-[max(0.75rem,calc(50vw_-_53.5rem))] top-24 z-30 hidden max-h-[calc(100vh_-_8rem)] w-48 overflow-y-auto rounded-flow border border-line bg-yuzey p-2 shadow-sm min-[1760px]:block">
+      <aside className="fixed left-[calc((100vw_-_1280px)/2_-_236px)] top-24 z-30 hidden max-h-[calc(100vh_-_8rem)] w-56 overflow-y-auto rounded-flow border border-line bg-yuzey p-2 shadow-sm min-[1800px]:block">
         <h2 className="eyebrow mb-1 px-1">Kart haritası</h2>
         <KartHaritasi
           satirlar={haritaSatirlari}
           seciliId={secili?.id ?? null}
           kilitli={kilitli}
+          secimKipi={secimKipi}
+          secililer={secililer}
+          onSecimDegis={secimDegis}
           surukleId={surukleId}
           birakIndeks={birakIndeks}
           onSec={haritadanSec}
@@ -861,12 +1035,36 @@ export default function Editor({
           örtmez, ikisi yan yana durur. Dar ekranda itme yok — orada panel
           zaten perdeli ve geçici. */}
       <div
+        /* ⭐ EDİTÖR `sayfa-kap` KULLANMAZ — BİLİNÇLİ TEK İSTİSNA.
+           Kokpitin geri kalanı 1280px'lik ortalı bir kapta duruyor ve o kural
+           yerinde: okuma sayfası ekran genişledikçe uzayan satırlara dönüşmemeli.
+           Ama burası okuma sayfası değil, ÜÇ SÜTUNLU TEZGÂH — harita, editör,
+           kiosk önizlemesi. Kapaklı genişlikte üçü 774px'i paylaşıyor, editör
+           sütunu 410px'e düşüyor ve ekranın sağında 280px boş kalıyordu
+           (ölçüldü, 1609px pencere; kullanıcı: "sağda solda bir sürü boşluk
+           varken editör daralıyor").
+
+           Harita ekranın SOL KENARINDA duruyor ve gövde onun kadar
+           içeriden başlıyor: ray göründüğü her genişlikte yer ayrılır,
+           altında yalnız harita açıkken. */
+        /* ⭐ EDİTÖR DE HERKESLE AYNI KAPTA (kullanıcı kararı, 29.08.2026).
+           Tam genişlik denendi ve GERİ ALINDI: sayfa kenardan başlayınca
+           kokpitin geri kalanıyla hizası bozuluyordu ("bak tüm sayfalar aynı
+           aralığı kullanıyor"). Asıl sorun genişlik değil KÖK PUNTOSUYDU —
+           `max-w-7xl` 13px kökte 1040px veriyordu; kök 16'ya dönünce kap
+           gerçek 1280'ine çıktı ve editör sütunu 410 → 800px oldu, yani
+           yayılmaya gerek kalmadı.
+
+           Harita ise kabın DIŞINDA: geniş ekranda sol boşlukta duran ray,
+           dar ekranda çekmece. Böylece hiza her durumda korunuyor. */
         className={`sayfa-govde ${seritAcik ? "pb-[52vh]" : "pb-24"} xl:pb-8 ${
-          haritaAcik ? "lg:pl-[18.5rem]" : ""
+          /* Çekmece kipinde gövde sağa itiliyor; kap AYNI MİKTARDA büyüyor ki
+             dolgu içerikten değil ekranın boş kenarından karşılansın. */
+          haritaAcik ? "lg:max-w-[1528px] lg:pl-[248px]" : ""
         }`}
       >
         {/* Harita düğmesi rayın görünmediği HER genişlikte duruyor. */}
-        <div className="mb-5 flex flex-wrap items-center gap-3 min-[1760px]:hidden">
+        <div className="mb-5 flex flex-wrap items-center gap-3 min-[1800px]:hidden">
           <button onClick={() => setHaritaAcik((a) => !a)} className="btn-ghost text-sm" aria-expanded={haritaAcik}>
             <Icon name="list" size={16} /> Kart haritası
             {gosterilen.length > 0 ? <span className="font-normal text-muted">{gosterilen.length}</span> : null}
@@ -909,9 +1107,13 @@ export default function Editor({
               </p>
             ) : null}
 
-            {/* ── tanım ── */}
+            {/* ── tanım ──
+                ⛔ "TANIM" BAŞLIĞI KALDIRILDI (kullanıcı kararı). Sayfanın ilk
+                bloğu zaten tanım; içindeki alanlar kendi etiketlerini taşıyor
+                ("Eğitim adı", "Kategori"…) ve üstteki şerit eğitimin adını
+                söylüyor. Etiket hiçbir soruyu cevaplamıyordu, yalnız ilk kartı
+                aşağı itip sol sütunun tepe hizasını bozuyordu. */}
             <section>
-              <h2 className="eyebrow mb-3">Tanım</h2>
               <TanimBolumu
                 egitim={egitim}
                 kategoriler={kategoriler}
@@ -924,6 +1126,42 @@ export default function Editor({
             <section>
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="eyebrow">İçerik · {sayfalar.length} sayfa</h2>
+                {/* ── TOPLU SEÇİM ŞERİDİ ────────────────────────────────
+                    Kip kapalıyken tek düğme; açıkken sayaç + eylemler.
+                    Seçim KART HARİTASINDAN yapılıyor: elli iki kartlık
+                    listede satırlar orada yan yana duruyor, editör
+                    kartları ekran boyunda. Şerit burada çünkü karar
+                    (silme) içeriğe ait, gezinme aracına değil. */}
+                {!kilitli && sayfalar.length > 1 ? (
+                  secimKipi ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="chip">{secililer.size} kart seçildi</span>
+                      <button onClick={tumunuSec} className="btn-ghost text-sm">
+                        {secililer.size === gosterilen.length ? "Seçimi bırak" : "Tümünü seç"}
+                      </button>
+                      <button
+                        onClick={secilileriSil}
+                        disabled={secililer.size === 0}
+                        className="btn-ghost text-sm text-brand-dark hover:border-brand/50"
+                      >
+                        <Icon name="trash" size={15} /> Sil
+                      </button>
+                      <button onClick={secimKapat} className="btn-ghost text-sm">
+                        Vazgeç
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setSecimKipi(true);
+                        setHaritaAcik(true);
+                      }}
+                      className="btn-ghost text-sm"
+                    >
+                      <Icon name="check" size={15} /> Seç
+                    </button>
+                  )
+                ) : null}
               </div>
 
               {sayfalar.length === 0 && !kilitli ? (
@@ -1340,8 +1578,10 @@ export default function Editor({
           DAVRANIŞ, tek bileşen:
 
           lg VE ÜSTÜ (dizüstü: 1366/1440/1536) — kalıcı yan panel. Perde yok,
-          gövde sağa itiliyor, kart seçilince KAPANMIYOR. Ray ancak 1760px'te
-          sığıyor (kap 80rem + 12rem ray + boşluk), yani tipik ofis dizüstünde
+          gövde sağa itiliyor, kart seçilince KAPANMIYOR. Ray 1640px'te
+          sığıyor (kap 1280 + 156 ray + boşluk; eski 1760 eşiği 80rem'i 1280
+          sanan hesaptan geliyordu, kök 13px olduğu için kap aslında 1040'tı),
+          yani tipik ofis dizüstünde
           harita hiç kalıcı olamıyordu; üstelik seçince kapandığı için
           "haritadan gez, kartta düzelt" döngüsü her turda düğmeye basmayı
           gerektiriyordu. Kırk kartlık eğitimde asıl gezinme aracı buydu.
@@ -1353,7 +1593,7 @@ export default function Editor({
           panelin kendisi alır. Yoksa perdesiz kipte görünmez bir katman tüm
           editörü tıklanamaz yapardı. */}
       {haritaAcik ? (
-        <div className="pointer-events-none fixed inset-0 z-50 min-[1760px]:hidden">
+        <div className="pointer-events-none fixed inset-0 z-50 min-[1800px]:hidden">
           <button
             type="button"
             onClick={() => setHaritaAcik(false)}
@@ -1372,6 +1612,9 @@ export default function Editor({
                 satirlar={haritaSatirlari}
                 seciliId={secili?.id ?? null}
                 kilitli={kilitli}
+                secimKipi={secimKipi}
+                secililer={secililer}
+                onSecimDegis={secimDegis}
                 surukleId={surukleId}
                 birakIndeks={birakIndeks}
                 onSec={haritadanSec}
