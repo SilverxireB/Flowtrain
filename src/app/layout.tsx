@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Encode_Sans } from "next/font/google";
 import "@/styles/globals.css";
+import { Suspense } from "react";
+import GecisCubugu from "@/components/GecisCubugu";
 import { TemaBetigi } from "@/components/Tema";
 
 /**
@@ -89,6 +91,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <TemaBetigi />
       </head>
       <body>
+        {/* Suspense ŞART: `useSearchParams` kullanan istemci bileşeni,
+            sarmalanmazsa tüm sayfayı istemci çizimine düşürür. */}
+        <Suspense fallback={null}>
+          <GecisCubugu />
+        </Suspense>
         <VitrinSeridi />
         {children}
       </body>

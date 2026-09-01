@@ -476,3 +476,25 @@ a {
     @apply border-accent bg-accent-soft;
   }
 }
+
+
+/* ── GEÇİŞ ÇUBUĞU ────────────────────────────────────────────────────────
+   Belirsiz ilerleme: yüzdeyi bilmiyoruz (Next geçişin ne kadar süreceğini
+   söylemiyor), o yüzden dolan bir çubuk değil AKAN bir şerit. Yalan bir
+   yüzde göstermek, hiç göstermemekten kötü olurdu. */
+@keyframes gecisAk {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.gecis-cubugu-ic {
+  animation: gecisAk 1.1s ease-in-out infinite;
+}
+/* Hareket rahatsız edenlerde şerit AKMAZ ama VAR OLUR: geri bildirimi
+   tümüyle kaldırmak, düzeltmeye çalıştığımız sessizliğe geri dönerdi. */
+@media (prefers-reduced-motion: reduce) {
+  .gecis-cubugu-ic {
+    animation: none;
+    width: 100%;
+    opacity: 0.6;
+  }
+}
