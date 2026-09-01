@@ -32,6 +32,7 @@ import {
   sayfaGeriYukleEylem,
   sayfaSilEylem,
   sayfalariSilEylem,
+  sayfalariGeriYukleEylem,
   sayfalariSiralaEylem,
   sayfalariTopluEkleEylem,
   metinKartlariEkleEylem,
@@ -681,11 +682,12 @@ export default function Editor({
           secimKapat();
           show(`${adet} kart silindi.`, "done", {
             etiket: "Geri al",
+            /* TEK ÇAĞRI. Kart kart geri yüklemek yirmi sekiz sunucu turu
+               ve yirmi sekiz yeniden çizim demekti; arada bildirim
+               kapanınca geri alma yarım kalıyordu. */
             onTikla: () =>
               calistir(async () => {
-                for (const y of [...yedekler].sort((a, b) => b.indeks - a.indeks)) {
-                  await sayfaGeriYukleEylem(egitim.id, y.veri, y.indeks);
-                }
+                await sayfalariGeriYukleEylem(egitim.id, yedekler);
               }),
           });
         }),

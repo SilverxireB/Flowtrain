@@ -488,6 +488,50 @@ export async function sayfaGeriYukleEylem(
   revalidatePath(`/egitimler/${egitimId}`);
 }
 
+/**
+ * TOPLU SİLMENİN GERİ ALINMASI — TEK İŞLEM.
+ *
+ * İlk sürümde istemci `sayfaGeriYukleEylem`i kart kart çağırıyordu: yirmi
+ * sekiz kart için yirmi sekiz sunucu turu ve her turda bir
+ * `revalidatePath`, yani listenin baştan çizilmesi. Yavaş olmasının yanında
+ * YANLIŞTI da — turlar arasında sayfa yeniden çiziliyor, bildirim
+ * kapanabiliyor ve yarım kalan geri alma kartların bir kısmını geride
+ * bırakıyordu. Silme tek işlemse geri alma da tek işlem olmalı.
+ *
+ * SIRALAMA SONDA, BİR KEZ. Kartlar önce hepsi ekleniyor, sonra tek
+ * `sayfalariSirala` ile yerlerine oturuyor. Kart kart sıralamak, her
+ * eklemede bir öncekinin indeksini kaydırdığı için kartları karışık
+ * getiriyordu.
+ *
+ * KÜÇÜKTEN BÜYÜĞE gidiliyor: indeksler silinmeden ÖNCEKİ listeye ait ve
+ * hepsi aynı anda geri konduğu için artan sırada yerleştirmek doğru
+ * sonucu veriyor.
+ */
+export async function sayfalariGeriYukleEylem(
+  egitimId: string,
+  kayitlar: { indeks: number; veri: Record<string, unknown> }[],
+): Promise<number> {
+  const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
+  const sirali = [...kayitlar].sort((a, b) => a.indeks - b.indeks);
+
+  const yeniler: { id: string; indeks: number }[] = [];
+  for (const k of sirali) {
+    const yeni = depo.sayfaEkle(egitimId, { ...(k.veri as { tip: Sayfa["tip"] }) });
+    yeniler.push({ id: yeni.id, indeks: k.indeks });
+  }
+
+  const idler = depo
+    .sayfalariGetir(egitimId)
+    .map((s) => s.id)
+    .filter((id) => !yeniler.some((y) => y.id === id));
+  for (const y of yeniler) idler.splice(Math.max(0, Math.min(y.indeks, idler.length)), 0, y.id);
+  depo.sayfalariSirala(egitimId, idler);
+
+  depo.izBirak(ben.kullanici, `${yeniler.length} silinen kart geri alındı: ${egitimId}`);
+  revalidatePath(`/egitimler/${egitimId}`);
+  return yeniler.length;
+}
+
 export async function sayfalariSiralaEylem(egitimId: string, sirali: string[]): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
   depo.sayfalariSirala(egitimId, sirali);
