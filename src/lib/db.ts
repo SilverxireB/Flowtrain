@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import { cpSync, existsSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { ozetle, tuzUret } from "./parola";
 
 /**
  * SQLite deposu — tek dosya, veri klasörünün içinde.
@@ -26,6 +27,14 @@ import { join, resolve } from "node:path";
  * orada SESSİZCE /tmp'ye kaçmaz, gürültüyle patlar — öyle olmalı.
  */
 const VITRIN = !!process.env.VERCEL;
+
+/** ⚠ GEÇİCİ — bkz. `vitrinHesabiniAc`. Yayına çıkarken bu sabit de silinir. */
+const VITRIN_HESAP = {
+  kullanici: "Melihozturk",
+  ad: "Melih Öztürk",
+  rol: "yonetici" as const,
+  sifre: "123456",
+};
 export const VERI_KLASORU =
   process.env.FLOWTRAIN_DATA ?? (VITRIN ? "/tmp/flowtrain" : join(process.cwd(), "data"));
 
@@ -365,8 +374,46 @@ export function db(): Database.Database {
   const d = new Database(join(VERI_KLASORU, "flowtrain.db"));
   d.exec(SEMA);
   gocleriUygula(d);
+  vitrinHesabiniAc(d);
   _db = d;
   return d;
+}
+
+/**
+ * ⚠ GEÇİCİ — VİTRİN HESABI. YAYINA ÇIKARKEN SİLİNECEK.
+ *
+ * Kullanıcı kararı (29.08.2026): "Vercel için Melihozturk / 123456 hesabını
+ * koda göm, lokalde sonra sileriz." Gerekçe: vitrin linkinde giriş zorunlu
+ * ve hesabı olmayan kimse hiçbir şey deneyemiyor.
+ *
+ * ⭐ YALNIZ `VERCEL` DEĞİŞKENİ VARKEN AÇILIR. Gerçek kurulumda (self-host,
+ * fabrikadaki kutu) `VITRIN` false olduğu için bu fonksiyon tek bir `if`
+ * okuyup döner — zayıf şifreli bir hesap oraya ASLA düşmez. Kapıyı ortama
+ * bağlamak, "unutursak ne olur" sorusunun cevabını da veriyor: hiçbir şey.
+ *
+ * ŞİFRE DEPOYA YAZILMAZ. Hesap her soğuk açılışta `/tmp`deki tohum
+ * veritabanına EKLENİYOR; özet çalışma anında üretiliyor. Depodaki
+ * `data/flowtrain.db` dosyasına gömseydik, şifre git geçmişine girer ve
+ * "lokalde sileriz" dediğimizde geçmişten silinmezdi.
+ *
+ * VAR OLANA DOKUNMAZ: aynı kullanıcı adı zaten varsa hiçbir şey yapılmaz,
+ * yani vitrinde şifresini değiştiren birinin hesabı bir sonraki istekte
+ * geri sarılmaz (o örnek ayakta kaldığı sürece).
+ */
+function vitrinHesabiniAc(d: Database.Database): void {
+  if (!VITRIN) return;
+  const varMi = d.prepare("SELECT 1 FROM hesap WHERE kullanici=?").get(VITRIN_HESAP.kullanici);
+  if (varMi) return;
+  const tuz = tuzUret();
+  d.prepare("INSERT INTO hesap (kullanici,ad,rol,ozet,tuz,sicil,olusturma) VALUES (?,?,?,?,?,?,?)").run(
+    VITRIN_HESAP.kullanici,
+    VITRIN_HESAP.ad,
+    VITRIN_HESAP.rol,
+    ozetle(VITRIN_HESAP.sifre, tuz),
+    tuz,
+    null,
+    new Date().toISOString(),
+  );
 }
 
 /**

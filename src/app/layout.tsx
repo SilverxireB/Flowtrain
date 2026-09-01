@@ -54,6 +54,30 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/**
+ * VİTRİN ŞERİDİ — Vercel'de yapılan hiçbir değişiklik kalıcı değildir.
+ *
+ * Orada yazılabilir tek yer `/tmp`: her soğuk açılışta boşalıyor ve
+ * eşzamanlı çalışan her sunucu örneğinde AYRI. Yani hesap eklersin, bir
+ * sonraki istek başka bir örneğe düşer ve hesap yoktur. Kullanıcı bunu
+ * "hesabım kalmıyor" diye bir hata sandı — haklıydı, çünkü uygulama
+ * kaybedeceği veriyi SESSİZCE kabul ediyordu.
+ *
+ * Kalıcılık burada çözülemez: bulut veritabanı bağlamak `CLAUDE.md` 2.
+ * maddesini (DIŞ SERVİS YOK) çiğner. Gerçek kurulumda `VERCEL` değişkeni
+ * olmadığı için veri `./data`ya yazılır ve kalıcıdır — şerit de çıkmaz.
+ */
+function VitrinSeridi() {
+  if (!process.env.VERCEL) return null;
+  return (
+    <p className="border-b border-line bg-orta/15 px-4 py-1.5 text-center text-xs text-ink">
+      <strong>Vitrin sürümü.</strong> Burada denediğiniz her şey geçicidir —
+      eklediğiniz kart, hesap ve dosyalar bir süre sonra başa döner. Kalıcı
+      kullanım için kurulum gerekir.
+    </p>
+  );
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     /* `suppressHydrationWarning`: `TemaBetigi` boyadan ÖNCE `<html>` üzerine
@@ -64,7 +88,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <TemaBetigi />
       </head>
-      <body>{children}</body>
+      <body>
+        <VitrinSeridi />
+        {children}
+      </body>
     </html>
   );
 }
