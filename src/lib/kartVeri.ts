@@ -18,6 +18,7 @@
  *
  * Sınav: `node tests/kartVeri.test.mjs`
  */
+import { kartGorselleri } from "./editorMedya";
 
 /** Boş satırları atarak satırlara böler. */
 export function satirlar(metin: string | undefined): string[] {
@@ -97,9 +98,10 @@ export function onceSonra(sayfa: {
   metin?: string;
   metinKarsi?: string;
 }): OnceSonra {
-  // Tekil `gorselId` geriye dönük ilk görsel sayılır (kart tipi değiştirilmiş
-  // olabilir; kullanıcı görselini kaybetmemeli).
-  const idler = sayfa.gorselIdler?.length ? sayfa.gorselIdler : sayfa.gorselId ? [sayfa.gorselId] : [];
+  /* Üçüncü kopya BURADAYDI — satır içi, sınavsız, ve `lib`/kiosk ikilisinden
+     üçüncü bir davranışla. Aynı kart üç yerde üç farklı görsel kümesi
+     verebiliyordu; gerekçesi `editorMedya.kartGorselleri`de yazılı. */
+  const idler = kartGorselleri(sayfa);
   return {
     onceId: idler[0],
     sonraId: idler[1],

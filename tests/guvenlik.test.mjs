@@ -176,16 +176,29 @@ const kioskEylem = oku("src/app/kiosk/eylemler.ts");
 const kioskEkran = oku("src/app/kiosk/Kiosk.tsx");
 
 /* 4a. PIN SONDA. Aşama sırası: içerik → sınav → imza. İmza ekranı sınavdan
-   önce açılırsa kişi cevaplarını gördükten sonra imzalamış olmaz. */
-kontrol(
-  /setAsama\(sinavSorulari\.length > 0 \? "sinav" : prova \? "sonuc" : "imza"\)/.test(oyun),
-  "içerik bitince soru varsa SINAV, yoksa imza açılıyor (imza asla sınavın önüne geçmiyor)",
-);
+   önce açılırsa kişi cevaplarını gördükten sonra imzalamış olmaz.
+
+   DAVRANIŞ ÖLÇÜLÜYOR, KAYNAK METNİ DEĞİL. Burada eskiden ifadenin harfi
+   aranıyordu (`setAsama(sinavSorulari.length > 0 ? …)`): değişken adını
+   değiştirmek — davranışı zerre değiştirmeden — sınavı düşürüyordu, ve daha
+   kötüsü, ifadeyi bozup adları koruyan bir değişiklik sınavdan GEÇERDİ.
+   Karar `lib/kioskAkis.ts`e alındı; artık değerin kendisi ölçülüyor. */
+const { sonrakiAsama, ileriAcikMi } = await import("../src/lib/kioskAkis.ts");
+
+esit(sonrakiAsama(5, false), "sinav", "soru varsa içerik bitince SINAV açılıyor");
+esit(sonrakiAsama(1, false), "sinav", "tek soru bile sınav aşaması açar");
+esit(sonrakiAsama(0, false), "imza", "soru yoksa imza açılıyor (ziyaretçi bilgilendirmesi)");
+esit(sonrakiAsama(0, true), "sonuc", "provada soru yoksa imza İSTENMEZ, kayıt düşmüyor");
+kontrol(sonrakiAsama(3, false) !== "imza", "imza ASLA sınavın önüne geçmiyor");
+kontrol(/setAsama\(sonrakiAsama\(/.test(oyun), "oynatıcı aşama kararını o saf işlevden alıyor");
 kontrol(/else setAsama\("imza"\)/.test(oyun), "son sorudan sonra imza aşamasına geçiliyor");
 
 /* 4b. PIN İŞÇİDE. İmza ekranı PIN alanı çiziyor ve PIN sunucuya gidiyor;
    puan istemcide hesaplanmıyor (gerçek oturumda cevap anahtarı zaten yok). */
-kontrol(/PinAlani deger=\{pin\}/.test(oyun), "imza ekranı PIN alanı çiziyor");
+/* Değişken adına DEĞİL, çizilen bileşene bakılıyor: `deger={pin}` yazımı
+   `deger={ pin }` olduğunda ya da alan yeniden adlandırıldığında davranış
+   aynı kalır, eski desen ise düşerdi. */
+kontrol(/<PinAlani[\s>]/.test(oyun), "imza ekranı PIN alanı çiziyor");
 kontrol(/onBitir\?\.\(\{[\s\S]*?pin,/.test(oyun), "PIN sunucuya gönderiliyor (istemci karar vermiyor)");
 kontrol(/\/\^\\d\{4\}\$\/\.test\(gonderi\.pin\)/.test(kioskEylem), "sunucu PIN biçimini yeniden doğruluyor");
 kontrol(/depo\.pinDogrula\(oturum\.sicil, gonderi\.pin\)/.test(kioskEylem), "PIN sunucuda doğrulanıyor");
@@ -201,10 +214,18 @@ kontrol(/sorular: GizliSoru\[\]/.test(kioskEylem), "oyun verisi gizli soru tipin
 
 /* 4d. ASGARİ SÜRE. İstemci kapısı: süre dolmadan İleri açılmaz ve sekme
    arkadayken sayaç DURUR ("telefonu cebe koyup beklemek izlemek değildir"). */
+/* 4a'daki gerekçeyle burada da DEĞER ölçülüyor: kapının kendisi saf işlevde. */
+kontrol(!ileriAcikMi({ prova: false, kalanSaniye: 5, videoBekliyor: false }), "süre dolmadan İleri KAPALI");
+kontrol(ileriAcikMi({ prova: false, kalanSaniye: 0, videoBekliyor: false }), "süre dolunca İleri açılıyor");
 kontrol(
-  /const ileriAcik = prova \|\| \(kalan <= 0 && !videoBekliyor\)/.test(oyun),
-  "asgari süre dolmadan İleri açılmıyor (kapıyı YALNIZ prova atlar)",
+  !ileriAcikMi({ prova: false, kalanSaniye: 0, videoBekliyor: true }),
+  "süre dolsa da video bitmeden İleri KAPALI",
 );
+kontrol(
+  ileriAcikMi({ prova: true, kalanSaniye: 99, videoBekliyor: true }),
+  "kapıyı YALNIZ prova atlıyor (prova hiçbir kayıt üretmiyor)",
+);
+kontrol(/ileriAcikMi\(\{/.test(oyun), "oynatıcı İleri kapısını o saf işlevden alıyor");
 /* Provanın kapıyı atlaması güvenlik açığı DEĞİL: prova hiçbir şey yazmaz
    (`provaRef.current` erken döner, sunucuya oturum açılmaz) ve editöre
    zaten yetkili kişi giriyor. Kapı, KAYIT ÜRETEN yolu korumak için var. */
@@ -229,8 +250,11 @@ esit(gecenSure(uydurma), 4, "süre sunucu damgalarından ölçülüyor, istemcin
 kontrol(hizliMi(uydurma, beklenenSure([{ asgariSure: 30 }, { asgariSure: 30 }])), "uydurma süre anomaliyi gizleyemiyor");
 
 /* 4f. OTURUMUN SORU SETİ SABİT. */
+/* Yerel değişken ve ok işlevi parametresi adlarına bağlı DEĞİL: ölçülen şey
+   "soru kimlikleri oturuma yazılıyor mu", `sinav` ile `q` adlarının seçimi
+   değil. */
 kontrol(
-  /sorulanSoruIdleri: sinav\.map\(\(q\) => q\.id\)/.test(kioskEylem),
+  /sorulanSoruIdleri:\s*\w+\.map\(/.test(kioskEylem),
   "sorulan sorular oturum açılırken sabitleniyor",
 );
 kontrol(/if \(oturum\.bitis\) return \{ hata: "Bu oturum zaten kapandı\." \}/.test(kioskEylem), "kapanan oturum tekrar kapatılamıyor");
@@ -288,7 +312,16 @@ kontrol(
 
 /* ══ 5. XSS — kaçırılmamış HTML yok ════════════════════════════════════════
    React varsayılan olarak kaçırıyor; tek delik `dangerouslySetInnerHTML`.
-   İzinli tek kullanım sabit bir yazdırma CSS'i (etiket sayfası). */
+
+   İZİNLİ İKİ KULLANIM VAR ve ikisi de KULLANICI VERİSİ TAŞIMIYOR:
+     · etiket sayfasının yazdırma CSS'i
+     · tema betiği — `<html>` üzerine `data-tema` yazan, boyadan önce
+       çalışması gereken satır. React yüklendikten sonra yazılsaydı sayfa
+       bir kare açık temada çizilip koyuya atlardı.
+
+   Liste GENİŞLETİLDİ, gevşetilmedi: aşağıdaki iki kontrol her iki dosyada
+   da ham HTML'in TEK bir modül düzeyi sabitten geldiğini ayrıca ölçüyor.
+   Kullanıcı verisi karışan bir üçüncü kullanım bu listeye giremez. */
 const tsxDosyalari = [];
 (function tara(kok) {
   for (const ad of readdirSync(kok)) {
@@ -301,8 +334,8 @@ const tsxDosyalari = [];
 const hamHtml = tsxDosyalari.filter((d) => d.metin.includes("dangerouslySetInnerHTML"));
 esit(
   hamHtml.map((d) => d.yol),
-  ["src/app/egitimler/qr/Etiketler.tsx"],
-  "ham HTML yalnız bir yerde (yazdırma CSS'i)",
+  ["src/app/egitimler/qr/Etiketler.tsx", "src/components/Tema.tsx"],
+  "ham HTML yalnız izinli iki yerde (yazdırma CSS'i · tema betiği)",
 );
 for (const d of hamHtml) {
   /* İçerik SABİT olmalı: değişken bir dizeye açılırsa kullanıcı verisi

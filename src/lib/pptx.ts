@@ -28,7 +28,7 @@
 /* ── ZIP okuyucu ──────────────────────────────────────────────────────────── */
 
 /** Arşivdeki tek girdi. `sikisik` HAM baytlar — açılmamış. */
-export interface ZipGirdi {
+interface ZipGirdi {
   ad: string;
   /** 0 = saklandı (sıkıştırma yok), 8 = deflate. Başkasını açamayız. */
   yontem: number;
@@ -48,7 +48,7 @@ const YEREL_IMZA = 0x04034b50;
  * yerel başlıktaki boyut alanları SIFIRDIR ve akış nerede bittiğini ancak
  * açtıktan sonra anlarsınız. Merkezi dizin gerçek boyutları taşır.
  */
-export function zipGirdileri(veri: Uint8Array): ZipGirdi[] {
+function zipGirdileri(veri: Uint8Array): ZipGirdi[] {
   const g = new DataView(veri.buffer, veri.byteOffset, veri.byteLength);
 
   // EOCD sondadır ama arkasında 64 KB'a kadar arşiv yorumu olabilir.
@@ -102,7 +102,7 @@ export function zipGirdileri(veri: Uint8Array): ZipGirdi[] {
  * Chrome'da (kiosk ve kokpit) hem Node 20+'ta yerleşik. Kendi inflate'imizi
  * yazmak yüzlerce satır ve her biri sessizce bozuk çıktı üretme riski.
  */
-export async function girdiAc(girdi: ZipGirdi): Promise<Uint8Array> {
+async function girdiAc(girdi: ZipGirdi): Promise<Uint8Array> {
   if (girdi.yontem === 0) return girdi.sikisik;
   if (girdi.yontem !== 8) throw new Error(`Desteklenmeyen sıkıştırma (yöntem ${girdi.yontem}).`);
   if (typeof DecompressionStream === "undefined") {
@@ -115,7 +115,7 @@ export async function girdiAc(girdi: ZipGirdi): Promise<Uint8Array> {
 
 /* ── küçük XML ayrıştırıcı ────────────────────────────────────────────────── */
 
-export interface XmlDugum {
+interface XmlDugum {
   /** Öntakılı ad, örneğin "p:sp". Arama YEREL adla yapılır. */
   ad: string;
   nitelikler: Record<string, string>;
@@ -127,7 +127,7 @@ export interface XmlDugum {
 const VARLIKLAR: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
 
 /** XML varlıklarını çözer (`&amp;`, `&#252;`, `&#xFC;`). */
-export function varlikCoz(metin: string): string {
+function varlikCoz(metin: string): string {
   if (metin.indexOf("&") < 0) return metin;
   return metin.replace(/&(#[xX]?[0-9a-fA-F]+|[a-zA-Z]+);/g, (tam, kod: string) => {
     if (kod[0] !== "#") return VARLIKLAR[kod] ?? tam;
@@ -159,7 +159,7 @@ function nitelikleriCoz(parca: string): Record<string, string> {
  *
  * Kapanmayan etiket ağacı bozmaz: yığın boşalırsa fazladan kapanışlar yutulur.
  */
-export function xmlAyristir(metin: string): XmlDugum {
+function xmlAyristir(metin: string): XmlDugum {
   const kok: XmlDugum = { ad: "#kok", nitelikler: {}, cocuklar: [], metin: "" };
   const yigin: XmlDugum[] = [kok];
   let i = 0;
@@ -220,13 +220,13 @@ export function xmlAyristir(metin: string): XmlDugum {
  * değil — belge kendi öntakısını seçebilir. Yerel adla aramak dosyayı
  * PowerPoint'in kaprisinden bağımsız kılar.
  */
-export function yerelAd(ad: string): string {
+function yerelAd(ad: string): string {
   const k = ad.indexOf(":");
   return k < 0 ? ad : ad.slice(k + 1);
 }
 
 /** Ağaçta verilen YEREL ada sahip tüm düğümler — belge sırasında. */
-export function dugumleriBul(kok: XmlDugum, yerel: string): XmlDugum[] {
+function dugumleriBul(kok: XmlDugum, yerel: string): XmlDugum[] {
   const bulunan: XmlDugum[] = [];
   const yigin: XmlDugum[] = [kok];
   while (yigin.length > 0) {
@@ -239,7 +239,7 @@ export function dugumleriBul(kok: XmlDugum, yerel: string): XmlDugum[] {
 }
 
 /** İlk eşleşen düğüm, yoksa null. */
-export function dugumBul(kok: XmlDugum, yerel: string): XmlDugum | null {
+function dugumBul(kok: XmlDugum, yerel: string): XmlDugum | null {
   return dugumleriBul(kok, yerel)[0] ?? null;
 }
 
@@ -266,7 +266,7 @@ function paragrafMetni(p: XmlDugum): string {
  * madde listesinin altında düzine boş paragraf bulunur, hepsini taşımak kartı
  * baştan yarım ekran boşlukla açardı.
  */
-export function metniTopla(dugum: XmlDugum): string {
+function metniTopla(dugum: XmlDugum): string {
   const satirlar: string[] = [];
   for (const p of dugumleriBul(dugum, "p")) {
     const s = paragrafMetni(p).replace(/[ \t]+$/g, "");
@@ -283,7 +283,7 @@ function yerTutucuTipi(sekil: XmlDugum): string {
 
 const BASLIK_TIPLERI = ["title", "ctrTitle"];
 
-export interface SlaytIcerik {
+interface SlaytIcerik {
   baslik: string;
   metin: string;
   /** Görsellerin ilişki kimlikleri (rId…), slayttaki sırayla. */
@@ -298,7 +298,7 @@ export interface SlaytIcerik {
  * insan da o slayda baktığında aynı şeyi yapardı, ve başlıksız kart kioskta
  * "nerede olduğumu bilmiyorum" hissi veriyor.
  */
-export function slaytCoz(kok: XmlDugum): SlaytIcerik {
+function slaytCoz(kok: XmlDugum): SlaytIcerik {
   const agac = dugumBul(kok, "spTree") ?? kok;
   let baslik = "";
   const govdeler: string[] = [];
@@ -348,7 +348,7 @@ export function slaytCoz(kok: XmlDugum): SlaytIcerik {
 /* ── ilişkiler ve yollar ──────────────────────────────────────────────────── */
 
 /** `.rels` dosyası → { rId: hedef yol }. Hedef, rels'in sahibine GÖRELİDİR. */
-export function iliskileriCoz(xml: string): Record<string, string> {
+function iliskileriCoz(xml: string): Record<string, string> {
   const harita: Record<string, string> = {};
   for (const r of dugumleriBul(xmlAyristir(xml), "Relationship")) {
     const id = r.nitelikler.Id;
@@ -361,7 +361,7 @@ export function iliskileriCoz(xml: string): Record<string, string> {
 }
 
 /** Göreli hedefi arşiv köküne göre normalleştirir ("ppt/slides" + "../media/x"). */
-export function yolCoz(temelKlasor: string, hedef: string): string {
+function yolCoz(temelKlasor: string, hedef: string): string {
   if (hedef.startsWith("/")) return hedef.slice(1);
   const parcalar = temelKlasor.split("/").filter((p) => p !== "");
   for (const p of hedef.split("/")) {
@@ -380,7 +380,7 @@ export function yolCoz(temelKlasor: string, hedef: string): string {
  * `sldIdLst` listesindedir. Sıra bozuk gelirse hazırlayan kırk kartı elle
  * taşımak zorunda kalır — özellik faydadan çok iş çıkarır.
  */
-export function slaytSirasi(sunumXml: string, sunumIliskileri: Record<string, string>): string[] {
+function slaytSirasi(sunumXml: string, sunumIliskileri: Record<string, string>): string[] {
   const sirali: string[] = [];
   const liste = dugumBul(xmlAyristir(sunumXml), "sldIdLst");
   if (!liste) return sirali;
@@ -440,6 +440,20 @@ function gorselTuru(yol: string): string | null {
  *
  * Girdi bayt, çıktı veri: ağ yok, DOM yok, depo yok. Yükleme ve kart yazımı
  * çağıranın işi (`IceriAktar.tsx`).
+ */
+/*
+ * DIŞA AÇILAN TEK GİRİŞ: `pptxCoz` (ve döndürdüğü üç tip).
+ *
+ * Bu dosya bir zamanlar on dokuz sembolü birden dışa açıyordu — ZIP okuyucu,
+ * XML ayrıştırıcı, düğüm arayıcı, yol çözücü. Hepsi bu çözümlemenin İÇ
+ * ADIMLARI ve hiçbirini dışarıdan kimse çağırmıyordu. Dışa açık her sembol
+ * bir sözdür: "bunu kullanabilirsin, biçimi değişmeyecek". Buradaki hiçbir
+ * yardımcı için o söz verilemez; `xmlAyristir` bu dosyanın ihtiyacı kadar
+ * XML çözer, genel amaçlı bir ayrıştırıcı DEĞİLDİR ve başka bir yerde
+ * kullanılırsa sessizce yanlış sonuç verir.
+ *
+ * Sınav da yalnız `pptxCoz` üzerinden ölçüyor (`tests/pptx.test.mjs`):
+ * doğru olan da bu — iç adımlar değişebilmeli, sonuç değişmemeli.
  */
 export async function pptxCoz(kaynak: ArrayBuffer | Uint8Array): Promise<PptxSonuc> {
   const veri = kaynak instanceof Uint8Array ? kaynak : new Uint8Array(kaynak);

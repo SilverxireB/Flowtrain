@@ -26,7 +26,7 @@ export default function YazmaSonucu({ yazildi, atlanan }: { yazildi: number; atl
   return (
     <div
       role="status"
-      className={`mb-5 rounded-xl border px-4 py-3 text-sm ${
+      className={`mb-5 rounded-flow border px-4 py-3 text-sm ${
         basarili ? "border-iyi/40 bg-iyi/10" : "border-orta/40 bg-orta/10"
       }`}
     >

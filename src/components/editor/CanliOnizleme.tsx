@@ -132,7 +132,7 @@ export default function CanliOnizleme({
               Önizlemede pasif çizilir — hazırlayan işçinin kaç saniye bekleyeceğini
               yazarken görsün diye. */}
           <div className="mt-4 border-t border-line pt-3">
-            <p className="flex items-center justify-center gap-2 rounded-xl bg-line/50 py-2.5 text-sm font-bold text-muted">
+            <p className="flex items-center justify-center gap-2 rounded-flow bg-line/50 py-2.5 text-sm font-bold text-muted">
               {sayfa.asgariSure > 0 ? (
                 <>
                   <Icon name="hourglass" size={15} /> {sayfa.asgariSure} sn bekletir, sonra İleri

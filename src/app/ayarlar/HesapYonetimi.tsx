@@ -8,6 +8,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { hesapEkleEylem, hesapSifreDegistirEylem, hesapSilEylem } from "@/app/eylemler";
 import type { Hesap, Rol } from "@/lib/depo";
+import FlowSecici from "@/components/FlowSecici";
 
 const ROL_ADI: Record<Rol, string> = {
   yonetici: "Yönetici",
@@ -128,17 +129,17 @@ export default function HesapYonetimi({ hesaplar, benKullanici }: { hesaplar: He
           <input name="ad" placeholder="Ad soyad" className="input-base" />
           <input name="kullanici" placeholder="Kullanıcı adı" required className="input-base" />
           <input name="sifre" type="password" placeholder="Şifre (en az 6)" required className="input-base" />
-          <select name="rol" defaultValue="hazirlayan" className="input-base">
+          <FlowSecici name="rol" defaultValue="hazirlayan" aria-label="Rol">
             {(Object.keys(ROL_ADI) as Rol[]).map((r) => (
               <option key={r} value={r}>
                 {ROL_ADI[r]}
               </option>
             ))}
-          </select>
+          </FlowSecici>
           <input name="sicil" placeholder="Sicil (amir için gerekli)" className="input-base sm:col-span-2" />
         </div>
         {hata ? (
-          <p role="alert" className="rounded-xl border border-brand/30 bg-brand-soft px-4 py-2.5 text-sm font-semibold text-brand-dark">
+          <p role="alert" className="rounded-flow border border-brand/30 bg-brand-soft px-4 py-2.5 text-sm font-semibold text-brand-dark">
             {hata}
           </p>
         ) : null}

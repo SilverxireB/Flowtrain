@@ -50,7 +50,7 @@ export default function OpmAktar() {
   return (
     <section className="card mt-4 p-5">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-lacivert/10 text-lacivert">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-flow bg-bilgi/10 text-bilgi-dark">
           <Icon name="upload" size={20} />
         </span>
         <div className="min-w-0 flex-1">
@@ -95,13 +95,13 @@ export default function OpmAktar() {
       </div>
 
       {hata ? (
-        <p role="alert" className="mt-3 rounded-xl border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark">
+        <p role="alert" className="mt-3 rounded-flow border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark">
           {hata}
         </p>
       ) : null}
 
       {sonuc ? (
-        <div className="mt-3 rounded-xl border border-iyi/40 bg-iyi/10 px-3 py-2 text-sm">
+        <div className="mt-3 rounded-flow border border-iyi/40 bg-iyi/10 px-3 py-2 text-sm">
           <p className="font-semibold text-iyi-dark">
             Aktarım tamam: {sonuc.yeni} yeni kayıt, {sonuc.guncellenen} güncelleme.
           </p>

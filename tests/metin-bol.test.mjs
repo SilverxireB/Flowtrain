@@ -93,4 +93,44 @@ esit(
   "başlık sonundaki iki nokta atılır",
 );
 
+
+
+/* ── NUMARALI BAŞLIKLAR YUTULMUYOR ─────────────────────────────────────────
+   "1. Genel / 2. Kapsam" Türkçe İSG ve kalite prosedürlerinin standart başlık
+   biçimi. `baslikMi` numaralı satırı asla başlık saymadığı için başlık gövdeye
+   ADIM olarak düşüyor, kart da "Adımlar" diye adlandırılıyordu — kırk kartlık
+   bir prosedürde harita "Adımlar, Adımlar, Adımlar" oluyordu.
+
+   AYIRT EDİCİ ŞEY ALT SATIRLAR: gerçek listede onlar da numaralıdır. */
+
+const numaraliBaslik = metniKartlaraBol("1. Genel\nBu talimat yüksekte çalışmayı kapsar.");
+esit(numaraliBaslik.length, 1, "numaralı başlıklı blok tek kart üretir");
+esit(numaraliBaslik[0].baslik, "Genel", "numaralı başlık BAŞLIK oluyor (numara atılıyor)");
+kontrol(
+  !/Genel/.test(numaraliBaslik[0].metin),
+  "başlık gövdeye ikinci kez düşmüyor",
+);
+kontrol(numaraliBaslik[0].tip !== "adim", `numaralı başlık ADIM kartı üretmiyor (${numaraliBaslik[0].tip})`);
+
+const ikiHane = metniKartlaraBol("3.1 Yüksekte çalışma izni\nİzin formu doldurulur.");
+esit(ikiHane[0].baslik, "3.1 Yüksekte çalışma izni", "alt başlık biçimi (3.1) olduğu gibi kalıyor");
+
+/* GERÇEK LİSTE BOZULMUYOR — asıl risk buydu. */
+const gercekListe = metniKartlaraBol("1. Vanayı kapatın\n2. Basıncı boşaltın\n3. Kilitleyip etiketleyin");
+esit(gercekListe[0].tip, "adim", "gerçek numaralı liste hâlâ ADIM kartı");
+esit(gercekListe[0].baslik, "Adımlar", "başlıksız gerçek liste varsayılan adını koruyor");
+kontrol(/Vanayı kapatın/.test(gercekListe[0].metin), "listenin ilk maddesi gövdede kalıyor");
+
+/* Başlıklı gerçek liste: hem başlık hem adımlar doğru ayrılmalı. */
+const baslikliListe = metniKartlaraBol("Kilitleme adımları\n1. Vanayı kapatın\n2. Basıncı boşaltın");
+esit(baslikliListe[0].tip, "adim", "başlıklı liste yine ADIM kartı");
+esit(baslikliListe[0].baslik, "Kilitleme adımları", "başlığı korunuyor");
+
+/* Numaralı ama CÜMLE olan satır başlık sayılmamalı (nokta ile bitiyor). */
+const numaraliCumle = metniKartlaraBol("1. Bu bir uzun cümledir ve nokta ile biter.\nDevam eden gövde metni.");
+kontrol(
+  numaraliCumle[0].baslik !== "Bu bir uzun cümledir ve nokta ile biter",
+  "noktayla biten numaralı satır başlık sayılmıyor",
+);
+
 bitir("metin bölme");

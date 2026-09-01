@@ -6,6 +6,7 @@ import { eslesir } from "@/lib/arama";
 import { useFormState, useFormStatus } from "react-dom";
 import Icon from "@/components/Icon";
 import { kuralEkleEylem } from "./eylemler";
+import FlowSecici from "@/components/FlowSecici";
 
 /**
  * Kural formu.
@@ -144,7 +145,7 @@ export default function KuralFormu({
         <span className="mb-1.5 block text-sm font-semibold">{hedefTipi === "paket" ? "Paket" : "Eğitim"}</span>
         {/* Anahtar `hedefTipi` içerir: tip değişince seçim SIFIRLANIR. Aksi
             hâlde eğitim seçip pakete geçen kişi eski seçimi göndermiş olurdu. */}
-        <select key={hedefTipi} name="hedefId" required className="input-base" defaultValue="">
+        <FlowSecici key={hedefTipi} name="hedefId" required defaultValue="" aria-label="Hedef">
           <option value="" disabled>
             Seçin…
           </option>
@@ -160,7 +161,7 @@ export default function KuralFormu({
                   {e.yayinda ? "" : " (taslak)"}
                 </option>
               ))}
-        </select>
+        </FlowSecici>
         {hedefTipi === "paket" ? (
           <span className="mt-1 block text-xs text-muted">
             Pakete sonradan eklenen eğitim, bu kural yeniden yazılmadan aynı kişilere gider.
@@ -169,7 +170,7 @@ export default function KuralFormu({
       </label>
 
       {hedefTipi === "paket" && paketler.length === 0 ? (
-        <p className="rounded-xl border border-orta/40 bg-orta/5 px-3 py-2 text-sm">
+        <p className="rounded-flow border border-orta/40 bg-orta/5 px-3 py-2 text-sm">
           Henüz paket yok. <strong>Eğitim paketleri</strong> sayfasından bir tane açın.
         </p>
       ) : null}
@@ -234,7 +235,7 @@ export default function KuralFormu({
                       setSecilenSiciller((x) => [...x, k.sicil]);
                       setSorgu("");
                     }}
-                    className="dokunulur flex w-full items-center gap-2 rounded-xl border border-line bg-white px-3 py-2 text-left text-sm hover:border-accent"
+                    className="dokunulur flex w-full items-center gap-2 rounded-flow border border-line bg-yuzey px-3 py-2 text-left text-sm hover:border-accent"
                   >
                     <Icon name="plus" size={14} className="shrink-0 text-accent" />
                     <span className="min-w-0 flex-1 truncate">
@@ -324,7 +325,7 @@ export default function KuralFormu({
       </fieldset>
 
       {hata ? (
-        <p role="alert" className="rounded-xl border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark">
+        <p role="alert" className="rounded-flow border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark">
           {hata}
         </p>
       ) : null}
@@ -355,7 +356,7 @@ export default function KuralFormu({
           açılır. İlk 50 kişi çiziliyor: bin kişilik listeyi DOM'a basmak
           formu kilitler ve zaten kimse bin satır okumaz. */}
       {kapsanan > 0 ? (
-        <details className="rounded-xl border border-line bg-white px-3 py-2">
+        <details className="rounded-flow border border-line bg-yuzey px-3 py-2">
           <summary className="dokunma-44 cursor-pointer text-sm font-semibold">
             Kimler? <span className="font-normal text-muted">{kapsanan} kişi</span>
           </summary>

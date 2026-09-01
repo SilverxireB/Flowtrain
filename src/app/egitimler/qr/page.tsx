@@ -70,7 +70,7 @@ export default function QrEtiketleri() {
           </p>
 
           {temelAdres ? (
-            <p className="mt-3 flex items-start gap-2 rounded-xl bg-wash px-3 py-2 text-sm text-muted">
+            <p className="mt-3 flex items-start gap-2 rounded-flow bg-wash px-3 py-2 text-sm text-muted">
               <Icon name="link" size={16} className="mt-0.5" />
               <span>
                 Etiketler <span className="font-mono text-xs text-ink">{temelAdres}</span> adresine bakıyor. Kurulumun
@@ -80,7 +80,7 @@ export default function QrEtiketleri() {
           ) : (
             /* Göreli yol telefonda ÇALIŞMAZ: kamera uygulaması "/kiosk?..." metnini
                açacak bir sunucu bilmez. Bunu basmadan önce söylemek zorundayız. */
-            <p className="mt-3 flex items-start gap-2 rounded-xl border border-orta/40 bg-orta/5 px-3 py-2 text-sm">
+            <p className="mt-3 flex items-start gap-2 rounded-flow border border-orta/40 bg-orta/5 px-3 py-2 text-sm">
               <Icon name="warning" size={16} className="mt-0.5 text-orta-dark" />
               <span>
                 <strong>Kurulum adresi tanımlı değil.</strong> Etiketler göreli yol (

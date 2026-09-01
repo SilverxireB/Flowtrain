@@ -41,7 +41,7 @@ export default function SoruYonetimi({
         </p>
 
         {egitimler.length === 0 ? (
-          <p className="mt-4 rounded-xl border border-orta/40 bg-orta/5 px-4 py-3 text-sm">
+          <p className="mt-4 rounded-flow border border-orta/40 bg-orta/5 px-4 py-3 text-sm">
             Hiç eğitim yok. Önce Eğitimler sayfasından bir bilgilendirme hazırlayın.
           </p>
         ) : (
@@ -190,7 +190,7 @@ function SoruSatiri({
   return (
     <li className="card p-4">
       <div className="flex items-center gap-2">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-line text-xs font-bold text-muted">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-flow-sm bg-line text-xs font-bold text-muted">
           {sira}
         </span>
         <span className="chip text-xs">{ZIYARETCI_SORU_ETIKET[soru.tip]}</span>
@@ -201,7 +201,7 @@ function SoruSatiri({
             type="checkbox"
             checked={soru.aktif}
             onChange={(e) => guncelle({ aktif: e.target.checked })}
-            className="h-4 w-4 accent-accent"
+            className="h-4 w-4"
           />
           Sorulsun
         </label>
@@ -228,13 +228,13 @@ function SoruSatiri({
         {soru.secenekler.map((secenek, i) => {
           const bagli = soru.eslesme[String(i)] ?? [];
           return (
-            <div key={i} className="rounded-xl border border-line bg-paper p-3">
+            <div key={i} className="rounded-flow border border-line bg-paper p-3">
               <div className="flex items-center gap-2">
                 <input
                   defaultValue={secenek}
                   onBlur={(e) => e.target.value !== secenek && secenekYaz(i, e.target.value)}
                   placeholder={`Şık ${i + 1}`}
-                  className="input-base bg-white py-2 text-sm font-semibold"
+                  className="input-base bg-yuzey py-2 text-sm font-semibold"
                 />
                 <button
                   onClick={() => secenekSil(i)}
@@ -262,7 +262,7 @@ function SoruSatiri({
                         disabled={bekliyor}
                         aria-pressed={secili}
                         className={`chip cursor-pointer text-xs transition-colors ${
-                          secili ? "border-accent bg-accent text-white" : "bg-white hover:border-muted/50"
+                          secili ? "border-accent bg-accent text-white" : "bg-yuzey hover:border-muted/50"
                         }`}
                       >
                         {secili ? <Icon name="check" size={12} /> : null}

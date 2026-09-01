@@ -47,7 +47,7 @@ export default function GirisFormu({
       ))}
 
       {hata ? (
-        <p role="alert" className="rounded-xl border border-brand/30 bg-brand-soft px-4 py-3 text-sm font-semibold text-brand-dark">
+        <p role="alert" className="rounded-flow border border-brand/30 bg-brand-soft px-4 py-3 text-sm font-semibold text-brand-dark">
           {hata}
         </p>
       ) : null}

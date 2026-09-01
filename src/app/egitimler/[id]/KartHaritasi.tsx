@@ -123,7 +123,7 @@ function KartHaritasiIc({
               }}
               onClick={() => onSec(s.id)}
               aria-current={seciliId === s.id}
-              className={`flex w-full items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-left transition-colors ${
+              className={`flex w-full items-center gap-1.5 rounded-flow-sm px-1.5 py-1.5 text-left transition-colors ${
                 surukleId === s.id ? "opacity-40" : ""
               } ${
                 seciliId === s.id

@@ -27,11 +27,41 @@ Türkçe UI, İngilizce kod. Kapsam: `docs/KAPSAM.md`.
    yüktür; CSV, QR, PDF gibi işler kendi kodumuzla yazılır (`src/lib/csv.ts`
    bunun örneğidir).
 
-## Tasarım Sistemi
+## Tasarım Sistemi — FLOW AİLESİ (bkz. `docs/FLOWUI-DILI.md`)
 
-Flow Studio dili: Plus Jakarta Sans; accent indigo `#4f46e5` (birincil aksiyon),
-brand gül `#e11d48` (YALNIZ uyarı/danger), lacivert `#001e64`, nötrler
-ink/paper/line/muted/wash. Kokpit yüzeyleri AYDINLIK.
+**Renk sayfaya YAZILMAZ.** Tek sözlük `src/styles/flow-tokens.css`
+(`--flow-*`), FlowUI'ın token katmanından birebir devralındı — kontrast
+oranları orada gerçek ekranda ölçüldü. Tailwind renkleri bu token'lara
+bakıyor (`tailwind.config.ts`), bileşene tema bloğu yazılmaz.
+
+**İki tema, `:root[data-tema]`:** koyu (lacivert `#0a0a40` rampası, Beko
+mavisi `#556ee6`) ve açık (Arçelik kırmızısı `#c0161e`). Açık tema koyunun
+soluk kopyası DEĞİL, ayrı bir kimlik. Tema boyadan önce `<html>`e yazılıyor
+(`components/Tema.tsx`), seçim cihazda kalıyor. **Koyu tema önceliklidir.**
+
+**Font: Encode Sans** (SIL Open Font License), derlemede gömülü.
+
+**ODAK DİLİ İKİYE AYRILIR ve karıştırılmaz:**
+- yazı girişi / textarea → **imza halkası** (`--flow-ring`) — 1px, DURAN,
+  yatay degrade. Dönen konik DEĞİL: konik yay kutu uzadıkça kayıyordu.
+  Kural ETİKET seviyesinde, sınıfsız `<input>`lar dahil.
+- düğme / hap / seçici / onay kutusu → **tema vurgusu**
+  (`--flow-pill-accent`)
+
+⚠ TUZAK: giriş alanına `background:` KISAYOLU yazma (`background-color`
+yaz) — kısayol halkanın `background-image` katmanını siler.
+
+**Global sınıflar `src/styles/flow-global.css`:** hap dili, boş durumlar,
+yerinde yenileme (350 ms gecikmeli perde), uyarı göstergesi, tablo dili,
+kaydırma çubuğu, cam panel, `.flow-tiklanir` (hover'da kutu YER
+DEĞİŞTİRMEZ — kalkan kart `click` üretmiyor).
+
+**Spinner:** `FlowSpinner` — dört karakter (hop/spark/bars/dots), rastgele.
+Jenerik spinner YASAK. **Köşe yarıçapı:** `rounded-flow` (12px) /
+`rounded-flow-sm` (8px); hap biçimliler kural dışı.
+
+Kiosk ayrı bir yüzeydir (aşağıda). **Kurallar `tests/tasarim-dili.test.mjs`
+ile korunuyor** — kapsam dışı kalan kural sessizce çürür.
 
 **Kiosk ayrı bir yüzeydir:** eldivenle basılır → `.btn-kiosk` (min 72px),
 büyük punto, az seçenek. Onaylar `ConfirmDialog` ile (native `confirm` yok).
@@ -77,6 +107,13 @@ büyük punto, az seçenek. Onaylar `ConfirmDialog` ile (native `confirm` yok).
   aktarim`. Sınıf eğitimi ve dış aktarım kayıtları ekranda kart döndürmeden
   `depo.oturumKaydet()` ile yazılır — her eğitim kioskta verilmez, ama kayıt
   aynı deftere düşer.
+- **`next build` TUZAĞI — dev sunucusu AYAKTAYKEN build çalıştırma.**
+  `next build` ile `next dev` aynı `.next` klasörünü paylaşıyor; üretim
+  derlemesi dev sunucusunun parçalarını eziyor ve **çalışan sunucu
+  çöküyor**: `Cannot find module './7787.js'`, her sayfa 500. Kod
+  kusursuzken olur, aramak zaman kaybettirir. 25.08.2026'da bir kez oldu.
+  Doğrusu: sunucuyu durdur → `npm run build` → `rm -rf .next` → sunucuyu
+  başlat. Çözüm de aynı: `.next`i silip yeniden başlatmak.
 - **Realtime SSE** (Firebase yok — kapalı ağ).
 - Kiosk dayanıklılığı Sign'dan gelir: Wake Lock, donma bekçisi, gece reload.
 - `Oturum.senkron` alanı kaydın dış hedefe gidip gitmediğini tutar; başarısız
@@ -127,12 +164,13 @@ misafirle sulandırırdı.
 
 - `npm test` — saf mantık ve şema (kurallar · sinav · anomali · csv · pin ·
   sinir · yetki · ziyaretci · qr · aktarım · paket · erişilebilirlik ·
-  oynatıcı · sürüm · pptx · **yayın kontrolü** · **pdf metin** · **yükseltme** ·
-  **güvenlik**), 28 dosya / ~1240 doğrulama.
+  oynatıcı · sürüm · pptx · yayın kontrolü · pdf metin · pdf başlık ·
+  kart görseli · oturum kapanışı · **tasarım dili** · **tarih preset** ·
+  yükseltme · güvenlik), 33 dosya / ~1400 doğrulama.
 - `npm run e2e` — GERÇEK tarayıcı + GERÇEK sunucu, tüm zincir. Geçici veri
   klasörü kurar, kurulumun verisine dokunmaz. **Playwright gerekir:**
   `npm install --no-save playwright && npx playwright install chromium`.
-  **Bugün 174/174.**
+  **Bugün 193/193.**
 - `node scripts/yuk.mjs` — fabrika ölçeğinde başarım (1000 kişi · 60 eğitim ·
   20 000 kayıt). Kabul ölçütü: kiosk 1 sn, kokpit 3 sn. Ölçüt aşılırsa çıkış
   kodu 1. **Demo veride görünmeyen kareli maliyetler yalnız burada çıkar.**

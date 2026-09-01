@@ -102,7 +102,7 @@ export default function Tablet({
   }
 
   return (
-    <main className="bg-wash grid min-h-screen place-items-center px-5 py-10">
+    <main className="kiosk-olcek bg-wash grid min-h-screen place-items-center px-5 py-10">
       <KioskBekci />
       <div className="w-full max-w-xl">
         <div className="mb-8 text-center">
@@ -118,7 +118,7 @@ export default function Tablet({
             <p className="mt-3 text-xl text-muted">
               Teşekkürler <strong className="text-ink">{ziyaretciAdi}</strong>. Sahaya girebilirsiniz.
             </p>
-            <p className="mt-6 rounded-2xl border border-line bg-paper px-5 py-4 text-lg">
+            <p className="mt-6 rounded-flow border border-line bg-paper px-5 py-4 text-lg">
               Tableti kayıt masasına geri verin.
             </p>
             <ul className="mt-6 space-y-2 text-left">
@@ -170,7 +170,7 @@ export default function Tablet({
             </ol>
 
             {hata ? (
-              <p role="alert" className="mt-6 rounded-2xl border-2 border-brand/30 bg-brand-soft px-6 py-5 text-center text-lg font-semibold text-brand-dark">
+              <p role="alert" className="mt-6 rounded-flow border-2 border-brand/30 bg-brand-soft px-6 py-5 text-center text-lg font-semibold text-brand-dark">
                 {hata}
               </p>
             ) : null}

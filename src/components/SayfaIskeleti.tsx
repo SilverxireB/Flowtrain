@@ -24,7 +24,7 @@ import { SkelBox } from "./Skeleton";
 export default function SayfaIskeleti({ satir = 6 }: { satir?: number }) {
   return (
     <main className="bg-wash min-h-screen">
-      <div className="border-b border-line bg-white/70">
+      <div className="border-b border-line bg-yuzey/70">
         <div className="sayfa-kap flex items-center gap-3 py-3">
           <SkelBox className="h-9 w-9" />
           <SkelBox className="h-5 w-40" />

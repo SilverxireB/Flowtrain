@@ -78,7 +78,7 @@ export default function MetinYapistir({
           <p className="eyebrow">{taslaklar.length} kart çıkıyor</p>
           <ul className="mt-2 space-y-2">
             {taslaklar.map((t, i) => (
-              <li key={i} className="rounded-xl border border-line p-3">
+              <li key={i} className="rounded-flow border border-line p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="chip px-2 py-0.5 text-[11px]">{KART_ETIKET[t.tip]}</span>
                   <span className="text-xs text-muted">{t.gerekce}</span>

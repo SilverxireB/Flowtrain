@@ -78,3 +78,43 @@ export function yanlisAciklamalari(
   }
   return cikti;
 }
+
+/* ── sahtecilik kapıları — SAF KARAR, ÇİZİM DEĞİL ─────────────────────────
+   Bu iki karar `EgitimOyun.tsx` içinde satır içi ifadelerdi ve
+   `tests/guvenlik.test.mjs` onları KAYNAK METNİ ARAYARAK ölçüyordu: değişken
+   adını değiştirmek — davranışı zerre değiştirmeden — sınavı düşürüyordu.
+   Tersi çok daha kötüydü: ifadeyi bozup adları koruyan bir değişiklik
+   sınavdan GEÇERDİ. Yani sınav, ölçtüğünü sandığı şeyi ölçmüyordu.
+
+   Kararlar buraya alındı; artık davranışın kendisi ölçülüyor. Kapıların
+   NEDEN var olduğu `EgitimOyun.tsx`teki çağrı yerlerinde yazılı. */
+
+export type OyunAsamasi = "icerik" | "sinav" | "imza" | "sonuc";
+
+/**
+ * İçerik bittiğinde hangi aşama açılır?
+ *
+ * İMZA ASLA SINAVIN ÖNÜNE GEÇMEZ. Sıra içerik → sınav → imza; imza ekranı
+ * sınavdan önce açılsaydı kişi cevaplarını görmeden değil, GÖRDÜKTEN sonra
+ * imzalamış sayılırdı ve imzanın anlamı kalmazdı.
+ *
+ * Provada soru yoksa `sonuc`a gidilir: prova kayıt üretmez, imzalanacak bir
+ * şey yoktur. Gerçek oturumda soru yoksa `imza`ya gidilir — ziyaretçi
+ * bilgilendirmesi tam olarak budur ("okudum, onaylıyorum").
+ */
+export function sonrakiAsama(sinavSoruSayisi: number, prova: boolean): OyunAsamasi {
+  if (sinavSoruSayisi > 0) return "sinav";
+  return prova ? "sonuc" : "imza";
+}
+
+/**
+ * "İleri" açık mı?
+ *
+ * İki kapı birden: asgari süre dolmadan ve karttaki video bitmeden ilerlenmez.
+ * PROVADA KAPI YOK — yazan kişi eğitimi almıyor, düzeni kontrol ediyor ve
+ * provada hiçbir kayıt düşmüyor, yani kapının koruduğu bir şey yok.
+ */
+export function ileriAcikMi(durum: { prova: boolean; kalanSaniye: number; videoBekliyor: boolean }): boolean {
+  if (durum.prova) return true;
+  return durum.kalanSaniye <= 0 && !durum.videoBekliyor;
+}

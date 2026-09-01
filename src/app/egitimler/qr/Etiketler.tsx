@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Icon from "@/components/Icon";
 import { eslesir } from "@/lib/arama";
+import FlowSecici from "@/components/FlowSecici";
 
 export interface EtiketVerisi {
   id: string;
@@ -33,6 +34,10 @@ const YAZDIRMA_CSS = `
 @page { size: A4 portrait; margin: 10mm; }
 @media print {
   .yazdirma-gizle { display: none !important; }
+  /* BU SAYFA TEMAYA UYMAZ, BİLEREK. Çıktı KÂĞIDA gidiyor: etiket beyaz
+     kâğıda basılıyor ve QR'ın okunması için koyu-açık kontrastı sabit
+     olmak zorunda. Koyu temada basılsaydı yazıcı ya lacivert bir blok
+     basardı ya da tarayıcı arka planı atıp QR'ı okunmaz bırakırdı. */
   html, body { background: #fff !important; }
   .etiket-izgara { grid-template-columns: repeat(3, 1fr) !important; gap: 4mm !important; }
   .etiket {
@@ -85,14 +90,14 @@ export default function Etiketler({ etiketler, kategoriler }: { etiketler: Etike
           </label>
           <label className="shrink-0">
             <span className="sr-only">Kategori süzgeci</span>
-            <select value={kategori} onChange={(e) => setKategori(e.target.value)} className="input-base w-auto">
+            <FlowSecici value={kategori} onChange={setKategori} aria-label="Kategori">
               <option value="">Tüm kategoriler</option>
               {kategoriler.map((k) => (
                 <option key={k} value={k}>
                   {k}
                 </option>
               ))}
-            </select>
+            </FlowSecici>
           </label>
           <button
             type="button"
@@ -117,7 +122,7 @@ export default function Etiketler({ etiketler, kategoriler }: { etiketler: Etike
                     type="checkbox"
                     checked={secili.has(e.id)}
                     onChange={() => degistir(e.id)}
-                    className="h-4 w-4 accent-accent"
+                    className="h-4 w-4"
                   />
                   <span className="min-w-0 flex-1 truncate font-semibold">{e.ad}</span>
                   {e.kategori ? <span className="shrink-0 text-xs text-muted">{e.kategori}</span> : null}
@@ -138,7 +143,7 @@ export default function Etiketler({ etiketler, kategoriler }: { etiketler: Etike
               type="checkbox"
               checked={adresGoster}
               onChange={(e) => setAdresGoster(e.target.checked)}
-              className="h-4 w-4 accent-accent"
+              className="h-4 w-4"
             />
             Etikete adresi de yaz
             <span className="text-xs">(okuyucu çalışmazsa elle girilebilsin)</span>

@@ -87,6 +87,24 @@ function bolumdenKart(satirlar: string[]): KartTaslagi | null {
   if (dolu.length > 1 && baslikMi(dolu[0])) {
     baslik = dolu[0].trim().replace(/[:：]$/, "");
     govde = dolu.slice(1);
+  } else if (dolu.length > 1 && siraliMi(dolu[0])) {
+    /* NUMARALI BAŞLIK — "1. Genel", "2. Kapsam", "3. Sorumluluklar".
+       Türkçe İSG ve kalite prosedürlerinin standart başlık biçimi tam olarak
+       bu, ve `baslikMi` numaralı satırı asla başlık saymadığı için başlık
+       gövdeye adım olarak düşüyordu: kart "Adımlar" diye adlandırılıyor,
+       kırk kartlık bir prosedür haritada "Adımlar, Adımlar, Adımlar" diye
+       okunmaz hâle geliyordu. Ürünün en güçlü kapısı, en yaygın kaynak
+       belgede başlıkları siliyordu.
+
+       AYIRT EDİCİ ŞEY ALT SATIRLAR: gerçek bir listede onlar da numaralıdır
+       ("1. Vanayı kapatın / 2. Basıncı boşaltın"). Altında numaralı satır
+       yoksa bu bir liste maddesi değil, bölüm başlığıdır. */
+    const kalan = dolu.slice(1);
+    const numarasiz = imiSil(dolu[0]);
+    if (kalan.every((s) => !siraliMi(s)) && baslikMi(numarasiz)) {
+      baslik = numarasiz.replace(/[:：]$/, "");
+      govde = kalan;
+    }
   }
 
   const sirali = govde.filter(siraliMi).length;

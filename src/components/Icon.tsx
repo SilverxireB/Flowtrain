@@ -82,6 +82,9 @@ export type IconName =
   | "hourglass"
   | "hand"
   | "cloud"
+  // tema
+  | "sun"
+  | "moon"
   | "star"
   | "listOrdered"
   | "zap"
@@ -438,6 +441,17 @@ const PATHS: Record<IconName, React.ReactNode> = {
   ),
 
   cloud: <path d="M7 18.5h10a4.2 4.2 0 0 0 .6-8.4A6 6 0 0 0 6.2 11 3.8 3.8 0 0 0 7 18.5Z" />,
+  /* Tema düğmesi. Simge GİDİLECEK yeri gösterir: koyu temadayken güneş
+     ("açığa geç"), açıkken ay. Işınlar tek `path` değil ayrı çizgiler —
+     `stroke-linecap: round` ile uçları yuvarlanınca 16px'te bile ışın gibi
+     duruyor, tek yol olarak çizilince lekeye dönüşüyordu. */
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" />
+    </>
+  ),
+  moon: <path d="M20 14.2A8.2 8.2 0 0 1 9.8 4a8.2 8.2 0 1 0 10.2 10.2Z" />,
   star: <path d="m12 3.5 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 10l6.1-.9L12 3.5Z" />,
   listOrdered: (
     <>

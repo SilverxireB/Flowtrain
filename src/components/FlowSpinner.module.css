@@ -1,0 +1,313 @@
+/* ============================================================
+   FlowSpinner — markalı yükleme animasyonu (dört kişilik kadro)
+
+   FlowUI'dan kopyalandı (`components/Flow/FlowSpinner/`). Her montajda
+   kadrodan rastgele biri sahne alır:
+     hop   · O squash & stretch ile zıplar
+     spark · O sabit, iki ışık noktası halkalarda turlar
+     bars  · O'nun ortasında dört renk çubuğu dans eder
+     dots  · O soluklaşır, ortasında üç nokta düşünür
+
+   Renk kaynağı marka logosunun dört yayı (`--flow-logo-*`) ve tema
+   metni; hiçbir hex yok, koyu temada kendiliğinden doğru çiziliyor.
+
+   JENERİK SPINNER YASAK (FlowUI kuralı): bekleme anı ürünün en çok
+   görülen anlarından biri ve orada başka bir markanın çarkını
+   döndürmenin anlamı yok.
+   ============================================================ */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.stage {
+  position: relative;
+  width: var(--fs-size, 56px);
+  height: var(--fs-size, 56px);
+}
+
+.logo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+.label {
+  color: var(--flow-text-2);
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+/* ---------- hop: squash & stretch zıplama ---------- */
+.vHop .logo {
+  transform-origin: 50% 100%;
+  animation: fsHop 1s cubic-bezier(0.3, 0, 0.4, 1) infinite;
+}
+
+@keyframes fsHop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  12% {
+    transform: translateY(4%) scale(1.08, 0.9);
+  }
+  45% {
+    transform: translateY(-22%) scale(0.96, 1.05);
+  }
+  78% {
+    transform: translateY(4%) scale(1.06, 0.92);
+  }
+}
+
+/* ---------- spark: iki ışık noktası halkalarda turlar ---------- */
+.vSpark .arc {
+  animation: fsGlow 1.6s ease-in-out infinite;
+}
+
+.vSpark .arcBlue {
+  --arc-c: var(--flow-logo-blue);
+  animation-delay: 0s;
+}
+
+.vSpark .arcOrange {
+  --arc-c: var(--flow-logo-orange);
+  animation-delay: 0.4s;
+}
+
+.vSpark .arcRed {
+  --arc-c: var(--flow-logo-red);
+  animation-delay: 0.8s;
+}
+
+.vSpark .arcGreen {
+  --arc-c: var(--flow-logo-green);
+  animation-delay: 1.2s;
+}
+
+.orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  z-index: 2;
+}
+
+.orbitOuter {
+  animation: fsOrbit 1.6s linear infinite;
+}
+
+.orbitInner {
+  animation: fsOrbit 1.6s linear infinite reverse;
+}
+
+.spark {
+  position: absolute;
+  border-radius: 50%;
+  /* Beyaz SABİT DEĞİL: açık temada beyaz perdenin üstünde kayboluyordu. */
+  background-color: var(--flow-text);
+}
+
+.orbitOuter .spark {
+  width: calc(var(--fs-size, 56px) * 0.1);
+  height: calc(var(--fs-size, 56px) * 0.1);
+  transform: translate(-50%, -50%) translateX(calc(var(--fs-size, 56px) * 0.465));
+  box-shadow:
+    0 0 6px 1px var(--flow-text),
+    0 0 12px 3px var(--flow-logo-blue);
+}
+
+.orbitInner .spark {
+  width: calc(var(--fs-size, 56px) * 0.08);
+  height: calc(var(--fs-size, 56px) * 0.08);
+  transform: translate(-50%, -50%) translateX(calc(var(--fs-size, 56px) * 0.32));
+  box-shadow:
+    0 0 5px 1px var(--flow-text),
+    0 0 10px 2px var(--flow-logo-orange);
+}
+
+@keyframes fsGlow {
+  0%,
+  55%,
+  100% {
+    opacity: 0.5;
+    filter: none;
+  }
+  22% {
+    opacity: 1;
+    filter: drop-shadow(0 0 3px var(--arc-c));
+  }
+}
+
+@keyframes fsOrbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- bars: ortada dört renk çubuğu dans eder ---------- */
+.vBars .arc {
+  opacity: 0.45;
+}
+
+.bars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--fs-size, 56px) * 0.055);
+  z-index: 2;
+}
+
+.bars i {
+  width: calc(var(--fs-size, 56px) * 0.07);
+  height: calc(var(--fs-size, 56px) * 0.32);
+  border-radius: 2px;
+  animation: fsVoice 1s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.bars i:nth-child(1) {
+  background: var(--flow-logo-blue);
+  animation-delay: 0s;
+}
+.bars i:nth-child(2) {
+  background: var(--flow-logo-orange);
+  animation-delay: 0.15s;
+}
+.bars i:nth-child(3) {
+  background: var(--flow-logo-green);
+  animation-delay: 0.3s;
+}
+.bars i:nth-child(4) {
+  background: var(--flow-logo-red);
+  animation-delay: 0.45s;
+}
+
+@keyframes fsVoice {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* ---------- dots: "düşünüyor" (üç nokta) ---------- */
+.vDots .arc {
+  opacity: 0.4;
+}
+
+.dots {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--fs-size, 56px) * 0.09);
+  z-index: 2;
+}
+
+.dots i {
+  width: calc(var(--fs-size, 56px) * 0.125);
+  height: calc(var(--fs-size, 56px) * 0.125);
+  border-radius: 50%;
+  background: var(--flow-text);
+  box-shadow: 0 0 6px var(--flow-text);
+  animation: fsThink 1.2s ease-in-out infinite;
+}
+
+.dots i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.dots i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes fsThink {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  30% {
+    transform: translateY(calc(var(--fs-size, 56px) * -0.11));
+    opacity: 1;
+  }
+}
+
+/* ---------- Boyutlar ---------- */
+.md {
+  --fs-size: 56px;
+}
+
+.sm {
+  --fs-size: 28px;
+}
+
+.xs {
+  --fs-size: 16px;
+}
+
+/* Mini boyda süslemeler gürültü olur: sade yay parlaması kalır. */
+.xs .orbit,
+.xs .bars,
+.xs .dots {
+  display: none;
+}
+
+.xs .logo {
+  animation: none;
+}
+
+.xs .arc {
+  animation: fsGlowXs 1.4s ease-in-out infinite;
+}
+
+@keyframes fsGlowXs {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Tam alan kaplayan blok kullanım (tablo/sayfa yüklemesi). */
+.block {
+  min-height: 220px;
+  width: 100%;
+  background-color: var(--flow-surface);
+  border: 1px solid var(--flow-border);
+  border-radius: var(--flow-radius);
+}
+
+/* ---------- HAREKETİ AZALT ----------
+   `globals.css` bütün animasyonları 0,01 ms'ye indiriyor. O kural buraya
+   da uyduğunda spinner DONUYOR ve bekleyen kişi "takıldı" sanıyor —
+   halkada aynı sorun çıkmış ve orada da nefes alan bir animasyonla
+   çözülmüştü. Süslemeler susar, yaylar nefes alır: bekleme sürdüğü
+   yine belli olur. */
+@media (prefers-reduced-motion: reduce) {
+  .logo,
+  .orbit,
+  .bars i,
+  .dots i {
+    animation: none !important;
+  }
+  .arc {
+    animation: fsGlowXs 2s ease-in-out infinite !important;
+  }
+}

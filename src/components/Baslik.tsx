@@ -1,4 +1,5 @@
 import Link from "next/link";
+import TemaAnahtari from "@/components/Tema";
 import Logo from "./Logo";
 import Icon from "./Icon";
 import RehberAc from "./rehber/RehberAc";
@@ -27,7 +28,7 @@ export default function Baslik({
   rehberBolum?: string;
 }) {
   return (
-    <header className="border-b border-line bg-white/70 backdrop-blur sticky top-0 z-30">
+    <header className="border-b border-line bg-yuzey/70 backdrop-blur sticky top-0 z-30">
       {/* Şerit gövdeyle AYNI kapta: farklı genişlikteyken başlık ile içerik
           birbirini tutmuyor, sayfa değiştikçe her şey kayıyordu. */}
       {/* DAR EKRANDA SARAR — telefondaki karmaşanın kök sebebi buydu.
@@ -61,6 +62,11 @@ export default function Baslik({
             şey değişmez (`flex-wrap` yalnız yer kalmayınca kırar). */}
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {sag}
+          {/* Tema düğmesi HER kokpit sayfasında: başlık şeridi tek ortak
+              yüzey ve tema bir sayfanın değil EKRANIN özelliği. Ayarlar'a
+              gömseydik, gece vardiyasında ekranı kısmak için önce ayarlara
+              gitmek gerekirdi. */}
+          <TemaAnahtari />
           <RehberAc bolum={rehberBolum} />
         </div>
       </div>

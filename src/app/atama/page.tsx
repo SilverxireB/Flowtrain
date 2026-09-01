@@ -10,8 +10,17 @@ import { kapsamda } from "@/lib/kurallar";
 
 export const dynamic = "force-dynamic";
 
-export default async function Atama() {
+export default async function Atama({
+  searchParams,
+}: {
+  searchParams?: { eklendi?: string };
+}) {
   kapi("hazirlayan", "/atama");
+
+  /* KURAL EKLENDİ ONAYI ADRESTEN OKUNUR. Eylem sonrası mesajı bileşen
+     durumuna emanet etmiyoruz (gerekçe `atama/eylemler.ts` ve
+     `kayitlar/YazmaSonucu.tsx`). */
+  const eklenen = typeof searchParams?.eklendi === "string" ? searchParams.eklendi.slice(0, 120) : null;
 
   const kisiler = await personelKaynagi().listele();
   const kurallar = depo.kurallariGetir();
@@ -65,6 +74,14 @@ export default async function Atama() {
       />
 
       <div className="sayfa-govde space-y-8">
+        {eklenen ? (
+          <p
+            role="status"
+            className="rounded-flow border border-iyi/40 bg-iyi/10 px-4 py-3 text-sm font-semibold"
+          >
+            <strong>{eklenen}</strong> için atama kuralı eklendi — aşağıdaki listede görünüyor.
+          </p>
+        ) : null}
         {kisiler.length === 0 ? (
           <p className="card border-orta/40 bg-orta/5 p-5 text-sm">
             <strong>Personel listesi boş.</strong> Ayarlar sayfasındaki yolu kullanarak{" "}

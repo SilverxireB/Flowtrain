@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Icon from "@/components/Icon";
 import { pptxCoz, type PptxGorsel } from "@/lib/pptx";
+import { pdfSayfaBasligi, type PdfMetinParcasi } from "@/lib/pdfBaslik";
 import { yol } from "@/lib/yol";
 
 /**
@@ -106,14 +107,14 @@ export default function IceriAktar({
         </p>
       ) : null}
       {not ? (
-        <p className="mt-3 rounded-xl border border-line bg-paper px-4 py-3 text-sm text-muted" aria-live="polite">
+        <p className="mt-3 rounded-flow border border-line bg-paper px-4 py-3 text-sm text-muted" aria-live="polite">
           {not}
         </p>
       ) : null}
       {hata ? (
         <p
           role="alert"
-          className="mt-3 rounded-xl border border-brand/30 bg-brand-soft px-4 py-3 text-sm font-semibold text-brand-dark"
+          className="mt-3 rounded-flow border border-brand/30 bg-brand-soft px-4 py-3 text-sm font-semibold text-brand-dark"
         >
           {hata}
         </p>
@@ -136,7 +137,7 @@ export default function IceriAktar({
   return (
     <div className="card border-dashed p-5">
       <div className="flex flex-wrap items-center gap-4">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-flow bg-accent-soft text-accent">
           <Icon name="upload" size={20} />
         </span>
         <div className="min-w-0 flex-1">
@@ -199,11 +200,49 @@ async function pdfAktar(
     if (!parca) throw new Error(`Sayfa ${n} görüntüye çevrilemedi.`);
 
     const id = await medyaYukle(new File([parca], `s${n}.jpg`, { type: "image/jpeg" }));
-    kartlar.push({ gorselId: id, baslik: `${dosya.name.replace(/\.pdf$/i, "")} — ${n}` });
+    kartlar.push({ gorselId: id, baslik: (await sayfaBasligi(sayfa)) || `${dosya.name.replace(/\.pdf$/i, "")} — ${n}` });
   }
 
   setDurum(`${kartlar.length} sayfa ekleniyor…`);
   await onBitti(kartlar);
+}
+
+/**
+ * PDF sayfasının METİN KATMANINDAN başlık çıkarır.
+ *
+ * Sayfa görüntüye çevriliyor ama metin katmanı hâlâ orada duruyor ve bugüne
+ * kadar hiç okunmuyordu; kartlar `talimat — 1` diye doğuyordu. Seçim mantığı
+ * `pdfBaslik.ts`te ve sınavlı — burada yalnız pdf.js'in parça biçimi o
+ * modülün beklediği şekle çevriliyor.
+ *
+ * TARANMIŞ PDF'TE METİN KATMANI YOKTUR (fotokopi → PDF, ki fabrikada çok
+ * yaygın). O durumda liste boş gelir, işlev boş döner ve çağıran dosya adına
+ * düşer. Bu bir hata değil; sessizce eski davranışa dönmek doğru olan.
+ *
+ * `x/y/boy` dönüşüm matrisinden: `[4]` yatay, `[5]` dikey konum, `[3]` dikey
+ * ölçek yani punto. `height` alanı bazı pdf.js sürümlerinde 0 geliyor, o
+ * yüzden matris önce denenir.
+ */
+async function sayfaBasligi(sayfa: { getTextContent: () => Promise<{ items: unknown[] }> }): Promise<string> {
+  try {
+    const icerik = await sayfa.getTextContent();
+    const parcalar: PdfMetinParcasi[] = [];
+    for (const ham of icerik.items) {
+      const o = ham as { str?: string; transform?: number[]; height?: number };
+      if (typeof o.str !== "string" || !o.transform) continue;
+      parcalar.push({
+        metin: o.str,
+        x: o.transform[4] ?? 0,
+        y: o.transform[5] ?? 0,
+        boy: Math.abs(o.transform[3] ?? 0) || o.height || 1,
+      });
+    }
+    return pdfSayfaBasligi(parcalar);
+  } catch {
+    /* Metin katmanı okunamadıysa aktarım DURMAZ: kartların görüntüsü zaten
+       hazır, başlık ikincil. Dosya adına düşmek yeterli. */
+    return "";
+  }
 }
 
 /* ── PPTX ─────────────────────────────────────────────────────────────────── */

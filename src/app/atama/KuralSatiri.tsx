@@ -57,7 +57,7 @@ export default function KuralSatiri({
     <li className={`card p-5 ${kural.aktif ? "" : "opacity-60"}`}>
       <div className="flex flex-wrap items-start gap-3">
         <span
-          className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
+          className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-flow ${
             paketMi ? "bg-accent-soft text-accent" : "bg-line text-muted"
           }`}
         >

@@ -7,6 +7,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import type { MmEsleme } from "@/lib/depo";
 import type { PersonelKaydi } from "@/lib/adaptor";
 import { eslemeyiUygulaEylem, mmEslemeKaydetEylem, mmEslemeSilEylem } from "./eylemler";
+import FlowSecici from "@/components/FlowSecici";
 
 /**
  * MALİYET MERKEZİ → BÖLÜM + AMİR EŞLEMESİ.
@@ -58,7 +59,7 @@ export default function MmEslemeBolumu({
   return (
     <section className="card mt-8 p-5">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-flow bg-accent-soft text-accent">
           <Icon name="swap" size={20} />
         </span>
         <div className="min-w-0 flex-1">
@@ -77,7 +78,7 @@ export default function MmEslemeBolumu({
       {eslemeler.length > 0 ? (
         <ul className="mt-4 space-y-2">
           {eslemeler.map((e) => (
-            <li key={e.kod} className="flex flex-wrap items-center gap-3 rounded-xl border border-line px-3 py-2 text-sm">
+            <li key={e.kod} className="flex flex-wrap items-center gap-3 rounded-flow border border-line px-3 py-2 text-sm">
               <span className="font-mono text-xs font-semibold">{e.kod}</span>
               <Icon name="chevronRight" size={14} className="text-muted" />
               <span className="min-w-0 flex-1">
@@ -133,14 +134,14 @@ export default function MmEslemeBolumu({
         <label className="w-52">
           <span className="text-xs font-semibold text-muted">Amir</span>
           {/* Amir SEÇİLİR, yazılmaz — aday listesi rolü amir yapılmış kişilerdir. */}
-          <select value={amirSicil} onChange={(e) => setAmirSicil(e.target.value)} className="input-base mt-1 text-sm">
+          <FlowSecici value={amirSicil} onChange={setAmirSicil} sinif="mt-1" aria-label="Amir">
             <option value="">Amir yok</option>
             {amirler.map((a) => (
               <option key={a.sicil} value={a.sicil}>
                 {a.ad} · {a.sicil}
               </option>
             ))}
-          </select>
+          </FlowSecici>
         </label>
         <button onClick={ekle} className="btn-primary text-sm">
           <Icon name="plus" size={16} /> Kaydet
@@ -152,12 +153,12 @@ export default function MmEslemeBolumu({
       </p>
 
       {hata ? (
-        <p role="alert" className="mt-3 rounded-xl border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark">
+        <p role="alert" className="mt-3 rounded-flow border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark">
           {hata}
         </p>
       ) : null}
       {bilgi ? (
-        <p className="mt-3 rounded-xl border border-iyi/40 bg-iyi/10 px-3 py-2 text-sm font-semibold text-iyi-dark">{bilgi}</p>
+        <p className="mt-3 rounded-flow border border-iyi/40 bg-iyi/10 px-3 py-2 text-sm font-semibold text-iyi-dark">{bilgi}</p>
       ) : null}
 
       {dialog}

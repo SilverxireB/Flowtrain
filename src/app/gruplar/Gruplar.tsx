@@ -148,14 +148,14 @@ function Satir({
 function Ilerleme({ ozet }: { ozet: PaketOzeti }) {
   if (ozet.kisi === 0) {
     return (
-      <p className="mt-4 rounded-xl bg-wash px-3 py-2 text-sm text-muted">
+      <p className="mt-4 rounded-flow bg-wash px-3 py-2 text-sm text-muted">
         Bu paket henüz kimseye düşmüyor. Atama kuralı yazılınca ilerleme burada görünür.
       </p>
     );
   }
   const bitirenOran = Math.round((ozet.bitiren / ozet.kisi) * 100);
   return (
-    <div className="mt-4 rounded-xl bg-wash p-3">
+    <div className="mt-4 rounded-flow bg-wash p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-sm">
           <strong className="text-lg">{ozet.bitiren}</strong>
@@ -314,7 +314,7 @@ function Duzenle({
       </div>
 
       {hata ? (
-        <p role="alert" className="mt-4 rounded-xl border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark">
+        <p role="alert" className="mt-4 rounded-flow border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark">
           {hata}
         </p>
       ) : null}

@@ -8,7 +8,7 @@ import { kaydiGonder, personelKaynagi, sonKayitGonderimHatasi } from "@/lib/adap
 import { SABLONLAR } from "@/lib/sablonlar";
 import { nrm } from "@/lib/arama";
 import { bolumAnahtari, bolumleriCoz } from "@/lib/bolumler";
-import type { KartTipi, Soru, SoruTipi } from "@/lib/tipler";
+import type { KartTipi, Sayfa, Soru, SoruTipi } from "@/lib/tipler";
 
 /* ── kimlik ───────────────────────────────────────────────────────────────── */
 
@@ -352,9 +352,21 @@ export async function yayindanGeriDonEylem(id: string, surum?: number): Promise<
 
 /* ── sayfa ────────────────────────────────────────────────────────────────── */
 
-export async function sayfaEkleEylem(egitimId: string, tip: KartTipi): Promise<void> {
+/**
+ * Kart ekler. `oncekiId` verilirse o kartın HEMEN ALTINA, yoksa sona.
+ *
+ * NEDEN ARAYA EKLEME: kart hep sona ekleniyordu ve içerik hazırlamak doğrusal
+ * değil — "şuraya bir uyarı kartı lazım" en sık yapılan iş. 12 kartlık listede
+ * 6. sıraya kart sokmak, kartı sona ekleyip on kez Ctrl+↑'a basmak demekti
+ * (ölçüldü: 8,9 sn); 40 kartlık eğitimde pratikte imkânsızdı.
+ *
+ * Sıra TEK YAZIMDA kaydırılıyor: yeni kart araya girince altındakilerin hepsi
+ * bir artmalı ve bu yarım kalırsa liste bozulur (`sayfalariSirala` ile aynı
+ * gerekçe).
+ */
+export async function sayfaEkleEylem(egitimId: string, tip: KartTipi, oncekiId?: string): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
-  depo.sayfaEkle(egitimId, { tip });
+  depo.sayfaEkle(egitimId, { tip, oncekiId });
   revalidatePath(`/egitimler/${egitimId}`);
 }
 
@@ -370,6 +382,12 @@ export async function sayfalariTopluEkleEylem(
   const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
   for (const k of kartlar) {
     depo.sayfaEkle(egitimId, { tip: "kural", baslik: k.baslik, gorselId: k.gorselId });
+    /* ALT METİN DE BAŞLIKTAN DOĞAR. Görsel PDF sayfasının kendisi, yani
+       başlık gerçekten "bu görselde ne var"ı anlatıyor. Boş bırakıldığında
+       ekran okuyucu hiçbir şey duymuyordu; ürün alt metin yazmayı kendi
+       ekranında isterken kendi aktarımında atlıyordu. Hazırlayan istediği
+       gibi değiştirir — bu bir başlangıç, son söz değil. */
+    depo.medyaAltMetinYaz(k.gorselId, k.baslik);
   }
   depo.izBirak(ben.kullanici, `PDF'ten ${kartlar.length} sayfa ekledi: ${egitimId}`);
   revalidatePath(`/egitimler/${egitimId}`);
@@ -404,6 +422,45 @@ export async function sayfaGuncelleEylem(egitimId: string, id: string, yama: Rec
 export async function sayfaSilEylem(egitimId: string, id: string): Promise<void> {
   kapi("hazirlayan", `/egitimler/${egitimId}`);
   depo.sayfaSil(id);
+  revalidatePath(`/egitimler/${egitimId}`);
+}
+
+/**
+ * Silinen kartı GERİ KOYAR — "Geri al" bildiriminin sunucu ucu.
+ *
+ * KAYIT DEĞİŞMEZLİĞİNİ İHLAL ETMEZ (CLAUDE.md 7). Dokunulan şey TASLAK:
+ * `sayfa` tablosu editörün çalışma alanı, sahanın oynattığı şey
+ * `yayinSayfa` anlık görüntüsü. Yayınlanmış hiçbir satır ne siliniyor ne
+ * geri geliyor; tamamlama kayıtları da yerinde duruyor.
+ *
+ * KİMLİK YENİ. Aynı kimliği geri yazmak mümkündü ama doğru değil: o kimliğe
+ * bağlı `soruIstatistik` ve `oturum.sayfaSureleri` satırları silinen kartın
+ * geçmişini yeni karta yapıştırırdı. Geri alınan kart yeni bir karttır;
+ * taslakta bunun bir bedeli yok.
+ *
+ * SIRA İNDEKSLE GERİ VERİLİYOR, "üstündeki kartın kimliği" ile değil. Üstteki
+ * kartı taşımak kolaydı ama LİSTENİN İLK KARTI için üstünde kart yok — o
+ * durumda kart sona ekleniyordu, yani geri alma kartı geri getirip başka bir
+ * yere koyuyordu. Önce eklenip sonra `sayfalariSirala` ile yerine oturtuluyor;
+ * sıralama zaten tek yazımlık bir işlem ve sınavlı.
+ *
+ * `indeks` liste dışına düşerse (bu arada başka kartlar silinmişse) sona
+ * eklenir: geri almanın yarısını yapmak, hiç yapmamaktan iyidir.
+ */
+export async function sayfaGeriYukleEylem(
+  egitimId: string,
+  veri: Record<string, unknown>,
+  indeks: number,
+): Promise<void> {
+  const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
+  const yeni = depo.sayfaEkle(egitimId, { ...(veri as { tip: Sayfa["tip"] }) });
+  const idler = depo
+    .sayfalariGetir(egitimId)
+    .map((s) => s.id)
+    .filter((id) => id !== yeni.id);
+  idler.splice(Math.max(0, Math.min(indeks, idler.length)), 0, yeni.id);
+  depo.sayfalariSirala(egitimId, idler);
+  depo.izBirak(ben.kullanici, `silinen kart geri alındı: ${egitimId}`);
   revalidatePath(`/egitimler/${egitimId}`);
 }
 
@@ -474,46 +531,25 @@ export async function soruSilEylem(egitimId: string, id: string): Promise<void> 
   revalidatePath(`/egitimler/${egitimId}`);
 }
 
-/* ── kural ────────────────────────────────────────────────────────────────── */
-
-export async function kuralEkleEylem(form: FormData): Promise<void> {
-  const ben = kapi("hazirlayan", "/atama");
-  // Değerler JSON dizisi olarak gelir (virgül içeren bölüm adları bölünmesin).
-  const dizi = (ad: string): string[] => {
-    try {
-      const c = JSON.parse(String(form.get(ad) ?? "[]"));
-      return Array.isArray(c) ? c.map(String).filter(Boolean) : [];
-    } catch {
-      return [];
-    }
-  };
-  const gun = String(form.get("iseGirisIcindeGun") ?? "").trim();
-
-  depo.kuralEkle({
-    egitimId: String(form.get("egitimId") ?? ""),
-    kosul: {
-      bolum: dizi("bolum"),
-      hat: dizi("hat"),
-      gorev: dizi("gorev"),
-      iseGirisIcindeGun: gun ? Number(gun) : undefined,
-    },
-    sonTarih: String(form.get("sonTarih") ?? "").trim() || undefined,
-    aktif: true,
-  });
-  depo.izBirak(ben.kullanici, "atama kuralı ekledi");
-  revalidatePath("/atama");
+/** Silinen soruyu geri koyar. Gerekçesi `sayfaGeriYukleEylem` ile aynı. */
+export async function soruGeriYukleEylem(egitimId: string, veri: Omit<Soru, "id" | "egitimId">): Promise<void> {
+  const ben = kapi("hazirlayan", `/egitimler/${egitimId}`);
+  depo.soruEkle(egitimId, veri);
+  depo.izBirak(ben.kullanici, `silinen soru geri alındı: ${egitimId}`);
+  revalidatePath(`/egitimler/${egitimId}`);
 }
 
-export async function kuralDurumEylem(id: string, aktif: boolean): Promise<void> {
-  const ben = kapi("hazirlayan", "/atama");
-  depo.kuralGuncelle(id, { aktif });
-  depo.izBirak(ben.kullanici, `kuralı ${aktif ? "açtı" : "kapattı"}: ${id}`);
-  revalidatePath("/atama");
-}
+/* ── kural ────────────────────────────────────────────────────────────────
+   ATAMA KURALI EYLEMLERİ BU DOSYADA DEĞİL, `app/atama/eylemler.ts`te.
 
-export async function kuralSilEylem(id: string): Promise<void> {
-  const ben = kapi("hazirlayan", "/atama");
-  depo.kuralSil(id);
-  depo.izBirak(ben.kullanici, `kural sildi: ${id}`);
-  revalidatePath("/atama");
-}
+   Burada da bir takımı vardı ve hiçbir yer çağırmıyordu; `/atama` ekranı
+   kendi yerel sürümünü kullanıyordu. İkisi zamanla ayrıştı: buradaki sürümde
+   paket hedefi yoktu, sicil koşulu yoktu, EĞİTİM VAR MI DENETİMİ yoktu ve
+   ekleme sonrası onay adresi kurulmuyordu.
+
+   Sunucu eylemi ölü kod DEĞİLDİR: derlemede kendi kimliğiyle adreslenebilir
+   bir uç nokta olarak yayınlanır. Yani "kimse çağırmıyor" demek "kimse
+   ulaşamaz" demek değil — zayıf olan sürüm, güçlü olanın yanında açık bir
+   kapı olarak duruyordu. Silindi.
+
+   Yeni bir kural eylemi gerekirse `app/atama/eylemler.ts`e yazılır. */

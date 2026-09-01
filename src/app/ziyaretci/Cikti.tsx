@@ -5,6 +5,7 @@ import Icon from "@/components/Icon";
 import { useToast } from "@/components/Toast";
 import { ziyaretciPdfIndir, type ZiyaretciPdfSatiri } from "@/lib/ziyaretciPdf";
 import { yol } from "@/lib/yol";
+import FlowSecici from "@/components/FlowSecici";
 
 /**
  * ZİYARETÇİ DEFTERİ ÇIKTISI.
@@ -67,17 +68,13 @@ export default function Cikti() {
         <div className="flex flex-wrap items-end gap-3">
           <label className="text-sm">
             <span className="mb-1 block font-semibold">Aralık</span>
-            <select
-              value={gun}
-              onChange={(e) => setGun(Number(e.target.value))}
-              className="input-base py-2 text-sm"
-            >
+            <FlowSecici value={String(gun)} onChange={(v) => setGun(Number(v))} aria-label="Aralık">
               {ARALIKLAR.map((a) => (
                 <option key={a.gun} value={a.gun}>
                   {a.etiket}
                 </option>
               ))}
-            </select>
+            </FlowSecici>
           </label>
 
           {/* CSV doğrudan bağlantı: tarayıcının kendi indirmesi, ara bellek yok. */}

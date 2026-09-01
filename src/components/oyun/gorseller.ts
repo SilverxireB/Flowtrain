@@ -1,34 +1,18 @@
-import type { Sayfa } from "@/lib/tipler";
-
 /**
- * KART GÖRSELLERİ — saf yerleşim kararı, çizim değil.
- *
- * Çekirdek kart başına çoklu görseli `Sayfa.gorselIdler` ile veriyor; tekil
- * `gorselId` geriye dönük duruyor. İki alanı her çizim yerinde ayrı ayrı
- * birleştirmek, birinin unutulduğu bir yer bırakırdı — birleştirme TEK YERDE.
+ * OYNATICI YERLEŞİMİ — saf kararlar, çizim değil.
  *
  * Sınav: `node tests/oynatici.test.mjs`
+ *
+ * `kartGorselleri` BURADA DEĞİL. Bu dosyada kendi kopyası vardı ve `lib`teki
+ * ikizinden farklı davranıyordu: buradaki tekil `gorselId`'yi listenin başına
+ * koyuyor, oradaki liste doluysa onu atıyordu. Yani yayın öncesi kontrolün
+ * gördüğü görsel kümesi ile sahanın çizdiği küme farklı işlevlerden
+ * geliyordu. Tek gerçek `lib/editorMedya.ts`te — okuma ile yazma orada yan
+ * yana duruyor, ayrı dosyalara düştükleri anda yeniden ayrışırlar.
+ * Buradan YENİDEN DIŞA AKTARILIYOR ki oynatıcı tarafındaki çağıranların
+ * içe aktarma yolu değişmesin.
  */
-
-/**
- * Kartın göstereceği görsel kimlikleri, sırasıyla ve tekrarsız.
- * Tekil `gorselId` HER ZAMAN başta: eski kartlarda kapak görseli odur.
- */
-export function kartGorselleri(sayfa: Pick<Sayfa, "gorselId" | "gorselIdler">): string[] {
-  const cikti: string[] = [];
-  const gorulen = new Set<string>();
-
-  if (sayfa.gorselId && !gorulen.has(sayfa.gorselId)) {
-    gorulen.add(sayfa.gorselId);
-    cikti.push(sayfa.gorselId);
-  }
-  for (const id of sayfa.gorselIdler ?? []) {
-    if (!id || gorulen.has(id)) continue;
-    gorulen.add(id);
-    cikti.push(id);
-  }
-  return cikti;
-}
+export { kartGorselleri } from "@/lib/editorMedya";
 
 /**
  * Görsel sayısına göre ızgara.

@@ -144,7 +144,7 @@ function SoruSatiriIc({
       {soru.gorselId ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={medyaYolu(soru.gorselId)} alt="" className="h-14 rounded-lg border border-line object-cover" />
+          <img src={medyaYolu(soru.gorselId)} alt="" className="h-14 rounded-flow-sm border border-line object-cover" />
           {/* ALT METİN SORUDA DAHA DA GEREKLİ: "bu fotoğraftaki hangi davranış
               yanlış?" sorusunu ekran okuyucuyla dinleyen kişi görseli
               göremiyorsa soruyu hiç cevaplayamaz. */}
@@ -177,7 +177,7 @@ function SoruSatiriIc({
   return (
     <div className={`card p-4 ${zor ? "border-orta/50" : ""}`}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-line text-xs font-bold text-muted">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-flow-sm bg-line text-xs font-bold text-muted">
           {sira}
         </span>
         <span className="chip text-xs">{SORU_ETIKET[soru.tip]}</span>
@@ -290,7 +290,7 @@ function SoruSatiriIc({
                  satır silinip aşağıdakiler kayınca yalnız indekse bakan bir
                  anahtar eski metni ekranda bırakırdı. */
               <li key={`${i}:${s}`} className="flex flex-wrap items-center gap-2">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-line text-xs font-bold text-muted">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-flow-sm bg-line text-xs font-bold text-muted">
                   {i + 1}
                 </span>
                 <input
@@ -331,7 +331,7 @@ function SoruSatiriIc({
                taşımak çok zor" tam olarak buydu. Sarınca metin tam genişlik
                alır, taşıma düğmeleri kendi satırına geçip sağa yaslanır. */
             <li key={`${i}:${s}`} className="flex flex-wrap items-center gap-2">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent-soft text-xs font-bold text-accent-dark">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-flow-sm bg-accent-soft text-xs font-bold text-accent-dark">
                 {i + 1}
               </span>
               <input
@@ -381,7 +381,7 @@ function SoruSatiriIc({
                 aria-label={`${i + 1}. şıkkı doğru işaretle`}
                 aria-pressed={soru.dogru.includes(i)}
                 className={`grid h-8 w-8 shrink-0 place-items-center border-2 transition ${
-                  cokluSecim ? "rounded-lg" : "rounded-full"
+                  cokluSecim ? "rounded-flow-sm" : "rounded-full"
                 } ${soru.dogru.includes(i) ? "border-iyi bg-iyi text-white" : "border-line text-transparent hover:border-muted"}`}
               >
                 <Icon name="check" size={16} />

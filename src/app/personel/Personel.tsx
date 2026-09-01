@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { tabloSirala, sonrakiSira, type SiraYonu } from "@/lib/tabloSirala";
+import TabloBaslik from "@/components/TabloBaslik";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 import { eslesir } from "@/lib/arama";
@@ -9,6 +11,7 @@ import type { MmEsleme } from "@/lib/depo";
 import { personelGuncelleEylem } from "./eylemler";
 import MmEslemeBolumu from "./MmEslemeBolumu";
 import OpmAktar from "./OpmAktar";
+import FlowSecici from "@/components/FlowSecici";
 
 /**
  * PERSONEL LİSTESİ — kayıt ÜÇ ŞEYDİR: sicil, isim, maliyet merkezi. Artı rol.
@@ -18,6 +21,26 @@ import OpmAktar from "./OpmAktar";
  * iki gerçek yarışırdı. Rol de yalın: herkes operatördür, bazıları amir yapılır
  * — amir tabletine girecek kişiyi bu belirler.
  */
+/**
+ * SÜTUN → SIRALANACAK DEĞER. Modül seviyesinde: her çizimde yeniden
+ * kurulsaydı `useMemo` bağımlılığı her turda değişir ve sıralama boşuna
+ * tekrarlanırdı.
+ *
+ * "Amir" sütunu SİCİLE değil ADA göre sıralanır: ekranda görünen ad,
+ * sicile göre sıralanmış bir liste kullanıcıya rastgele görünürdü.
+ */
+const SIRA_ALANI: Record<string, (k: PersonelKaydi) => unknown> = {
+  sicil: (k) => k.sicil,
+  ad: (k) => k.ad,
+  mm: (k) => k.maliyetMerkezi,
+  bolum: (k) => k.bolum,
+  rol: (k) => rolNedir(k.gorev),
+  /* Amir sütunu SİCİLE göre sıralanıyor: ada göre sıralamak için burada
+     sicil→ad sözlüğü gerekirdi ve o sözlük bileşenin durumunda duruyor.
+     Modül seviyesindeki bu sözlüğe taşımak, saf olmayan bir bağ kurardı. */
+  amir: (k) => k.amirSicil,
+};
+
 export default function Personel({
   kisiler,
   eslemeler,
@@ -42,6 +65,8 @@ export default function Personel({
     [kisiler],
   );
 
+  const [sira, setSira] = useState<{ sutun: string; yon: SiraYonu }>({ sutun: "ad", yon: "artan" });
+
   const suzulmus = useMemo(
     () =>
       kisiler.filter(
@@ -52,9 +77,22 @@ export default function Personel({
     [kisiler, sorgu, bolumSuzgec],
   );
 
-  const sonSayfa = Math.max(1, Math.ceil(suzulmus.length / sayfaBoyu));
+  /* SIRALAMA — kokpit tablolarının ortak dili. Personel listesinde Türkçe
+     harmanlama özellikle önemli: ham dize karşılaştırması Ç/Ğ/İ/Ö/Ş/Ü ile
+     başlayan her adı listenin sonuna sürüyordu. Varsayılan ada göre artan. */
+  const sirali = useMemo(
+    () => tabloSirala(suzulmus, (k) => SIRA_ALANI[sira.sutun]?.(k), sira.yon),
+    [suzulmus, sira],
+  );
+
+  const sonSayfa = Math.max(1, Math.ceil(sirali.length / sayfaBoyu));
   const gecerliSayfa = Math.min(sayfa, sonSayfa);
-  const gorunen = suzulmus.slice((gecerliSayfa - 1) * sayfaBoyu, gecerliSayfa * sayfaBoyu);
+  const gorunen = sirali.slice((gecerliSayfa - 1) * sayfaBoyu, gecerliSayfa * sayfaBoyu);
+
+  function sutunaBas(sutun: string) {
+    setSira((s) => sonrakiSira(s, sutun));
+    setSayfa(1);
+  }
 
   return (
     <div>
@@ -73,13 +111,12 @@ export default function Personel({
         </label>
         <label className="shrink-0">
           <span className="sr-only">Bölüm süzgeci</span>
-          <select
+          <FlowSecici
             value={bolumSuzgec}
-            onChange={(e) => {
-              setBolumSuzgec(e.target.value);
+            onChange={(v) => {
+              setBolumSuzgec(v);
               setSayfa(1);
             }}
-            className="input-base"
           >
             <option value="">Tüm bölümler</option>
             {bolumler.map((b) => (
@@ -87,31 +124,32 @@ export default function Personel({
                 {b}
               </option>
             ))}
-          </select>
+          </FlowSecici>
         </label>
       </div>
 
       {gorunen.length === 0 ? (
-        <p className="card mt-4 p-8 text-center text-muted">
+        <p className="flow-bos-satir mt-4">
           {kisiler.length === 0 ? "Personel dosyası boş. Aşağıdan OPM dosyası aktarabilirsiniz." : "Eşleşen kayıt yok."}
         </p>
       ) : (
-        <div className="card mt-4 overflow-x-auto p-0">
-          <table className="w-full min-w-[640px] text-sm">
+        <div className="flow-tablo-kap flow-kaydir-x mt-4">
+          <table className="flow-tablo min-w-[640px]">
             <thead>
-              <tr className="border-b border-line text-left text-xs text-muted">
-                <th className="px-4 py-3 font-semibold">Sicil</th>
-                <th className="px-4 py-3 font-semibold">Ad</th>
-                <th className="px-4 py-3 font-semibold">Maliyet M.</th>
-                <th className="px-4 py-3 font-semibold">Bölüm</th>
-                <th className="px-4 py-3 font-semibold">Rol</th>
-                <th className="px-4 py-3 font-semibold">Amir</th>
+              {/* Başlık şeridi ve kenarlık `.flow-tablo`dan; burada yalnız punto. */}
+              <tr className="text-xs">
+                <TabloBaslik sutun="sicil" etiket="Sicil" sira={sira} bas={sutunaBas} sinif="px-4 py-3 font-semibold" />
+                <TabloBaslik sutun="ad" etiket="Ad" sira={sira} bas={sutunaBas} sinif="px-4 py-3 font-semibold" />
+                <TabloBaslik sutun="mm" etiket="Maliyet M." sira={sira} bas={sutunaBas} sinif="px-4 py-3 font-semibold" />
+                <TabloBaslik sutun="bolum" etiket="Bölüm" sira={sira} bas={sutunaBas} sinif="px-4 py-3 font-semibold" />
+                <TabloBaslik sutun="rol" etiket="Rol" sira={sira} bas={sutunaBas} sinif="px-4 py-3 font-semibold" />
+                <TabloBaslik sutun="amir" etiket="Amir" sira={sira} bas={sutunaBas} sinif="px-4 py-3 font-semibold" />
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {gorunen.map((k) => (
-                <tr key={k.sicil} className="border-b border-line last:border-0 hover:bg-wash">
+                <tr key={k.sicil}>
                   <td className="px-4 py-2.5 font-mono text-xs">{k.sicil}</td>
                   <td className="px-4 py-2.5 font-semibold">{k.ad || "—"}</td>
                   <td className="px-4 py-2.5 font-mono text-xs">{k.maliyetMerkezi || "—"}</td>
@@ -175,13 +213,12 @@ export default function Personel({
           >
             <Icon name="chevronRight" size={16} />
           </button>
-          <select
-            value={sayfaBoyu}
-            onChange={(e) => {
-              setSayfaBoyu(Number(e.target.value));
+          <FlowSecici
+            value={String(sayfaBoyu)}
+            onChange={(v) => {
+              setSayfaBoyu(Number(v));
               setSayfa(1);
             }}
-            className="input-base w-auto py-1 text-sm"
             aria-label="Sayfa başına kayıt"
           >
             {[20, 50, 100].map((n) => (
@@ -189,7 +226,7 @@ export default function Personel({
                 {n}
               </option>
             ))}
-          </select>
+          </FlowSecici>
         </span>
       </div>
 
@@ -280,7 +317,7 @@ function Duzenle({
           </label>
 
           {/* Bölüm/amir burada GÖSTERİLİR ama yazılmaz — kaynağı eşleme. */}
-          <p className="rounded-xl bg-wash px-3 py-2 text-xs text-muted">
+          <p className="rounded-flow bg-wash px-3 py-2 text-xs text-muted">
             {secilenEsleme ? (
               <>
                 Bu koddan gelen: bölüm <strong className="text-ink">{secilenEsleme.bolum || "—"}</strong>
@@ -323,7 +360,7 @@ function Duzenle({
         </div>
 
         {hata ? (
-          <p role="alert" className="mt-3 rounded-xl border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark">
+          <p role="alert" className="mt-3 rounded-flow border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark">
             {hata}
           </p>
         ) : null}

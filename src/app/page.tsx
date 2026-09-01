@@ -52,7 +52,7 @@ export default function Hub({ searchParams }: { searchParams: { yetki?: string }
         {searchParams.yetki === "yok" ? (
           <p
             role="alert"
-            className="mt-6 rounded-xl border border-brand/30 bg-brand-soft px-4 py-3 text-sm font-semibold text-brand-dark"
+            className="mt-6 rounded-flow border border-brand/30 bg-brand-soft px-4 py-3 text-sm font-semibold text-brand-dark"
           >
             O sayfa için yetkiniz yok.
           </p>
@@ -63,7 +63,7 @@ export default function Hub({ searchParams }: { searchParams: { yetki?: string }
         <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {acik.map((y) => (
             <Link key={y.yol} href={y.yol} className="card dokunulur flex items-start gap-3 p-5 hover:border-accent">
-              <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+              <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-flow bg-accent-soft text-accent">
                 <Icon name={y.ikon} size={20} />
               </span>
               <span className="min-w-0">
@@ -78,7 +78,16 @@ export default function Hub({ searchParams }: { searchParams: { yetki?: string }
             tam ekran çalışır. Bu yüzden kartların arasında değil, altta ve
             farklı bir dille duruyor. */}
         <div className="card mt-8 flex flex-wrap items-center gap-4 p-5">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-lacivert/10 text-lacivert">
+          {/* SİMGE RENGİ TOKENDEN. Burada `bg-lacivert/10 text-lacivert`
+              yazıyordu ve `lacivert` tema üstü marka rengi (#001e64) —
+              koyu temada kartın zemini de lacivert (#111756), yani simge
+              LACİVERT ÜSTÜNE LACİVERT çiziliyor ve görünmüyordu.
+              Kullanıcı ekran görüntüsüyle bildirdi.
+
+              Kural: tema üstü marka renkleri YALNIZ sabit yüzeylerde
+              (logo, basılı çıktı) ön plan olabilir. Tema yüzeyinin
+              üstündeki her şey token'dan renk alır. */}
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-flow bg-bilgi/10 text-bilgi-dark">
             <Icon name="monitor" size={20} />
           </span>
           <div className="min-w-0 flex-1">

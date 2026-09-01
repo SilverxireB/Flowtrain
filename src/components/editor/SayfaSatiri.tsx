@@ -8,6 +8,7 @@ import MedyaSecici from "@/components/editor/MedyaSecici";
 import CanliOnizleme from "@/components/editor/CanliOnizleme";
 import { gorselYamasi, kartGorselleri, type MedyaOzet } from "@/lib/editorMedya";
 import { ASGARI_SURE_VARSAYILAN, KART_ACIKLAMA, KART_ETIKET, type KartTipi, type Sayfa } from "@/lib/tipler";
+import FlowSecici from "@/components/FlowSecici";
 
 /**
  * Editördeki tek sayfa satırı.
@@ -138,7 +139,7 @@ function SayfaSatiriIc({
           sığmıyor ve satır kartı, kart da sayfayı taşırıyordu. */}
       <div className="flex flex-wrap items-center gap-2">
         {tutamak}
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-line text-xs font-bold text-muted">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-flow-sm bg-line text-xs font-bold text-muted">
           {sira}
         </span>
         <KartTipiRozeti tip={sayfa.tip} kilitli={kilitli} onDegis={tipDegistir} />
@@ -205,7 +206,7 @@ function SayfaSatiriIc({
           sorusunun tek uyarısı. Geri alma da burada: yanlış tiki fark eden kişi
           menüyü yeniden açıp doğru tipi hatırlamak zorunda kalmasın. */}
       {oncekiTip && !kilitli ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-orta/30 bg-orta/5 px-3 py-2 text-xs text-orta-dark">
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-flow border border-orta/30 bg-orta/5 px-3 py-2 text-xs text-orta-dark">
           <Icon name="warning" size={14} />
           <span className="min-w-0 flex-1">
             <strong>{KART_ETIKET[oncekiTip.tip]}</strong> → <strong>{KART_ETIKET[sayfa.tip]}</strong>. Yazdıklarınız
@@ -227,7 +228,7 @@ function SayfaSatiriIc({
       ) : null}
 
       {kopyaAcik && !kilitli ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-paper p-3">
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-flow border border-line bg-paper p-3">
           <button
             onClick={() => {
               setKopyaAcik(false);
@@ -240,19 +241,14 @@ function SayfaSatiriIc({
           {hedefEgitimler.length > 0 ? (
             <>
               <span className="text-xs text-muted">veya</span>
-              <select
-                value={hedef}
-                onChange={(e) => setHedef(e.target.value)}
-                className="input-base w-auto min-w-[10rem] py-2 text-sm"
-                aria-label="Hedef eğitim"
-              >
+              <FlowSecici value={hedef} onChange={setHedef} sinif="min-w-[10rem]" aria-label="Hedef eğitim">
                 <option value="">Taslak eğitim seçin…</option>
                 {hedefEgitimler.map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.ad}
                   </option>
                 ))}
-              </select>
+              </FlowSecici>
               <button
                 onClick={() => {
                   if (!hedef) return;

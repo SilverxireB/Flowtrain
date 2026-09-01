@@ -117,14 +117,14 @@ export default function Ekip({ satirlar }: { satirlar: Satir[] }) {
             type="checkbox"
             checked={yalnizAcik}
             onChange={(e) => setYalnizAcik(e.target.checked)}
-            className="h-5 w-5 accent-accent"
+            className="h-5 w-5"
           />
           Yalnız eksikler
         </label>
       </div>
 
       {hata ? (
-        <p role="alert" className="mt-4 rounded-xl border border-brand/30 bg-brand-soft px-4 py-3 text-sm font-semibold text-brand-dark">
+        <p role="alert" className="mt-4 rounded-flow border border-brand/30 bg-brand-soft px-4 py-3 text-sm font-semibold text-brand-dark">
           {hata}
         </p>
       ) : null}
@@ -142,7 +142,7 @@ export default function Ekip({ satirlar }: { satirlar: Satir[] }) {
               </p>
               <ul className="mt-3 space-y-2">
                 {k.satirlar.map((s) => (
-                  <li key={s.egitimId} className="flex flex-wrap items-center gap-3 rounded-xl border border-line p-3">
+                  <li key={s.egitimId} className="flex flex-wrap items-center gap-3 rounded-flow border border-line p-3">
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-semibold">{s.egitimAdi}</span>
                       <span className={`mt-0.5 block text-sm ${RENK[s.durum]}`}>

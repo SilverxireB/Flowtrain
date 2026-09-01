@@ -1,4 +1,4 @@
-import type { Medya, Sayfa } from "./tipler";
+import type { Medya } from "./tipler";
 
 /**
  * EDİTÖR MEDYA YARDIMCILARI — saf, yan etkisiz.
@@ -10,10 +10,34 @@ import type { Medya, Sayfa } from "./tipler";
  * kioskta görseli kaybolurdu.
  */
 
-/** Kartın görselleri, sırasıyla. Liste boşsa tekil alan tek görsel sayılır. */
-export function kartGorselleri(sayfa: Pick<Sayfa, "gorselId" | "gorselIdler">): string[] {
-  if (sayfa.gorselIdler.length > 0) return sayfa.gorselIdler;
-  return sayfa.gorselId ? [sayfa.gorselId] : [];
+/**
+ * Kartın görselleri, sırasıyla ve tekrarsız.
+ *
+ * ÜRÜNDE TEK KOPYA. Bir zamanlar üç yerde vardı — burada, kiosk oynatıcısında
+ * (`components/oyun/gorseller.ts`) ve `kartVeri.onceSonra` içinde satır içi —
+ * ve İKİSİ FARKLI ŞEY YAPIYORDU: buradaki liste doluysa tekil alanı ATIYOR,
+ * kiosktaki tekil alanı BAŞA KOYUYORDU. Aynı karttan iki farklı görsel kümesi
+ * çıkabiliyordu, üstelik yayın öncesi kontrol birincisini, sahanın çizdiği
+ * ekran ikincisini çağırıyordu: kontrolün gördüğü ile işçinin gördüğü aynı
+ * olmak zorunda. İkisi de yorumunda "TEK YERDE" diyordu; ikisi de yanılıyordu.
+ *
+ * Bugün patlamıyordu çünkü tüm yazıcılar `gorselId === gorselIdler[0]`
+ * değişmezini koruyor — o değişmezi bozan TEK bir yazıcı yeterdi.
+ *
+ * SEÇİLEN ANLAM: liste doluysa GERÇEK odur. `gorselYamasi` (hemen aşağıda)
+ * `gorselId`'yi listenin ilkinden türetiyor, yani tekil alan bir kaynak değil
+ * bir TÜREVDİR; geriye dönük uyum için, listesi hiç yazılmamış eski kartlar
+ * için duruyor. Okuyucu ile yazıcı bilerek aynı dosyada: ayrı dosyalara
+ * düştükleri anda yeniden ayrışırlar.
+ *
+ * Sınav: `node tests/kart-gorsel.test.mjs`
+ */
+export function kartGorselleri(sayfa: { gorselId?: string; gorselIdler?: string[] }): string[] {
+  const kaynak = sayfa.gorselIdler?.length ? sayfa.gorselIdler : sayfa.gorselId ? [sayfa.gorselId] : [];
+  /* Boş dize ve tekrar ELENİR: `gorselIdler` JSON'dan geliyor ve elle
+     düzeltilmiş bir veride ikisi de görülür. Tekrar eden kimlik kioskta aynı
+     fotoğrafı iki kez çizerdi. */
+  return [...new Set(kaynak.filter((id) => !!id))];
 }
 
 /**

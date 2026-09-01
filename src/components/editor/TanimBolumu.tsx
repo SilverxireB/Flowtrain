@@ -102,7 +102,7 @@ export default function TanimBolumu({
             disabled={kilitli}
             defaultChecked={egitim.zorunlu}
             onChange={(e) => onGuncelle({ zorunlu: e.target.checked })}
-            className="mt-0.5 h-5 w-5 accent-accent"
+            className="mt-0.5 h-5 w-5"
           />
           <span className="text-sm">
             <strong>Yasal zorunluluk.</strong>{" "}

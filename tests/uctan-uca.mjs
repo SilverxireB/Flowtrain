@@ -107,6 +107,21 @@ function bitir(kod) {
   process.exit(kod ?? (hata ? 1 : 0));
 }
 
+/**
+ * FLOW SEÇİCİYİ SÜRER — `selectOption` burada işlemez.
+ *
+ * Kayıt defterinin süzgeçleri artık native `<select>` değil, kendi
+ * menümüz (`FlowSecici`): açılır listeyi işletim sistemi çizdiği için
+ * native seçici koyu temaya uymuyordu. Sınav da gerçek kullanıcı gibi
+ * davranmak zorunda — kutuya bas, seçeneğe bas.
+ */
+async function seciciSec(s, etiket, secenekMetni) {
+  await s.getByRole("combobox", { name: etiket }).click();
+  await s.waitForTimeout(200);
+  await s.getByRole("option", { name: secenekMetni, exact: true }).click();
+  await s.waitForTimeout(400);
+}
+
 /* ── akış ─────────────────────────────────────────────────────────────────── */
 try {
   await sunucuyuBekle();
@@ -245,7 +260,7 @@ try {
   await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
   kontrol(await s.getByText("4 kişi listede").isVisible(), "personel CSV'si okundu (4 kişi)");
 
-  await s.selectOption('select[name="hedefId"]', { label: "Yüksekte Çalışma" });
+  await seciciSec(s, "Hedef", "Yüksekte Çalışma");
   await s.getByRole("button", { name: "Kaynak", exact: true }).click();
   await s.click('button:has-text("Atamayı ekle")');
   await s.waitForTimeout(2000);
@@ -378,7 +393,7 @@ try {
   await s.waitForTimeout(2000);
 
   await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
-  await s.selectOption('select[name="hedefId"]', { label: "İkinci Eğitim" });
+  await seciciSec(s, "Hedef", "İkinci Eğitim");
   await s.getByRole("button", { name: "Kaynak", exact: true }).click();
   await s.click('button:has-text("Atamayı ekle")');
   await s.waitForTimeout(2000);
@@ -446,7 +461,7 @@ try {
   await s.fill('input[name="ad"]', "Hazırlayan Kişi");
   await s.fill('input[name="kullanici"]', "hazir");
   await s.fill('input[name="sifre"]', "sifre123");
-  await s.selectOption('select[name="rol"]', "hazirlayan");
+  await seciciSec(s, "Rol", "Hazırlayan");
   await s.click('button:has-text("Hesap ekle")');
   await s.waitForTimeout(2000);
   kontrol(await s.getByText("Hazırlayan Kişi").isVisible(), "yeni hesap açıldı");
@@ -514,12 +529,36 @@ try {
   );
   kontrol(await s.getByText("Kayıtlar düzenlenmez ve silinmez.").isVisible(), "değişmezlik ekranda yazıyor");
 
-  await s.getByLabel("Sonuç süzgeci").selectOption("kaldi");
+  /* SÜZGEÇ PANELİ KAPALI BAŞLIYOR (Flow kokpit dili): kokpit tek satır,
+     alanlar "Filtreler" çipiyle açılıyor. Sınav da o kapıdan giriyor. */
+  kontrol(
+    (await s.getByRole("combobox", { name: "Sonuç süzgeci" }).count()) === 0,
+    "süzgeç paneli KAPALI başlıyor (kokpit tek satır)",
+  );
+  await s.click('button:has-text("Filtreler")');
   await s.waitForTimeout(400);
+  kontrol(await s.getByRole("combobox", { name: "Sonuç süzgeci" }).isVisible(), "'Filtreler' çipi paneli açıyor");
+
+  await seciciSec(s, "Sonuç süzgeci", "Kaldı");
   kontrol(await s.getByText("Bu süzgeçle eşleşen kayıt yok.").isVisible(), "süzgeç çalışıyor (kalan kimse yok)");
-  await s.getByLabel("Sonuç süzgeci").selectOption("gecti");
-  await s.waitForTimeout(400);
+  await seciciSec(s, "Sonuç süzgeci", "Geçti");
   kontrol(await s.getByText("Ali Yılmaz").first().isVisible(), "süzgeç geçenleri geri getiriyor");
+
+  /* UYGULA PANELİ TOPLAR — süzgeç seçmek bir amaç değil, listeye bakmanın
+     yolu. Uygulandıktan sonra ekranın üçte biri alanlara gitmemeli. */
+  await s.click('button:has-text("Uygula")');
+  await s.waitForTimeout(400);
+  kontrol(
+    (await s.getByRole("combobox", { name: "Sonuç süzgeci" }).count()) === 0,
+    "uygulanınca panel kendini topluyor",
+  );
+
+  /* TARİH PRESET HAPLARI kokpitte, panelin dışında: en sık sorulan aralık
+     tek tıkla gelmeli. "Bugün" dar ekranda da kalan tek hap. */
+  kontrol(await s.locator('button:has-text("Bugün")').first().isVisible(), "tarih preset hapları kokpitte");
+
+  await s.click('button:has-text("Filtreler")');
+  await s.waitForTimeout(300);
   await s.click('button:has-text("Süzgeci temizle")');
   await s.waitForTimeout(400);
 
@@ -555,8 +594,7 @@ try {
   await s.goto(`${ADRES}/kayitlar/sinif`, { waitUntil: "networkidle" });
   kontrol(await s.getByText("Sınıf eğitimi kaydı").first().isVisible(), "sınıf kaydı sayfası açılıyor");
 
-  await s.getByRole("combobox").first().selectOption({ label: "Yüksekte Çalışma" });
-  await s.waitForTimeout(300);
+  await seciciSec(s, "Eğitim", "Yüksekte Çalışma");
   await s.fill('input[placeholder="Dersi veren kişi"]', "Veli Usta");
   await s.locator("textarea").first().fill("1002 Ayşe Demir\n1003 Mehmet Öz\n7777 Listede Yok\n1002");
   await s.click('button:has-text("Listeyi denetle")');
@@ -593,7 +631,9 @@ try {
   /* Kayıt DEFTERDE ve KAYNAĞI doğru: sınıf kaydı kioskta yapılmış gibi
      görünmemeli — süre/anomali ölçüsü ikisini karıştırırsa pano yalan söyler. */
   await s.goto(`${ADRES}/kayitlar`, { waitUntil: "networkidle" });
-  await s.getByLabel("Kaynak süzgeci").selectOption("sinif");
+  await s.click('button:has-text("Filtreler")');
+  await s.waitForTimeout(300);
+  await seciciSec(s, "Kaynak süzgeci", "Sınıf eğitimi");
   await s.waitForTimeout(500);
   kontrol(await s.getByText("Ayşe Demir").first().isVisible(), "sınıf kaydı defterde görünüyor");
   kontrol(await s.getByText("Mehmet Öz").first().isVisible(), "listedeki ikinci katılımcı da defterde");
@@ -635,7 +675,9 @@ try {
   kontrol(s.url().includes("yazildi=1"), "aktarım onayı da adreste duruyor");
 
   await s.goto(`${ADRES}/kayitlar`, { waitUntil: "networkidle" });
-  await s.getByLabel("Kaynak süzgeci").selectOption("aktarim");
+  await s.click('button:has-text("Filtreler")');
+  await s.waitForTimeout(300);
+  await seciciSec(s, "Kaynak süzgeci", "Dış aktarım");
   await s.waitForTimeout(500);
   const aktarimMetni = await s.locator("table").first().innerText();
   kontrol(
@@ -691,7 +733,7 @@ try {
   await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
   await s.getByRole("button", { name: "Eğitim paketi" }).click();
   await s.waitForTimeout(400);
-  await s.selectOption('select[name="hedefId"]', { label: "Oryantasyon (1 eğitim)" });
+  await seciciSec(s, "Hedef", "Oryantasyon (1 eğitim)");
   await s.getByRole("button", { name: "Montaj", exact: true }).click();
   await s.click('button:has-text("Atamayı ekle")');
   await s.waitForTimeout(2500);
@@ -793,7 +835,10 @@ try {
      eşleme mi yazdı" sorusu ölçülemez, sayı tesadüfen tutardı. */
   await s.locator('button[aria-label="Ayşe Demir kaydını düzenle"]').click();
   await s.waitForTimeout(600);
-  await s.getByRole("button", { name: "Amir", exact: true }).click();
+  /* DÜZENLEME PENCERESİ İÇİNDE ara: tablo başlığı da artık sıralanabilir bir
+     "Amir" düğmesi ve iki öğe aynı ada geliyor. Kapsam vermek, doğru olanı
+     tesadüfe bırakmaktan iyidir. */
+  await s.getByRole("group", { name: "Rol" }).getByRole("button", { name: "Amir", exact: true }).click();
   await s.getByRole("button", { name: "Kaydet" }).last().click();
   await s.waitForTimeout(2500);
   kontrol(
@@ -804,8 +849,8 @@ try {
   /* MALİYET MERKEZİ EŞLEMESİ VERİDİR: fabrika kendi kodunu kendi bağlar. */
   await s.fill('input[placeholder="264302"]', "264302");
   await s.locator('input[list="mm-bolum-listesi"]').fill("Boyahane");
-  // Amir SEÇİLİR, yazılmaz. Kutunun adı yok; şıkkının değeriyle bulunuyor.
-  await s.locator('select:has(option[value="1002"])').selectOption("1002");
+  // Amir SEÇİLİR, yazılmaz.
+  await seciciSec(s, "Amir", "Ayşe Demir · 1002");
   await s.getByRole("button", { name: /^Kaydet/ }).click();
   await s.waitForTimeout(2500);
   kontrol(await s.getByText("264302").first().isVisible(), "maliyet merkezi eşlemesi tanımlandı");
@@ -891,7 +936,7 @@ try {
   kontrol(await s.getByText("Yayında · sürüm 1").isVisible(), "ilk yayın 1. sürümü açar");
 
   await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
-  await s.selectOption('select[name="hedefId"]', { label: "Sürüm Denemesi" });
+  await seciciSec(s, "Hedef", "Sürüm Denemesi");
   await s.getByRole("button", { name: "Kaynak", exact: true }).click();
   await s.click('button:has-text("Atamayı ekle")');
   await s.waitForTimeout(2000);
@@ -1078,8 +1123,19 @@ try {
   if (pdfBitti) {
     const baslikSayisi = await s.locator('input[placeholder="Başlık"]').count();
     kontrol(baslikSayisi === 2, `iki sayfalık PDF iki kart üretti (${baslikSayisi})`);
+    /* A7 · BAŞLIK PDF'İN METİN KATMANINDAN GELİR, dosya adından değil.
+       Eskiden kartlar `sinav-belgesi — 1`, `sinav-belgesi — 2` diye
+       doğuyordu: kırk sayfalık bir prosedürde kart haritası okunmaz,
+       arama hiçbir şey bulmaz hâle geliyordu. Bu PDF'in her sayfasında
+       24 puntoluk tek bir satır var; seçim mantığı `pdfBaslik.ts`te. */
     const ilkBaslik = await s.locator('input[placeholder="Başlık"]').first().inputValue();
-    kontrol(/sinav-belgesi/.test(ilkBaslik), `kart başlığı dosya adından türedi (${ilkBaslik})`);
+    kontrol(ilkBaslik === "Yuksekte Calisma", `kart başlığı PDF metninden türedi (${ilkBaslik})`);
+    const ikinciBaslik = await s.locator('input[placeholder="Başlık"]').nth(1).inputValue();
+    kontrol(ikinciBaslik === "Ikinci Sayfa", `her sayfa KENDİ başlığını aldı (${ikinciBaslik})`);
+    kontrol(
+      !ilkBaslik.includes("sinav-belgesi"),
+      "dosya adı artık başlığa sızmıyor",
+    );
     /* Görsel GERÇEKTEN yüklendi mi: kart görüntüsü diske düşmediyse kiosk
        boş kart oynatır ve bunu ancak sahada fark ederiz. */
     const gorselSayisi = await s.locator('img[src*="/api/medya/"]').count();
@@ -1112,7 +1168,7 @@ try {
      adaptör kartına sabitleniyor; `.first()` yanlış düğmeye basıyor ve ayar
      hiç kaydedilmediği için sınav sessizce yeşil kalıyordu. */
   const adaptorKarti = s.locator(".card").filter({ hasText: "Personel kaynağı" });
-  await s.getByLabel("Personel kaynağı").selectOption("opm");
+  await seciciSec(s, "Personel kaynağı", "OPM webservice");
   /* ADRES ŞART: ürün YARIM yapılandırmayı bilerek reddediyor ("kurulumun
      çalıştığı sanılırken çalışmaması" demek). O yüzden TAM ama ERİŞİLEMEZ bir
      adres veriliyor — 127.0.0.1:9 bağlantıyı reddeder. Bu, gerçek bir ilk gün
@@ -1149,7 +1205,7 @@ try {
     "Ayarlar sayfası kaynak patlamışken de açılıyor (kendi içinde yakalıyor)",
   );
 
-  await s.getByLabel("Personel kaynağı").selectOption("csv");
+  await seciciSec(s, "Personel kaynağı", "CSV dosyası (varsayılan)");
   await s.locator(".card").filter({ hasText: "Personel kaynağı" }).getByRole("button", { name: /^Kaydet/ }).click();
   await s.waitForTimeout(2500);
   await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
@@ -1170,7 +1226,7 @@ try {
   await s.fill('input[name="kullanici"]', "devir");
   await s.fill('input[name="ad"]', "Devir Sorumlusu");
   await s.fill('input[name="sifre"]', "ilksifre123");
-  await s.selectOption('select[name="rol"]', "hazirlayan");
+  await seciciSec(s, "Rol", "Hazırlayan");
   await s.getByRole("button", { name: /Hesap ekle/ }).click();
   await s.waitForTimeout(2500);
 
@@ -1217,6 +1273,156 @@ try {
     ayarMetni.includes("%100") && ayarMetni.includes("herkes için çalışıyor"),
     "dosyada tarih dolu olduğu için kapı çalışıyor deniyor",
   );
+
+  /* 28. EDİTÖRÜN GÜVENİLİRLİĞİ — veri kaybı, ölü kısayol, araya ekleme.
+     Üçü de içerik hazırlamanın gündelik hareketleri; hiçbiri hata vermiyordu,
+     o yüzden hiçbiri fark edilmiyordu. */
+  await s.bringToFront();
+  await s.goto(`${ADRES}/egitimler`, { waitUntil: "networkidle" });
+  await s.fill('input[name="ad"]', "Editör Denemesi");
+  await s.click('button:has-text("Oluştur")');
+  await s.waitForURL(/\/egitimler\/egt_/, { timeout: 15000 });
+
+  /* HER KART FARKLI TİPTE — bilerek. `kartEkle` paneldeki tip düğmesine
+     tıklıyor, ama kart satırı da kendi tipini bir rozet düğmesinde gösteriyor
+     ve aynı metni taşıyor. Aynı tipten ikinci kartı eklerken seçici rozeti
+     yakalıyor, kart eklemek yerine tip değiştiriyordu. */
+  for (const [ad, tip] of [["Birinci", "Kural kartı"], ["İkinci", "Tehlike uyarısı"], ["Üçüncü", "Adım adım"]]) {
+    await kartEkle(s, tip);
+    await s.waitForTimeout(700);
+    const alan = s.locator('input[placeholder="Başlık"]').last();
+    await alan.fill(ad);
+    await alan.blur();
+    await s.waitForTimeout(700);
+  }
+  const basliklar = async () => s.locator('input[placeholder="Başlık"]').evaluateAll((n) => n.map((x) => x.value));
+  const ilkUc = await basliklar();
+  kontrol(
+    JSON.stringify(ilkUc) === JSON.stringify(["Birinci", "İkinci", "Üçüncü"]),
+    `üç kart sırayla eklendi (görünen: ${JSON.stringify(ilkUc)})`,
+  );
+
+  /* A1 · YAZILAN METİN TAŞIMADA KAYBOLMAMALI.
+     Alanlar `onBlur`da kaydediyor; taşıma odağı bırakmadan sunucuya yazıp
+     listeyi tazeliyordu, yazılan metin sessizce gidiyordu — ve tuzağı ürünün
+     kendi kısayol ipucu kuruyordu. */
+  const ucuncu = s.locator('input[placeholder="Başlık"]').last();
+  await ucuncu.click();
+  await ucuncu.fill("Üçüncü DÜZELTİLDİ");
+  await ucuncu.press("Control+ArrowUp"); // alandan ÇIKMADAN taşı
+  await s.waitForTimeout(3000);
+  const sonrasi = await basliklar();
+  kontrol(
+    sonrasi.includes("Üçüncü DÜZELTİLDİ"),
+    `taşımadan önce yazılan metin korundu (${JSON.stringify(sonrasi)})`,
+  );
+  kontrol(
+    JSON.stringify(sonrasi) === JSON.stringify(["Birinci", "Üçüncü DÜZELTİLDİ", "İkinci"]),
+    "kart gerçekten bir yukarı taşındı",
+  );
+
+  /* A2 · KISAYOL ARDIŞIK ÇALIŞMALI.
+     İlk basıştan sonra odak karttan çıkıyordu; kısayol yalnız bir kez
+     işliyordu ve kullanıcı "çalışmıyor" diye vazgeçiyordu. */
+  await s.locator('input[placeholder="Başlık"]').nth(1).press("Control+ArrowUp");
+  await s.waitForTimeout(2500);
+  kontrol(
+    JSON.stringify(await basliklar()) === JSON.stringify(["Üçüncü DÜZELTİLDİ", "Birinci", "İkinci"]),
+    "kısayol ARDIŞIK basışta da çalışıyor (odak geri veriliyor)",
+  );
+
+  /* A4 · ARAYA KART EKLEME. Kart hep sona ekleniyordu; 6. sıraya kart sokmak
+     on tuş basışı demekti. */
+  const ilkKart = s.locator("[data-kart]").first();
+  await ilkKart.hover();
+  await ilkKart.getByRole("button", { name: "Buraya kart ekle" }).click();
+  await s.waitForTimeout(400);
+  await s.click('button:has-text("Vaka / olay")');
+  await s.waitForTimeout(2500);
+  const araSonrasi = await basliklar();
+  kontrol(araSonrasi.length === 4, `araya kart eklendi (${araSonrasi.length} kart)`);
+  kontrol(
+    araSonrasi[0] === "Üçüncü DÜZELTİLDİ" && araSonrasi[1] === "" && araSonrasi[2] === "Birinci",
+    `yeni kart SONA değil ARAYA girdi (${JSON.stringify(araSonrasi)})`,
+  );
+
+  /* A12 · KAYIT GÖSTERGESİ YAPIŞKAN BAŞLIKTA.
+     Alanlar odaktan çıkınca sessizce kaydediyor ve tek onay sayfanın EN
+     DİBİNDEydi; kırkıncı karta yazan kişi onu hiç görmüyordu. */
+  const dortuncu = s.locator('input[placeholder="Başlık"]').last();
+  await dortuncu.fill("Kayıt göstergesi denemesi");
+  await dortuncu.blur();
+  await s.waitForTimeout(2500);
+  const basliktaki = await s.locator("header").first().innerText();
+  kontrol(
+    /\d{2}[:.]\d{2}\s+kaydedildi/.test(basliktaki),
+    `kaydedildi saati başlık şeridinde görünüyor (${JSON.stringify(basliktaki.slice(0, 120))})`,
+  );
+
+  /* A5 · HARİTA GENİŞ EKRANDA KART SEÇİNCE KAPANMAMALI.
+     Ray ancak 1760px'te sığıyor; 1280'lik bu tarayıcıda harita çekmecede ve
+     eskiden kart seçilir seçilmez kapanıyordu — "haritadan gez, kartta
+     düzelt" döngüsü her turda düğmeye basmak demekti. */
+  await s.click('button:has-text("Kart haritası")');
+  await s.waitForTimeout(500);
+  /* `.last()`: aynı harita İKİ yerde çiziliyor — geniş ekran rayı (DOM'da
+     duruyor ama 1760px altında CSS ile gizli) ve çekmece. Sonuncusu çekmece. */
+  const haritaGezinti = s.locator('nav[aria-label="Kart haritası"]').last();
+  kontrol(await haritaGezinti.isVisible(), "harita paneli açıldı");
+  await haritaGezinti.locator("button").filter({ hasText: "Birinci" }).first().click();
+  await s.waitForTimeout(800);
+  kontrol(await haritaGezinti.isVisible(), "kart seçilince harita AÇIK kaldı (geniş ekranda kalıcı panel)");
+
+  /* Perde yok: panel açıkken editör alanı hâlâ tıklanabilir olmalı. Perdeli
+     kalsaydı panel kalıcı olduğu için editör sürekli kilitli kalırdı. */
+  const perde = await s.locator("div.bg-ink\\/30").count();
+  kontrol(perde === 0, `perde çizilmedi (geniş ekranda panel iter, örtmez) — bulunan: ${perde}`);
+  await s.locator('button[aria-label="Kapat"]').last().click();
+  await s.waitForTimeout(400);
+
+  /* A6 · SİLMENİN GERİ DÖNÜŞÜ.
+     Yarım saatte yazılmış bir kart tek tık + tek onayla gidiyordu. Taslak ile
+     yayın ayrı iki nesne olduğu için geri alma KAYIT DEĞİŞMEZLİĞİNİ İHLAL
+     ETMEZ — dokunulan şey taslak, sahanın oynattığı anlık görüntü değil. */
+  const oncekiSayi = (await basliklar()).length;
+  await s.locator('[data-kart]').first().locator('button[aria-label="Sayfayı sil"]').click();
+  await s.getByRole("alertdialog").getByRole("button", { name: "Devam" }).click();
+  await s.waitForTimeout(2500);
+  const silmeSonrasi = await basliklar();
+  kontrol(silmeSonrasi.length === oncekiSayi - 1, `kart silindi (${oncekiSayi} → ${silmeSonrasi.length})`);
+
+  const geriAl = s.getByRole("button", { name: "Geri al" });
+  kontrol(await geriAl.isVisible(), "silme sonrası 'Geri al' bildirimi çıktı");
+  await geriAl.click();
+  await s.waitForTimeout(2500);
+  const geriSonrasi = await basliklar();
+  kontrol(geriSonrasi.length === oncekiSayi, `geri alınca kart döndü (${geriSonrasi.length} kart)`);
+  kontrol(
+    geriSonrasi[0] === "Üçüncü DÜZELTİLDİ",
+    `kart ESKİ YERİNE döndü, sona değil (${JSON.stringify(geriSonrasi)})`,
+  );
+
+  /* A9 · ATAMADA ONAY.
+     Kural eklendikten sonra hiçbir şey olmuyordu: form temizlenmiyor, "142
+     kişiye gidecek" yazısı duruyordu. Kullanıcı ikinci kez basıyor, aynı
+     kuraldan iki tane oluyordu. `CLAUDE.md`: eylem sonrası mesajı bileşen
+     durumuna emanet etme — onay ADRESTE taşınıyor. */
+  await s.goto(`${ADRES}/atama`, { waitUntil: "networkidle" });
+  /* İLK GERÇEK SEÇENEK: kendi seçicimizde "index" diye bir şey yok, adıyla
+     seçiliyor — zaten kullanıcı da öyle yapıyor. */
+  await s.getByRole("combobox", { name: "Hedef" }).click();
+  await s.waitForTimeout(200);
+  await s.getByRole("option").nth(1).click();
+  await s.waitForTimeout(400);
+  await s.click('button:has-text("Atamayı ekle")');
+  await s.waitForTimeout(2500);
+  const atamaMetni = await s.locator("body").innerText();
+  kontrol(atamaMetni.includes("eklendi"), `kural eklendikten sonra onay şeridi çıkıyor`);
+  kontrol(
+    (await s.locator('[role="status"]').count()) > 0,
+    "onay şeridi ekran okuyucuya da duyuruluyor (role=status)",
+  );
+  kontrol(new URL(s.url()).searchParams.has("eklendi"), "onay ADRESTE taşınıyor, bileşen durumunda değil");
 
   await tarayici.close();
   bitir();

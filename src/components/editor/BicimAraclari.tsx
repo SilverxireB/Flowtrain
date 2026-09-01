@@ -118,7 +118,7 @@ function Dugme({
       // Odağı ÇALMA: seçim korunsun, satırın `onBlur` kaydı erken tetiklenmesin.
       onMouseDown={(e) => e.preventDefault()}
       onClick={() => onBas(is)}
-      className="dokunma-44 inline-flex items-center gap-1 rounded-lg border border-line bg-white px-2 py-1 text-[11px] font-semibold text-muted transition-colors hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-40"
+      className="dokunma-44 inline-flex items-center gap-1 rounded-flow-sm border border-line bg-yuzey px-2 py-1 text-[11px] font-semibold text-muted transition-colors hover:border-accent hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-40"
     >
       <Icon name={ikon} size={13} />
       {/* DAR EKRANDA YALNIZ SİMGE. Dört düğme × iki alan (Yap/Yapma) etiketle

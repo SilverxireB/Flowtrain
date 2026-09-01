@@ -113,9 +113,12 @@ export function egitimleriListele(): Egitim[] {
   return db().prepare("SELECT * FROM egitim ORDER BY guncelleme DESC").all().map((r) => egitimden(r as Satir));
 }
 
-export function yayindakiEgitimler(): Egitim[] {
-  return db().prepare("SELECT * FROM egitim WHERE durum='yayin' ORDER BY ad").all().map((r) => egitimden(r as Satir));
-}
+/* `yayindakiEgitimler` BURADAYDI ve silindi: son çağıranı `sahadakiEgitimler`
+   ile değiştirilmişti (sürümlü yayın), silinmesi atlanmıştı. Tehlikeli olan
+   ölü olması değil, YANLIŞ olması: `egitim.durum='yayin'` taslak tabloya
+   bakıyor, oysa sahanın oynattığı şey son YAYINLANMIŞ sürümdür. Onu çağıran
+   yeni bir kod, sahada olmayan bir eğitimi sahadaymış gibi listelerdi.
+   Sahaya bakan doğru işlev: `sahadakiEgitimler`. */
 
 export function egitimGetir(id: string): Egitim | null {
   const r = db().prepare("SELECT * FROM egitim WHERE id=?").get(id) as Satir | undefined;
@@ -189,16 +192,11 @@ export function egitimSil(id: string): void {
 /**
  * Eğitimi kopyala — "yeni eğitim = boş sayfa değil, geçen yılın kopyası".
  * Sayfa ve sorular yeni kimliklerle çoğaltılır; kopya HER ZAMAN taslak doğar.
- */
-export function egitimKopyala(id: string, hazirlayan: string): Egitim | null;
-
-export function egitimKopyala(
-  id: string,
-  hazirlayan: string,
-  esleme: Map<string, string>,
-): Egitim | null;
-/**
- * Eğitimi kopyala — "yeni eğitim = boş sayfa değil, geçen yılın kopyası".
+ *
+ * AŞIRI YÜKLEME İMZALARI SİLİNDİ: üçüncü parametre zaten isteğe bağlı, yani
+ * iki imza da tek gövdenin söylediğinden fazlasını söylemiyordu. Üstelik
+ * doküman bloğu iki kez yazılmıştı ve ikisi ayrışmaya açıktı — aynı işlevin
+ * iki farklı açıklaması, hangisinin güncel olduğu belirsiz.
  *
  * İsteğe bağlı `esleme` haritası ESKİ sayfa kimliğinden yenisine yazılır.
  * Çağıran, sayfa kimliğine bağlı yan verilerini (editördeki bölüm başlıkları
@@ -248,12 +246,39 @@ export function sayfalariGetir(egitimId: string): Sayfa[] {
     .map((r) => sayfadan(r as Satir));
 }
 
-export function sayfaEkle(egitimId: string, veri: Partial<Sayfa> & { tip: Sayfa["tip"] }): Sayfa {
+/**
+ * Kart ekler.
+ *
+ * `oncekiId` verilirse yeni kart o kartın HEMEN ALTINA girer ve altındaki
+ * kartların sırası tek yazımda kaydırılır — yarım kalan bir kaydırma listeyi
+ * bozar (`sayfalariSirala` ile aynı gerekçe). Verilmezse kart sona eklenir.
+ *
+ * `sira` doğrudan verilirse (toplu içe aktarım) ikisi de atlanır.
+ */
+export function sayfaEkle(
+  egitimId: string,
+  veri: Partial<Sayfa> & { tip: Sayfa["tip"]; oncekiId?: string },
+): Sayfa {
   const enSon = db().prepare("SELECT MAX(sira) s FROM sayfa WHERE egitimId=?").get(egitimId) as { s: number | null };
+
+  /* Araya ekleme: önceki kartın sırasını bul, altındakileri bir aşağı it. */
+  let araSira: number | null = null;
+  if (veri.sira === undefined && veri.oncekiId) {
+    const onceki = db()
+      .prepare("SELECT sira FROM sayfa WHERE id=? AND egitimId=?")
+      .get(veri.oncekiId, egitimId) as { sira: number } | undefined;
+    if (onceki) {
+      araSira = onceki.sira + 1;
+      db()
+        .prepare("UPDATE sayfa SET sira = sira + 1 WHERE egitimId=? AND sira >= ?")
+        .run(egitimId, araSira);
+    }
+  }
+
   const sayfa: Sayfa = {
     id: kimlik("syf"),
     egitimId,
-    sira: veri.sira ?? (enSon.s ?? 0) + 1,
+    sira: veri.sira ?? araSira ?? (enSon.s ?? 0) + 1,
     tip: veri.tip,
     baslik: veri.baslik ?? "",
     metin: veri.metin,
@@ -1077,19 +1102,38 @@ export function eskiOturumlariKapat(sicil: string, egitimId: string, saat = 2): 
   return r.changes;
 }
 
+/**
+ * Oturumu tamamlar ve soru istatistiklerini artırır.
+ *
+ * `bitis IS NULL` ŞARTI ZORUNLU. Kardeşleri `oturumIptal` ve
+ * `eskiOturumlariKapat` bu şartı taşıyordu, burada yoktu — oysa çift gönderim
+ * en çok BURADA olur: kioskta "Onayla ve bitir"e çift basmak, ağ yavaşken
+ * sayfayı yenilemek, tablet uyanınca isteğin tekrar gitmesi.
+ *
+ * Etkisi kaydı çoğaltmak değildi (aynı satır ikinci kez yazılıyordu) ama
+ * `soruIstatistik` sayaçları İKİ KEZ artıyordu: "bu soru 40 kez soruldu, 12
+ * kez yanlış yapıldı" sinyali içerik kalitesinin tek ölçüsü ve sessizce
+ * şişiyordu. Yanlış sinyalle iyi bir soru "zor" damgası yiyip değiştirilirdi.
+ *
+ * Artık ilk yazım kazanır: ikinci çağrı 0 satır günceller ve sayaçlara HİÇ
+ * dokunulmaz. `changes` okunuyor, sayaç artışı ona bağlı — ikisi aynı işlemde
+ * (transaction), yarısı yazılıp yarısı yazılamaz.
+ */
 export function oturumBitir(
   id: string,
   veri: { sayfaSureleri: Record<string, number>; puan: number; sonuc: "gecti" | "kaldi"; yanlisSoruIdleri: string[]; sorulanSoruIdleri: string[] },
 ): void {
   const d = db();
   d.transaction(() => {
-    d.prepare("UPDATE oturum SET bitis=?, sayfaSureleri=?, puan=?, sonuc=? WHERE id=?").run(
+    const r = d.prepare("UPDATE oturum SET bitis=?, sayfaSureleri=?, puan=?, sonuc=? WHERE id=? AND bitis IS NULL").run(
       simdi(),
       JSON.stringify(veri.sayfaSureleri),
       veri.puan,
       veri.sonuc,
       id,
     );
+    if (r.changes === 0) return;
+
     // İçerik kalite sinyali: hangi soru kaç kez soruldu, kaç kez yanlış yapıldı.
     const artir = d.prepare(
       `INSERT INTO soruIstatistik (soruId,deneme,yanlis) VALUES (?,1,?)

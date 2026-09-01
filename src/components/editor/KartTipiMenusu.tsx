@@ -79,9 +79,9 @@ function Panel({
   onSec: (tip: KartTipi) => void;
 }) {
   return (
-    <div className="max-h-[70vh] w-[22rem] overflow-y-auto rounded-2xl border border-line bg-white p-2 shadow-xl">
+    <div className="max-h-[70vh] w-[22rem] overflow-y-auto rounded-flow border border-line bg-yuzey p-2 shadow-xl">
       {uyari ? (
-        <p className="mb-1 rounded-xl border border-orta/30 bg-orta/5 px-3 py-2 text-[11px] leading-relaxed text-orta-dark">
+        <p className="mb-1 rounded-flow border border-orta/30 bg-orta/5 px-3 py-2 text-[11px] leading-relaxed text-orta-dark">
           {uyari}
         </p>
       ) : null}
@@ -97,7 +97,7 @@ function Panel({
               type="button"
               onClick={() => onSec(t)}
               aria-current={secili === t}
-              className={`dokunma-44 block w-full rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${
+              className={`dokunma-44 block w-full rounded-flow px-2.5 py-2 text-left transition-colors hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${
                 secili === t ? "bg-accent-soft" : ""
               }`}
             >
@@ -120,25 +120,52 @@ function Panel({
  * Editör kabuğu (`egitimler/[id]/Editor.tsx`) bunu kullanır; kart tipi sayısı
  * arttıkça düğme sayısı artmaz.
  */
-export function KartEkleMenusu({ kilitli, onEkle }: { kilitli?: boolean; onEkle: (tip: KartTipi) => void }) {
+export function KartEkleMenusu({
+  kilitli,
+  araya = false,
+  onEkle,
+}: {
+  kilitli?: boolean;
+  /**
+   * KARTLARIN ARASINDAKİ İNCE KİP.
+   *
+   * Listenin altındaki düğme birincil ve her zaman görünür; araya ekleme ise
+   * bölüm ayracıyla aynı boşlukta, aynı belirme kuralında duruyor (fareli
+   * ekranda üstüne gelince, dokunmatikte hep görünür). Kırk kartın kırkında
+   * duran birincil bir düğme listeyi gürültüye çevirir ve asıl işi — kart
+   * içeriğini — bastırırdı.
+   */
+  araya?: boolean;
+  onEkle: (tip: KartTipi) => void;
+}) {
   const { acik, setAcik, kap } = useAcilir();
 
   return (
-    <div ref={kap} className="relative inline-block">
+    <div ref={kap} className={araya ? "" : "relative inline-block"}>
       <button
         type="button"
         disabled={kilitli}
         aria-expanded={acik}
         aria-haspopup="menu"
         onClick={() => setAcik((a) => !a)}
-        className="btn-primary text-sm"
+        aria-label={araya ? "Buraya kart ekle" : undefined}
+        className={
+          araya
+            ? "dokunma-44 absolute -top-3 right-8 z-10 inline-flex items-center gap-1 rounded-full border border-line bg-yuzey px-2 py-1 text-[11px] font-semibold text-muted transition-opacity hover:text-accent-dark focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
+            : "btn-primary text-sm"
+        }
       >
-        <Icon name="plus" size={16} /> Kart ekle
-        <Icon name={acik ? "up" : "down"} size={14} />
+        <Icon name="plus" size={araya ? 12 : 16} /> Kart
+        {araya ? null : (
+          <>
+            {" ekle"}
+            <Icon name={acik ? "up" : "down"} size={14} />
+          </>
+        )}
       </button>
 
       {acik && !kilitli ? (
-        <div className="absolute left-0 top-full z-40 mt-2">
+        <div className={araya ? "absolute right-0 top-2 z-40" : "absolute left-0 top-full z-40 mt-2"}>
           <Panel
             onSec={(t) => {
               setAcik(false);

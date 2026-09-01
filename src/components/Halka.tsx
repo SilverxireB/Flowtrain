@@ -17,10 +17,15 @@
  */
 
 /** Logodan örneklenen yay renkleri. UI paleti DEĞİL — marka halkası. */
-const MAVI = "#1b8dec";
-const KIRMIZI = "#d30b14";
-const YESIL = "#197031";
-const TURUNCU = "#f17e2b";
+/* Marka logosunun dört yayı — TEMA ÜSTÜ, dönmezler.
+   Değerler artık token katmanından geliyor (`flow-tokens.css`): aynı dört
+   renk hem burada hem logoda hem grafiklerde geçiyordu ve elle yazıldığı
+   sürece biri güncellenip diğeri unutulacaktı. Renklerin temayla dönmemesi
+   KASITLI: marka kimliği ekranın koyu ya da açık olmasına bakmaz. */
+const MAVI = "var(--flow-logo-blue)";
+const KIRMIZI = "var(--flow-logo-red)";
+const YESIL = "var(--flow-logo-green)";
+const TURUNCU = "var(--flow-logo-orange)";
 
 /* Yarıçaplar ve kalınlıklar logodaki oranlarla aynı (yarı boyun yüzdesi):
    dış yay 0.92–1.00, iç yay 0.63–0.72. */
@@ -76,7 +81,7 @@ export default function Halka({
       {/* Delik küçükken rakam okunmaz; yalnız halka yeterince büyükse yazılır. */}
       {yuzde != null && boyut >= 40 ? (
         <span
-          className="absolute grid place-items-center rounded-full bg-white font-bold tabular-nums text-ink shadow-sm"
+          className="absolute grid place-items-center rounded-full bg-yuzey font-bold tabular-nums text-ink shadow-sm"
           style={{ width: boyut * 0.52, height: boyut * 0.52, fontSize: Math.round(boyut * 0.24) }}
           aria-hidden
         >

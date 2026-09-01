@@ -6,6 +6,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { saklamaAyarlaEylem, saklamaTemizleEylem } from "../eylemler";
 import { SAKLAMA_KAPALI, SAKLAMA_SECENEKLERI } from "@/lib/ziyaretciCikti";
+import FlowSecici from "@/components/FlowSecici";
 
 /**
  * KVKK SAKLAMA SÜRESİ.
@@ -87,17 +88,13 @@ export default function Saklama({ gun, eskiSayisi }: { gun: number; eskiSayisi: 
       <div className="mt-4 flex flex-wrap items-end gap-3">
         <label className="text-sm">
           <span className="mb-1 block font-semibold">Saklama süresi</span>
-          <select
-            value={secili}
-            onChange={(e) => setSecili(Number(e.target.value))}
-            className="input-base py-2 text-sm"
-          >
+          <FlowSecici value={String(secili)} onChange={(v) => setSecili(Number(v))} aria-label="Saklama süresi">
             {SAKLAMA_SECENEKLERI.map((s) => (
               <option key={s.gun} value={s.gun}>
                 {s.etiket}
               </option>
             ))}
-          </select>
+          </FlowSecici>
         </label>
 
         <button onClick={kaydet} disabled={!degisti || bekle} className="btn-primary text-sm">

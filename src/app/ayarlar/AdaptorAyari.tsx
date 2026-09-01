@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 import { adaptorAyariKaydetEylem, opmSinaEylem, type SinamaSonucu } from "./adaptorEylemler";
+import FlowSecici from "@/components/FlowSecici";
 
 /**
  * PERSONEL KAYNAĞI ve KAYIT HEDEFİ SEÇİMİ.
@@ -100,32 +101,32 @@ export default function AdaptorAyari(p: AdaptorAyariProps) {
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
           <span className="text-xs font-semibold text-muted">Personel kaynağı</span>
-          <select
+          <FlowSecici
             value={personel}
-            onChange={(e) => {
-              setPersonel(e.target.value as "csv" | "opm");
+            onChange={(v) => {
+              setPersonel(v as "csv" | "opm");
               degisti();
             }}
-            className="input-base mt-1 text-sm"
+            aria-label="Personel kaynağı"
           >
             <option value="csv">CSV dosyası (varsayılan)</option>
             <option value="opm">OPM webservice</option>
-          </select>
+          </FlowSecici>
         </label>
 
         <label className="block">
           <span className="text-xs font-semibold text-muted">Kayıt hedefi</span>
-          <select
+          <FlowSecici
             value={kayit}
-            onChange={(e) => {
-              setKayit(e.target.value as "dosya" | "opm");
+            onChange={(v) => {
+              setKayit(v as "dosya" | "opm");
               degisti();
             }}
-            className="input-base mt-1 text-sm"
+            aria-label="Kayıt hedefi"
           >
             <option value="dosya">Dosya çıktısı — kayitlar.csv (varsayılan)</option>
             <option value="opm">OPM webservice</option>
-          </select>
+          </FlowSecici>
         </label>
       </div>
 
@@ -270,7 +271,7 @@ export default function AdaptorAyari(p: AdaptorAyariProps) {
       {hata ? (
         <p
           role="alert"
-          className="rounded-xl border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark"
+          className="rounded-flow border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark"
         >
           {hata}
         </p>
@@ -291,7 +292,7 @@ export default function AdaptorAyari(p: AdaptorAyariProps) {
 
       {/* Eksikler sınamayı beklemeden görünür: yarım kurulum sessiz kalmamalı. */}
       {opmKullaniliyor && (p.personelEksikleri.length > 0 || p.kayitEksikleri.length > 0) ? (
-        <div className="rounded-xl border border-brand/30 bg-brand-soft px-3 py-2 text-sm text-brand-dark">
+        <div className="rounded-flow border border-brand/30 bg-brand-soft px-3 py-2 text-sm text-brand-dark">
           <p className="font-semibold">OPM seçili ama yapılandırma eksik:</p>
           <ul className="mt-1 list-inside list-disc">
             {[...new Set([...p.personelEksikleri, ...p.kayitEksikleri])].map((e) => (

@@ -74,11 +74,18 @@ esit(yanlisAciklamalari([], ["s1"]), [], "boş soru setinden açıklama çıkmaz
 esit(kartGorselleri({ gorselIdler: [] }), [], "görselsiz kart boş liste verir");
 esit(kartGorselleri({ gorselId: "g1", gorselIdler: [] }), ["g1"], "eski tekil görsel korunur");
 esit(kartGorselleri({ gorselIdler: ["g1", "g2"] }), ["g1", "g2"], "çoklu görsel sırasıyla gelir");
-// Tekil alan HER ZAMAN başta: eski kartlarda kapak görseli odur.
+/* LİSTE DOLUYSA GERÇEK ODUR — ve bu beklenti bilerek değiştirildi.
+   Buradaki kiosk kopyası tekil `gorselId`'yi listenin BAŞINA koyuyordu,
+   `lib` tarafındaki ikizi ise liste doluyken onu ATIYORDU: aynı karttan iki
+   farklı görsel kümesi, üstelik yayın öncesi kontrol birini, sahanın çizdiği
+   ekran diğerini çağırıyordu. Bu satır o ayrışmayı sınavla KORUYORDU.
+   Artık tek işlev var (`lib/editorMedya.ts`) ve tekil alan bir kaynak değil
+   `gorselIdler[0]`dan türeyen bir alan; gerekçe orada yazılı.
+   Ayrıntılı ölçüm: `tests/kart-gorsel.test.mjs`. */
 esit(
   kartGorselleri({ gorselId: "kapak", gorselIdler: ["g1"] }),
-  ["kapak", "g1"],
-  "tekil görsel çoklu listenin başına geçer",
+  ["g1"],
+  "liste doluyken tekil alan değil LİSTE geçerli (tek anlam)",
 );
 esit(
   kartGorselleri({ gorselId: "g1", gorselIdler: ["g1", "g2"] }),

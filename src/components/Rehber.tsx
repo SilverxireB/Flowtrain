@@ -116,7 +116,7 @@ export default function Rehber({
     <div className="fixed inset-0 z-[80] flex justify-end" role="dialog" aria-modal="true" aria-label={baslik}>
       <button className="absolute inset-0 bg-black/45" onClick={onClose} aria-label="Rehberi kapat" tabIndex={-1} />
 
-      <div className="relative w-full sm:max-w-xl bg-white h-full flex flex-col shadow-2xl animate-slide-in">
+      <div className="relative w-full sm:max-w-xl bg-yuzey h-full flex flex-col shadow-2xl animate-slide-in">
         {/* Başlık */}
         <div className="shrink-0 flex items-start gap-3 px-5 pt-5 pb-3 border-b border-line">
           <div className="min-w-0 flex-1">
@@ -131,12 +131,24 @@ export default function Rehber({
         {/* Bölüm şeridi */}
         <div className="shrink-0 flex gap-1.5 overflow-x-auto px-5 py-2.5 border-b border-line">
           {bolumler.map((b) => (
+            /* SEKME = HAP. Bunlar zaten hap: bir kümeden birini seçiyorsun.
+               `.flow-hap` hem dili getiriyor hem GERÇEK BİR HATAYI kapatıyor.
+
+               ÖNCEKİ HÂL KOYU TEMADA OKUNMUYORDU: seçili sekme
+               `bg-ink text-white` yazıyordu ve koyu temada `ink` zaten
+               beyaza yakın (#f2f5ff) — yani BEYAZ ÜSTÜNE BEYAZ. Aynı
+               sınıf açık temada siyah zemin/beyaz yazı olduğu için hata
+               yalnız koyuda görünüyordu ve kullanıcı ekran görüntüsüyle
+               bildirdi. FlowUI'ın "kontrast rengi nerede kullanılır"
+               kuralı tam olarak bunu anlatıyor: kontrast rengi YALNIZ
+               dolgu üstünde kullanılır, yüzey üstündeki metin tema
+               metnini kullanır. */
             <button
               key={b.id}
+              type="button"
               onClick={() => git(b.id)}
-              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors ${
-                aktif === b.id ? "bg-ink text-white border-ink" : "bg-white border-line text-muted hover:border-muted hover:text-ink"
-              }`}
+              aria-pressed={aktif === b.id}
+              className="flow-hap shrink-0 whitespace-nowrap text-xs font-semibold"
             >
               {b.baslik}
             </button>

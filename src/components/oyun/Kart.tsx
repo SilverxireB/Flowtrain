@@ -71,7 +71,7 @@ export default function Kart({
       <div>
         {/* Uyarı kutusu YALNIZ gerçek tuzak için — her sayfayı kırmızıya
             boyarsak kırmızı hiçbir şey ifade etmez. */}
-        <div className="rounded-2xl border-2 border-brand/40 bg-brand-soft p-6 sm:p-8">
+        <div className="rounded-flow border-2 border-brand/40 bg-brand-soft p-6 sm:p-8">
           <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-brand-dark">
             <Icon name="warning" size={18} /> Dikkat
           </p>
@@ -92,7 +92,7 @@ export default function Kart({
         <Baslik metin={sayfa.baslik} />
         <ol className="mt-6 space-y-3">
           {adimlar.map((a, i) => (
-            <li key={i} className="flex items-start gap-4 rounded-2xl border border-line bg-white p-4">
+            <li key={i} className="flex items-start gap-4 rounded-flow border border-line bg-yuzey p-4">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-base font-bold text-white">
                 {i + 1}
               </span>
@@ -115,7 +115,7 @@ export default function Kart({
           <video
             key={sayfa.videoId}
             data-icerik-videosu
-            className="mt-6 w-full rounded-2xl bg-black"
+            className="mt-6 w-full rounded-flow bg-black"
             src={medyaYolu(sayfa.videoId)}
             controls
             controlsList="nodownload noplaybackrate"
@@ -123,7 +123,7 @@ export default function Kart({
             playsInline
           />
         ) : (
-          <p className="mt-6 rounded-2xl border border-dashed border-line p-8 text-center text-muted">
+          <p className="mt-6 rounded-flow border border-dashed border-line p-8 text-center text-muted">
             Video eklenmemiş.
           </p>
         )}
@@ -147,10 +147,10 @@ export default function Kart({
         </p>
         <ul className="mt-6 space-y-3">
           {maddeler.map((m, i) => (
-            <li key={i} className="flex items-start gap-4 rounded-2xl border border-line bg-white p-4">
+            <li key={i} className="flex items-start gap-4 rounded-flow border border-line bg-yuzey p-4">
               {/* Kutu BOŞ. İçine soluk bir tik koymak "işaretlenmiş" gibi
                   okunuyordu; boş kutu maddenin henüz yapılmadığını söyler. */}
-              <span aria-hidden className="mt-0.5 h-9 w-9 shrink-0 rounded-lg border-2 border-line bg-paper" />
+              <span aria-hidden className="mt-0.5 h-9 w-9 shrink-0 rounded-flow-sm border-2 border-line bg-paper" />
               <span className="pt-1 text-lg leading-relaxed">
                 <BicimliSatir metin={m.metin} />
               </span>
@@ -200,7 +200,7 @@ export default function Kart({
             üstüne bağlar. Anlatının içinde bir paragraf olarak kalsaydı hızlı
             okumada kaybolurdu. */}
         {(sayfa.metinKarsi ?? "").trim() ? (
-          <div className="mt-6 rounded-2xl border-2 border-accent/40 bg-accent-soft p-5 sm:p-6">
+          <div className="mt-6 rounded-flow border-2 border-accent/40 bg-accent-soft p-5 sm:p-6">
             <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-accent-dark">
               <Icon name="target" size={18} /> Çıkarılan ders
             </p>
@@ -252,7 +252,7 @@ export default function Kart({
             bu kart tipinin tek varlık sebebi o bakış. */}
         <div className={sayiIzgaraSinifi(sayilar.length)}>
           {sayilar.map((s, i) => (
-            <div key={i} className="rounded-2xl border border-line bg-white p-6 text-center">
+            <div key={i} className="rounded-flow border border-line bg-yuzey p-6 text-center">
               <p className={`font-extrabold leading-none text-accent ${sayiPuntoSinifi(sayilar.length)}`}>{s.sayi}</p>
               {s.etiket ? (
                 <p className="mt-3 text-base font-semibold leading-snug text-muted">
@@ -316,7 +316,7 @@ function Gorseller({
             (altMetinler?.[id] ?? "").trim() ||
             (idler.length > 1 ? `${baslik} — görsel ${i + 1}/${idler.length}` : `${baslik} — görsel`)
           }
-          className={`w-full rounded-2xl border border-line object-contain ${yukseklik}`}
+          className={`w-full rounded-flow border border-line object-contain ${yukseklik}`}
         />
       ))}
     </div>
@@ -336,7 +336,7 @@ function Sutun({
 }) {
   const iyi = renk === "iyi";
   return (
-    <div className={`rounded-2xl border-2 p-5 ${iyi ? "border-iyi/40 bg-iyi/5" : "border-brand/40 bg-brand-soft"}`}>
+    <div className={`rounded-flow border-2 p-5 ${iyi ? "border-iyi/40 bg-iyi/5" : "border-brand/40 bg-brand-soft"}`}>
       <p className={`flex items-center gap-2 font-bold ${iyi ? "text-iyi-dark" : "text-brand-dark"}`}>
         <Icon name={ikon} size={20} /> {baslik}
       </p>
@@ -354,7 +354,7 @@ function Sutun({
 /** Karşılaştırma tablosunun sütun başlığı (yalnız geniş ekranda). */
 function BaslikHucre({ metin }: { metin: string }) {
   return (
-    <p className="rounded-xl bg-ink/5 px-4 py-2 text-base font-extrabold uppercase tracking-wide text-ink">
+    <p className="rounded-flow bg-ink/5 px-4 py-2 text-base font-extrabold uppercase tracking-wide text-ink">
       {metin || "—"}
     </p>
   );
@@ -370,7 +370,7 @@ function BaslikHucre({ metin }: { metin: string }) {
  */
 function Hucre({ baslik, metin }: { baslik: string; metin: string }) {
   return (
-    <div className="rounded-2xl border border-line bg-white p-4">
+    <div className="rounded-flow border border-line bg-yuzey p-4">
       {/* Başlık dar ekranda hücrenin İÇİNE taşınır; geniş ekranda üstteki
           başlık satırı zaten görünüyor. */}
       <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted sm:hidden">{baslik || "—"}</p>
@@ -398,7 +398,7 @@ function OnceSonraPanel({
 }) {
   const iyi = renk === "iyi";
   return (
-    <div className={`rounded-2xl border-2 p-4 ${iyi ? "border-iyi/40 bg-iyi/5" : "border-brand/40 bg-brand-soft"}`}>
+    <div className={`rounded-flow border-2 p-4 ${iyi ? "border-iyi/40 bg-iyi/5" : "border-brand/40 bg-brand-soft"}`}>
       {/* Etiket renkten İBARET değil: yazısı da var. Renk körü bir işçi için
           "önce" ile "sonra" arasındaki fark yalnız tonda kalsaydı kart hiçbir
           şey anlatmazdı. */}
@@ -410,10 +410,10 @@ function OnceSonraPanel({
         <img
           src={medyaYolu(gorselId)}
           alt={(altMetinler?.[gorselId] ?? "").trim() || `${baslik} — ${etiket.toLocaleLowerCase("tr")}`}
-          className="mt-3 max-h-[32vh] w-full rounded-xl border border-line bg-white object-contain"
+          className="mt-3 max-h-[32vh] w-full rounded-flow border border-line bg-yuzey object-contain"
         />
       ) : (
-        <p className="mt-3 rounded-xl border border-dashed border-line bg-white/60 p-6 text-center text-muted">
+        <p className="mt-3 rounded-flow border border-dashed border-line bg-white/60 p-6 text-center text-muted">
           Görsel eklenmemiş.
         </p>
       )}

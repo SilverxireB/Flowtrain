@@ -85,7 +85,7 @@ export default function TemelAdres({ mevcut, kurumAdi }: { mevcut: string; kurum
       </p>
 
       {hata ? (
-        <p role="alert" className="mt-2 rounded-xl border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark">
+        <p role="alert" className="mt-2 rounded-flow border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark">
           {hata}
         </p>
       ) : null}

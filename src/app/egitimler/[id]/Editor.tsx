@@ -29,12 +29,14 @@ import {
   egitimSilEylem,
   sayfaEkleEylem,
   sayfaGuncelleEylem,
+  sayfaGeriYukleEylem,
   sayfaSilEylem,
   sayfalariSiralaEylem,
   sayfalariTopluEkleEylem,
   metinKartlariEkleEylem,
   onerilenSorulariEkleEylem,
   soruEkleEylem,
+  soruGeriYukleEylem,
   soruGuncelleEylem,
   soruSilEylem,
   taslagaAlEylem,
@@ -123,6 +125,10 @@ export default function Editor({
   /* Kaydedilmemiş tuş vuruşları. Sunucuya yazmak alandan çıkınca olur; bu
      harita YALNIZ önizlemeyi besler, yoksa yazarken yan taraf donuk kalırdı. */
   const [anlik, setAnlik] = useState<Record<string, Record<string, unknown>>>({});
+  /* Son başarılı alan kaydının SAATİ. Kaybolan bir bildirim değil kalıcı bir
+     satır: alanlar odaktan çıkınca kendiliğinden kaydediyor, yani "kaydettim
+     mi" sorusu sürekli açık kalıyordu ve tek yanıt sayfanın en dibindeydi. */
+  const [sonKayit, setSonKayit] = useState<Date | null>(null);
   const kilit = useRef(false);
 
   const yayinda = egitim.durum === "yayin";
@@ -166,6 +172,7 @@ export default function Editor({
       gecis(async () => {
         try {
           await is();
+          setSonKayit(new Date());
         } finally {
           router.refresh();
         }
@@ -371,6 +378,10 @@ export default function Editor({
      sorunun ta kendisi. */
   const gosterilenRef = useRef<Sayfa[]>(gosterilen);
   gosterilenRef.current = gosterilen;
+  /* Soru listesi de aynı gerekçeyle ref'te: silmeden önce yedeğini almak
+     için okunuyor, bağımlılığa girseydi `soruSil` her düzenlemede yenilenirdi. */
+  const sorularRef = useRef<Soru[]>(sorular);
+  sorularRef.current = sorular;
 
   /* Klavye kısayolu ve bırakma hesabı ÇİZİM DIŞINDA çalışıyor (belge
      dinleyicisi, `dragend`). Durumu bağımlılığa koymak dinleyiciyi her tuş
@@ -395,7 +406,10 @@ export default function Editor({
    */
   const kartaGit = useCallback((sayfaId: string, odakla: boolean) => {
     setSeciliId(sayfaId);
-    setHaritaAcik(false);
+    /* Panel YALNIZ dar ekranda kapanır. Geniş ekranda kalıcı olduğu için
+       kapatmak, haritadan sırayla kart gezen kişiye her adımda düğmeye
+       bastırırdı — haritanın var olma sebebi tam olarak o gezinti. */
+    if (!genisEkran()) setHaritaAcik(false);
     requestAnimationFrame(() => {
       const el = document.getElementById(kartDomKimligi(sayfaId));
       if (!el) return;
@@ -464,28 +478,68 @@ export default function Editor({
     [kaydet, egitim.id],
   );
 
+  /**
+   * Kart siler ve 10 saniyelik GERİ ALMA penceresi açar.
+   *
+   * Onay kutusu yetmiyordu: yarım saatte yazılmış bir vaka kartı tek tık +
+   * tek onayla gidiyordu ve ürünün başka her yerinde geri dönüş var
+   * ("Yayındaki hâline dön", tip değişiminde "Geri al"). Taslak ile yayın
+   * ayrı iki nesne olduğu için geri alma kayıt değişmezliğini İHLAL ETMEZ.
+   *
+   * Kartın alanları ve SIRA İNDEKSİ silmeden ÖNCE kopyalanıyor; sunucu
+   * yanıtından sonra ikisi de listede yok. Onay metni de değişti: artık
+   * "kalıcı olarak" demiyor, çünkü demiyor.
+   */
   const sayfaSil = useCallback(
     (sayfaId: string) => {
-      const s = gosterilenRef.current.find((x) => x.id === sayfaId);
+      const liste = gosterilenRef.current;
+      const i = liste.findIndex((x) => x.id === sayfaId);
+      const s = liste[i];
       if (!s) return;
+      const yedek = {
+        tip: s.tip,
+        baslik: s.baslik,
+        metin: s.metin,
+        metinKarsi: s.metinKarsi,
+        gorselId: s.gorselId,
+        gorselIdler: s.gorselIdler,
+        videoId: s.videoId,
+        asgariSure: s.asgariSure,
+      };
       confirm(
-        { title: "Sayfa silinsin mi?", message: `"${s.baslik || KART_ETIKET[s.tip]}" kalıcı olarak silinir.`, danger: true },
-        () => calistir(() => sayfaSilEylem(egitim.id, sayfaId)),
+        { title: "Sayfa silinsin mi?", message: `"${s.baslik || KART_ETIKET[s.tip]}" silinir. Geri alabilirsin.`, danger: true },
+        () =>
+          calistir(async () => {
+            await sayfaSilEylem(egitim.id, sayfaId);
+            show("Kart silindi.", "done", {
+              etiket: "Geri al",
+              onTikla: () => calistir(() => sayfaGeriYukleEylem(egitim.id, yedek, i)),
+            });
+          }),
       );
     },
-    [calistir, confirm, egitim.id],
+    [calistir, confirm, egitim.id, show],
   );
 
   const sayfaTasi = useCallback(
-    (sayfaId: string, yon: -1 | 1) => {
+    (sayfaId: string, yon: -1 | 1, odaklaGeri = false) => {
       const liste = [...gosterilenRef.current];
       const i = liste.findIndex((x) => x.id === sayfaId);
       const hedef = i + yon;
       if (i < 0 || hedef < 0 || hedef >= liste.length) return;
       [liste[i], liste[hedef]] = [liste[hedef], liste[i]];
-      calistir(() => sayfalariSiralaEylem(egitim.id, liste.map((x) => x.id)));
+      calistir(async () => {
+        await sayfalariSiralaEylem(egitim.id, liste.map((x) => x.id));
+        /* ODAK TAŞINAN KARTA GERİ VERİLİYOR (klavye yolu için).
+           Taşımadan sonra odak karttan çıkıyordu ve `listeTus` odaktaki karta
+           bakarak çalıştığı için kısayol YALNIZ BİR KEZ işliyordu: kartı üç
+           sıra taşımak isteyen kişi her basıştan sonra karta geri tıklamak
+           zorundaydı, hiçbir şey olmadığı için de "çalışmıyor" diye
+           vazgeçiyordu. Fareyle sürükleme çalışırken klavye yolu ölüydü. */
+        if (odaklaGeri) kartaGit(sayfaId, true);
+      });
     },
-    [calistir, egitim.id],
+    [calistir, egitim.id, kartaGit],
   );
 
   /**
@@ -503,7 +557,17 @@ export default function Editor({
       const id = kap?.dataset.kart;
       if (!id) return;
       e.preventDefault();
-      sayfaTasi(id, e.key === "ArrowUp" ? -1 : 1);
+
+      /* ÖNCE KAYDET, SONRA TAŞI — yoksa yazılan metin sessizce gidiyordu.
+         Alanlar `onBlur`da kaydediyor; taşıma ise odağı bırakmadan sunucuya
+         yazıp listeyi tazeliyordu. Başlığa yazıp alandan çıkmadan Ctrl+↑'a
+         basan kişi yazdığını kaybediyor, üstelik hiçbir uyarı görmüyordu —
+         ve tuzağı ürünün kendi kısayol ipucu kuruyordu ("Ctrl+↑/↓ odaktaki
+         kartı taşır"). `blur()` alanın kendi kayıt yolunu tetikliyor; iki
+         yazım (alan + sıra) farklı sütunlara gittiği için çakışmıyor. */
+      (document.activeElement as HTMLElement | null)?.blur?.();
+
+      sayfaTasi(id, e.key === "ArrowUp" ? -1 : 1, true);
     },
     [sayfaTasi],
   );
@@ -528,12 +592,30 @@ export default function Editor({
     [kaydet, egitim.id],
   );
 
+  /** Soru siler; geri alma penceresi `sayfaSil` ile aynı gerekçeyle açılıyor. */
   const soruSil = useCallback(
-    (soruId: string) =>
-      confirm({ title: "Soru silinsin mi?", message: "Soru havuzdan kalıcı olarak çıkar.", danger: true }, () =>
-        calistir(() => soruSilEylem(egitim.id, soruId)),
-      ),
-    [calistir, confirm, egitim.id],
+    (soruId: string) => {
+      const q = sorularRef.current.find((x) => x.id === soruId);
+      if (!q) return;
+      const yedek = {
+        tip: q.tip,
+        metin: q.metin,
+        secenekler: q.secenekler,
+        dogru: q.dogru,
+        gorselId: q.gorselId,
+        aciklama: q.aciklama,
+      };
+      confirm({ title: "Soru silinsin mi?", message: "Soru havuzdan çıkar. Geri alabilirsin.", danger: true }, () =>
+        calistir(async () => {
+          await soruSilEylem(egitim.id, soruId);
+          show("Soru silindi.", "done", {
+            etiket: "Geri al",
+            onTikla: () => calistir(() => soruGeriYukleEylem(egitim.id, yedek)),
+          });
+        }),
+      );
+    },
+    [calistir, confirm, egitim.id, show],
   );
 
   const medyaSil = useCallback(
@@ -623,6 +705,26 @@ export default function Editor({
         rehberBolum="hazirlama"
         sag={
           <>
+            {/* KAYIT GÖSTERGESİ — yapışkan başlıkta, yani kırkıncı kartta
+                yazarken de görünür. Eskiden tek onay sayfanın EN DİBİNDE,
+                Kopyala/Sil düğmelerinin yanındaydı: yazan kişi onu hiç
+                görmüyordu ve alanlar odaktan çıkınca sessizce kaydettiği
+                için "kaydettim mi" sorusu hep açık kalıyordu.
+
+                SAAT YAZILI, "kaydedildi" değil. Sabit bir onay metni bir
+                saat önceki kayıttan mı yoksa az önceki tuş vuruşundan mı
+                geldiğini söylemez; saat söyler. Kaybolmuyor da — bildirim
+                olsaydı gözden kaçan kişi için hiç var olmamış olurdu. */}
+            <span className="hidden text-xs text-muted sm:inline" role="status" aria-live="polite">
+              {bekle ? (
+                "Kaydediliyor…"
+              ) : sonKayit ? (
+                <>
+                  <Icon name="check" size={13} /> {saatBicimi(sonKayit)} kaydedildi
+                </>
+              ) : null}
+            </span>
+
             {/* YAYINLANMAMIŞ DEĞİŞİKLİK ROZETİ — uyarı değil, bilgi.
                 Taslak ile yayın ayrı iki nesne olduğu için hiçbir şey
                 kaybolmuyor; korkutan bir "kaydedilmedi" uyarısı yerine
@@ -735,7 +837,7 @@ export default function Editor({
           içerikten yarım ekran uzağa düşürür, göz o mesafeyi her seferinde
           kat etmek zorunda kalırdı. Alt sınır 0.75rem — eşik genişlikte rayı
           ekran dışına taşırmamak için. */}
-      <aside className="fixed left-[max(0.75rem,calc(50vw_-_53.5rem))] top-24 z-30 hidden max-h-[calc(100vh_-_8rem)] w-48 overflow-y-auto rounded-2xl border border-line bg-white p-2 shadow-sm min-[1760px]:block">
+      <aside className="fixed left-[max(0.75rem,calc(50vw_-_53.5rem))] top-24 z-30 hidden max-h-[calc(100vh_-_8rem)] w-48 overflow-y-auto rounded-flow border border-line bg-yuzey p-2 shadow-sm min-[1760px]:block">
         <h2 className="eyebrow mb-1 px-1">Kart haritası</h2>
         <KartHaritasi
           satirlar={haritaSatirlari}
@@ -755,10 +857,17 @@ export default function Editor({
       {/* Alttaki önizleme şeridi yapışkan: son alan onun ALTINDA kalmasın diye
           o kadar pay bırakılır. Şerit açıkken pay büyür. Geniş ekranda şerit
           hiç çizilmiyor, pay da yok. */}
-      <div className={`sayfa-govde ${seritAcik ? "pb-[52vh]" : "pb-24"} xl:pb-8`}>
+      {/* Çekmece AÇIKKEN gövde sağa itilir (lg ve üstü): panel içeriğin üstünü
+          örtmez, ikisi yan yana durur. Dar ekranda itme yok — orada panel
+          zaten perdeli ve geçici. */}
+      <div
+        className={`sayfa-govde ${seritAcik ? "pb-[52vh]" : "pb-24"} xl:pb-8 ${
+          haritaAcik ? "lg:pl-[18.5rem]" : ""
+        }`}
+      >
         {/* Harita düğmesi rayın görünmediği HER genişlikte duruyor. */}
         <div className="mb-5 flex flex-wrap items-center gap-3 min-[1760px]:hidden">
-          <button onClick={() => setHaritaAcik(true)} className="btn-ghost text-sm" aria-expanded={haritaAcik}>
+          <button onClick={() => setHaritaAcik((a) => !a)} className="btn-ghost text-sm" aria-expanded={haritaAcik}>
             <Icon name="list" size={16} /> Kart haritası
             {gosterilen.length > 0 ? <span className="font-normal text-muted">{gosterilen.length}</span> : null}
           </button>
@@ -775,7 +884,7 @@ export default function Editor({
                  düzenleme sahaya çıkmıyor; söylenmesi gereken tek şey, ekranda
                  görülenin sahadakinden FARKLI olduğu. Hiçbir şey kaybolmuyor,
                  dolayısıyla bir uyarı değil bir durum bildirimi. */
-              <p className="rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm">
+              <p className="rounded-flow border border-accent/40 bg-accent/5 px-4 py-3 text-sm">
                 <strong>Bu değişiklikler sahada yok.</strong>{" "}
                 {yayinda
                   ? `Kiosk, ziyaretçi ve amir tabletinde hâlâ sürüm ${yayinDurumu.surum} oynuyor.`
@@ -787,14 +896,14 @@ export default function Editor({
             ) : null}
 
             {yayinda && !yayinlanmamisVar ? (
-              <p className="rounded-xl border border-iyi/40 bg-iyi/5 px-4 py-3 text-sm">
+              <p className="rounded-flow border border-iyi/40 bg-iyi/5 px-4 py-3 text-sm">
                 <strong>Yayında ve sahayla aynı.</strong> Yazdığınız her değişiklik taslağa kaydedilir; sahadaki
                 sürüm siz yayınlayana kadar değişmez.
               </p>
             ) : null}
 
             {!onaylayabilir && !yayinda ? (
-              <p className="rounded-xl border border-line bg-white px-4 py-3 text-sm text-muted">
+              <p className="rounded-flow border border-line bg-yuzey px-4 py-3 text-sm text-muted">
                 Hazırladığınız eğitimi <strong className="text-ink">onaylayan</strong> rolündeki bir kişi yayına alır.
                 İçerik kalitesinin tek güvencesi bu ikinci gözdür.
               </p>
@@ -833,7 +942,7 @@ export default function Editor({
                   key={anahtar}
                   className={
                     grup.ad !== null
-                      ? "space-y-3 rounded-2xl border-l-4 border-accent/30 bg-accent-soft/20 py-2 pl-3"
+                      ? "space-y-3 rounded-flow border-l-4 border-accent/30 bg-accent-soft/20 py-2 pl-3"
                       : "space-y-3"
                   }
                 >
@@ -900,6 +1009,22 @@ export default function Editor({
                       <BolumAyraci sayfaId={s.id} baslik={bolumler[s.id]} kilitli={kilitli} onYaz={bolumYaz} />
                     )}
 
+                    {/* ARAYA KART EKLEME — kart hep SONA ekleniyordu.
+                        12 kartlık listede 6. sıraya kart sokmak, kartı sona
+                        ekleyip on kez Ctrl+↑'a basmak demekti (ölçüldü: 8,9 sn);
+                        40 kartlık eğitimde pratikte imkânsızdı. Oysa "şuraya bir
+                        uyarı kartı lazım" içerik hazırlamanın en sık hareketi.
+
+                        Bölüm ayracıyla AYNI boşlukta ve aynı belirme kuralında
+                        duruyor (fareli ekranda üstüne gelince, dokunmatikte hep
+                        görünür); kartların arasına kalıcı bir düğme sırası
+                        koymak listeyi gürültüye çevirirdi. */}
+                    <KartEkleMenusu
+                      kilitli={kilitli}
+                      araya
+                      onEkle={(t) => calistir(() => sayfaEkleEylem(egitim.id, t, s.id))}
+                    />
+
                     {/* TUTAMAK KARTIN İÇİNE GEÇTİ. Solda ayrı bir sütun olarak
                         dururken kartı ~40px sağa itiyordu: kartlar sayfadaki
                         her şeyle (bölüm başlığı, "İÇERİK" etiketi, üstteki
@@ -922,7 +1047,7 @@ export default function Editor({
                               }}
                               onDragEnd={surukleBitir}
                               title="Sürükleyerek taşıyın · klavyede Ctrl+↑/↓"
-                              className={`hidden shrink-0 rounded-md p-0.5 sm:inline-grid sm:place-items-center ${
+                              className={`hidden shrink-0 rounded-flow-sm p-0.5 sm:inline-grid sm:place-items-center ${
                                 kilitli
                                   ? "opacity-20"
                                   : `text-muted hover:bg-line/60 hover:text-ink ${surukleId === s.id ? "cursor-grabbing" : "cursor-grab"}`
@@ -1000,7 +1125,7 @@ export default function Editor({
                   duruyor; sorunu görüp düzeltmesini kapalı bir kutunun içinde
                   aratmak, uyarıyı "okundu geçildi" satırına çevirir. */}
               {sorular.length > 0 && sorular.length < egitim.soruSayisi ? (
-                <p className="mb-3 rounded-xl border border-orta/30 bg-orta/5 px-4 py-3 text-sm font-semibold text-orta-dark">
+                <p className="mb-3 rounded-flow border border-orta/30 bg-orta/5 px-4 py-3 text-sm font-semibold text-orta-dark">
                   Havuzda {sorular.length} soru var, sınavda {egitim.soruSayisi} soru sorulacak. Havuz sınavdan küçükse
                   herkese aynı sorular gelir — karıştırmanın anlamı kalmaz.{" "}
                   {kilitli ? null : (
@@ -1068,7 +1193,7 @@ export default function Editor({
                 görünüyor. Kaç dosyanın gideceği önceden söyleniyor — silme
                 geri alınamaz. */}
             {oksuzSayisi > 0 && !kilitli ? (
-              <section className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-white px-4 py-3">
+              <section className="flex flex-wrap items-center gap-3 rounded-flow border border-line bg-yuzey px-4 py-3">
                 <Icon name="image" size={16} className="text-muted" />
                 <p className="min-w-0 flex-1 text-sm">
                   Kütüphanede <strong>{oksuzSayisi} medya</strong> hiçbir kartta ya da soruda kullanılmıyor.
@@ -1108,7 +1233,7 @@ export default function Editor({
             <section>
               <button
                 onClick={() => setAyarlarAcik((a) => !a)}
-                className="dokunma-44 flex w-full items-center justify-between rounded-xl px-1 py-2 text-left"
+                className="dokunma-44 flex w-full items-center justify-between rounded-flow px-1 py-2 text-left"
                 aria-expanded={ayarlarAcik}
               >
                 <span className="eyebrow">Sınav ayarları (gelişmiş)</span>
@@ -1148,7 +1273,7 @@ export default function Editor({
                       disabled={kilitli}
                       defaultChecked={egitim.karisik}
                       onChange={(e) => kaydet(() => egitimGuncelleEylem(egitim.id, { karisik: e.target.checked }))}
-                      className="h-5 w-5 accent-accent"
+                      className="h-5 w-5"
                     />
                     <span className="text-sm">
                       <strong>Soruları karıştır.</strong>{" "}
@@ -1211,19 +1336,31 @@ export default function Editor({
       />
 
       {/* ── HARİTA ÇEKMECESİ ──────────────────────────────────────────────
-          Rayın sığmadığı genişliklerde harita ÇEKMECEYE düşüyor: editörün
-          yanında kalıcı bir sütun açsaydı, zaten dar olan düzenleme alanını
-          bir de o bölerdi. Kart seçilince kendiliğinden kapanıyor — açık
-          kalan bir panel, atladığı kartın üstünü örterdi. */}
+          Rayın sığmadığı genişliklerde harita ÇEKMECEYE düşüyor. İKİ AYRI
+          DAVRANIŞ, tek bileşen:
+
+          lg VE ÜSTÜ (dizüstü: 1366/1440/1536) — kalıcı yan panel. Perde yok,
+          gövde sağa itiliyor, kart seçilince KAPANMIYOR. Ray ancak 1760px'te
+          sığıyor (kap 80rem + 12rem ray + boşluk), yani tipik ofis dizüstünde
+          harita hiç kalıcı olamıyordu; üstelik seçince kapandığı için
+          "haritadan gez, kartta düzelt" döngüsü her turda düğmeye basmayı
+          gerektiriyordu. Kırk kartlık eğitimde asıl gezinme aracı buydu.
+
+          lg ALTI (tablet/telefon) — eskisi gibi perdeli ve geçici: orada
+          yan yana iki sütuna yer yok, açık kalan panel kartın üstünü örterdi.
+
+          Dış kap tıklama geçirmez (`pointer-events-none`); yalnız perde ve
+          panelin kendisi alır. Yoksa perdesiz kipte görünmez bir katman tüm
+          editörü tıklanamaz yapardı. */}
       {haritaAcik ? (
-        <div className="fixed inset-0 z-50 min-[1760px]:hidden">
+        <div className="pointer-events-none fixed inset-0 z-50 min-[1760px]:hidden">
           <button
             type="button"
             onClick={() => setHaritaAcik(false)}
             aria-label="Kart haritasını kapat"
-            className="absolute inset-0 h-full w-full cursor-default bg-ink/30"
+            className="pointer-events-auto absolute inset-0 h-full w-full cursor-default bg-ink/30 lg:hidden"
           />
-          <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-white">
+          <div className="pointer-events-auto absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-yuzey lg:top-16 lg:border-r lg:border-line">
             <div className="flex items-center gap-2 border-b border-line px-4 py-3">
               <h2 className="eyebrow flex-1">Kart haritası</h2>
               <button onClick={() => setHaritaAcik(false)} className="btn-icon" aria-label="Kapat">
@@ -1285,6 +1422,25 @@ const KISAYOL_NOTU = "Alt+↑/↓ önceki/sonraki karta gider · Ctrl+↑/↓ od
 /** Kart satırının DOM kimliği — haritadan atlarken bununla bulunuyor. */
 function kartDomKimligi(sayfaId: string): string {
   return `kart-${sayfaId}`;
+}
+
+/** Kayıt göstergesinin saati — `14:32`. */
+function saatBicimi(an: Date): string {
+  return an.toLocaleTimeString("tr", { hour: "2-digit", minute: "2-digit" });
+}
+
+/**
+ * Harita paneli KALICI mı (Tailwind `lg`)?
+ *
+ * Eşik CSS'te de burada da geçiyor; ikisi ayrışırsa panel geniş ekranda hem
+ * açık kalır hem kart seçince kapanır. Değiştirirken İKİSİNİ birden değiştir:
+ * `lg:pl-…`, `lg:hidden` ve bu satır aynı 1024px'i anlatıyor.
+ *
+ * Sunucuda çizimde `window` yok — orada dar varsayılır, ilk etkileşime kadar
+ * fark etmez çünkü çekmece kapalı doğuyor.
+ */
+function genisEkran(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
 }
 
 /** Başlığın ilk satırı; harita sütunu dar, ikinci satırın yeri yok. */

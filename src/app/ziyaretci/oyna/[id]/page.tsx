@@ -77,7 +77,7 @@ export default function ZiyaretciTablet({ params }: { params: { id: string } }) 
 
 function Bos({ baslik, metin }: { baslik: string; metin: string }) {
   return (
-    <main className="bg-wash grid min-h-screen place-items-center px-5 py-10">
+    <main className="kiosk-olcek bg-wash grid min-h-screen place-items-center px-5 py-10">
       <div className="w-full max-w-xl text-center">
         <Logo size="lg" />
         <div className="card mt-8 p-8">

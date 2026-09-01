@@ -1,3 +1,6 @@
+@import "./flow-tokens.css";
+@import "./flow-global.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,10 +10,102 @@
   --font-display: var(--font-sans);
 }
 
+/* ⭐ TABAN PUNTO 13px — FLOW AİLESİNİN ÖLÇEĞİ.
+   Çalışan FlowUI'da ölçüldü: `body` 13px, satır yüksekliği 19.5px (1.5),
+   harf aralığı `normal`. FlowTrain 16px tabanlıydı, yani BÜTÜN arayüz
+   %23 daha iriydi. "Yaklaşıyor ama aynı değil" hissinin en büyük tek
+   sebebi buydu — renkleri eşitlemek ölçeği eşitlemiyor.
+
+   KÖK (`html`) 13px YAPILIYOR, `body` değil: Tailwind'in bütün punto ve
+   boşluk yardımcıları `rem` tabanlı ve kökü izliyor. Yalnız `body`ye
+   yazılsaydı sınıfsız metin küçülür, `text-sm` yazan her yer 14px'te
+   kalırdı; ölçek yarım uygulanmış olurdu.
+
+   ⚠ KİOSK BU KURALIN DIŞINDA (aşağıda geri alınıyor). Orası bir metreden
+   ELDİVENLE okunuyor; %19 küçültmek güvenlik gerilemesi olurdu ve
+   `CLAUDE.md` kiosku zaten ayrı bir yüzey sayıyor. */
+html {
+  font-size: 13px;
+}
+
+/* GÖVDE METNİ SAKİN TONDA. FlowUI'da ölçüldü: `rgb(166,176,207)` — yani
+   `--flow-text` (#f2f5ff) DEĞİL, ondan bir kademe sakin. Parlak beyaz gövde
+   metni koyu lacivertin üstünde bağırıyor ve başlıkla gövde arasındaki
+   hiyerarşiyi siliyordu; başlıklar `text-ink` ile ayrışmaya devam ediyor. */
 body {
-  @apply bg-paper text-ink antialiased;
+  @apply bg-paper text-govde antialiased;
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
-  letter-spacing: -0.011em;
+  /* Harf aralığı NORMAL — FlowUI'da ölçüldü. FlowTrain'de -0.011em vardı ve
+     13px'e inince harfler birbirine giriyordu. */
+  letter-spacing: normal;
+  line-height: 1.5;
+}
+
+/* ── KİOSK ÖLÇEĞİ — KÖK KÜÇÜLMESİNDEN KORUNUYOR ─────────────────────────
+   Kök 13px'e indi ve Tailwind'in punto yardımcıları `rem` tabanlı, yani
+   KÖKÜ izliyor — kabın `font-size`ını değiştirmek onları kurtarmıyor.
+   ÖLÇTÜM: kiosk düğmesinin yazısı 20px'ten 16.25px'e düşmüştü. Dokunma
+   hedefi `px` yazılı olduğu için 72px'te kalmıştı, yani hata sessizdi:
+   düğme aynı büyüklükte duruyor ama YAZISI küçülüyordu.
+
+   Kiosk bir metreden ELDİVENLE okunuyor; punto orada güvenlik meselesi.
+   Kiosk sınıflarının puntosu bu yüzden `px` olarak sabitleniyor — kökten
+   bağımsız. Kabın kendi `font-size`ı da sınıfsız metin için duruyor. */
+.kiosk-olcek {
+  font-size: 16px;
+}
+
+/* Eski (16px kök) karşılıkları: text-xl 20px · text-lg 18px · text-base 16px.
+   Değiştirilecekse kiosk ekranında BİR METREDEN denenerek değiştirilsin. */
+.kiosk-olcek .kiosk-btn {
+  font-size: 20px;
+}
+
+.kiosk-olcek .kiosk-secenek {
+  font-size: 18px;
+}
+
+/* ── BAŞLIK ÖLÇEĞİ ──────────────────────────────────────────────────────
+   Tailwind'in `preflight`i h1-h6'yı SIFIRLIYOR: FlowTrain'de bütün
+   başlıklar 16px/400 çiziliyordu, yani hiyerarşi yoktu. FlowUI'da ölçüldü:
+   h1 32.5px, h2 26px, h5 16.25px, hepsi kalınlık 500 — yani taban puntonun
+   2.5 / 2 / 1.25 katı. `em` ile yazılıyor ki oran her yerde korunsun. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @apply text-ink;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 2.5em;
+}
+h2 {
+  font-size: 2em;
+}
+h3 {
+  font-size: 1.75em;
+}
+h4 {
+  font-size: 1.5em;
+}
+h5 {
+  font-size: 1.25em;
+}
+h6 {
+  font-size: 1em;
+}
+
+/* Bağlantı marka rengini taşır, altı çizili değil (FlowUI'da ölçüldü).
+   Renk `--flow-primary` DEĞİL `--flow-link`: koyu temada marka mavisi metin
+   olarak 3.7:1 kalıyor. Gerekçe `flow-tokens.css` içinde yazılı. */
+a {
+  color: var(--flow-link);
+  text-decoration: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -103,43 +198,158 @@ body {
 }
 
 @layer components {
+  /* ── LOGO İŞARETİ TEMAYA GÖRE ───────────────────────────────────────────
+     İki PNG birden çiziliyor (bkz. `Logo.tsx`), görünen CSS ile seçiliyor.
+     Koyu zeminde lacivert işaret kayboluyordu. */
+  .logo-isaret-koyu {
+    display: none;
+  }
+
+  :root[data-tema="koyu"] .logo-isaret-acik {
+    display: none;
+  }
+
+  :root[data-tema="koyu"] .logo-isaret-koyu {
+    display: inline;
+  }
+
   /* Sayfa zemini: sakin, tek tonlu nötr yıkama (dikkat dağıtmayan) */
+  /* Sayfa zemini: sakin, tek tonlu yıkama. Lekenin rengi METİN
+     renginden türetiliyor — sabit koyu rgba koyu temada görünmez bir
+     kirlilik bırakıyordu (siyah üstüne siyah). */
   .bg-wash {
     background:
-      radial-gradient(60rem 32rem at 50% -12%, rgba(24, 24, 27, 0.03), transparent 60%),
-      theme("colors.paper");
+      radial-gradient(
+        60rem 32rem at 50% -12%,
+        color-mix(in srgb, var(--flow-text) 3%, transparent),
+        transparent 60%
+      ),
+      var(--flow-bg);
   }
 
+  /* Kart yüzeyi TOKENDEN: `bg-white` koyu temada beyaz kalıyor ve kart
+     ekranda parlayan bir levhaya dönüyordu. Gölge de öyle — sabit koyu
+     rgba koyu zeminde hiç görünmüyor, kart zemine yapışıyordu. */
   .card {
-    @apply bg-white rounded-2xl border border-line;
+    @apply bg-yuzey rounded-flow border border-line;
     box-shadow:
-      0 1px 2px rgba(24, 24, 27, 0.04),
-      0 10px 30px -18px rgba(24, 24, 27, 0.15);
+      0 1px 2px color-mix(in srgb, var(--flow-text) 4%, transparent),
+      0 10px 30px -18px color-mix(in srgb, var(--flow-text) 15%, transparent);
   }
 
-  /* Birincil aksiyon = indigo. Gül YALNIZCA uyarı/danger. */
+  /* Birincil aksiyon = tema vurgusu (açık kırmızı / koyu mavi).
+     Gül YALNIZCA uyarı/danger.
+
+     ODAK IŞIĞI HAP DİLİNDEN: düğmede imza halkası KULLANILMAZ (FlowUI
+     kuralı) — halka yazı girişlerinin dili. Işığın şiddeti de temanın
+     kararı: koyu zeminde glow, açık zeminde kapalı + hafif dolgu. */
   .btn-primary {
-    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
+    @apply focus-visible:outline-none;
+    /* ÖLÇÜ FLOWUI'DAN, TAHMİNDEN DEĞİL: çalışan FlowUI'da `.btn-primary`
+       ölçüldü — 8px köşe, 7.5px/12px dolgu, 13px punto, kalınlık 400.
+       FlowTrain'de tam yuvarlak (hap), 20px/12px dolgu ve kalın yazı vardı;
+       iki ürün yan yana konduğunda EN ÇOK bu ayrışıyordu. Hap biçimi
+       FlowUI'da yalnız preset/süzgeç haplarında var, düğmelerde yok. */
     @apply inline-flex items-center justify-center gap-2 cursor-pointer select-none
-      bg-accent text-white font-semibold rounded-full px-5 py-3
+      bg-accent text-white rounded-flow-sm px-[12px] py-[7.5px] text-[13px]
       transition-all duration-200 ease-out
       hover:bg-accent-dark active:scale-[0.98]
       disabled:opacity-30 disabled:active:scale-100 disabled:cursor-default;
   }
 
+  /* İKİNCİL DÜĞME — METİN RENGİNİ KENDİ SÖYLER.
+     Söylemediğinde etiketine göre iki farklı düğme oluyordu: `<button>`
+     gövde rengini miras alıyor, `<Link>` ise global `a { color: primary }`
+     yüzünden MAVİ çıkıyordu. Aynı şeridin üstünde duran "Paketler" ve "QR
+     etiketleri" tam bu yüzden koyu zeminde 3.7:1 ile yazılıyordu — AA metin
+     eşiğinin (4.5) altı. Görsel tutarsızlık ve okunabilirlik kusuru, tek
+     eksik bildirimden.
+
+     DEĞER AİLEDEN: FlowUI'ın çalışan hâlinde bu düğmenin karşılığı
+     `.btn-outline-primary` (aynı kenarlık #2a3390, aynı lacivert dolgu) ve
+     metni rgb(184,196,242). `text-ink-2` ARTIK AYNI DEĞERDE (#b8c4f2):
+     29.08.2026'da metin rampasının tamamı FlowUI ile eşitlendi — daha
+     önce bir tık parlaktı (#ccd6f5) ve tonlar birbirine giriyordu. */
   .btn-ghost {
-    @apply focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
+    @apply focus-visible:outline-none;
     @apply inline-flex items-center justify-center gap-2 cursor-pointer select-none
-      border border-line bg-white font-semibold rounded-full px-5 py-2.5
-      transition-all duration-200 hover:bg-paper hover:border-muted/50 active:scale-[0.98]
+      border border-line bg-yuzey text-ink-2 rounded-flow-sm px-[12px] py-[7.5px] text-[13px]
+      transition-all duration-200 hover:bg-vurgu hover:border-muted/50 hover:text-ink
+      active:scale-[0.98]
       disabled:opacity-30 disabled:cursor-default disabled:active:scale-100;
   }
 
 
+  /* ── GİRİŞ ALANI — İMZA HALKASI ────────────────────────────────────────
+     ODAK DİLİ İKİYE AYRILIR ve karıştırılmaz (FlowUI kuralı):
+       · yazı girişi ve textarea → İMZA HALKASI (`--flow-ring`)
+       · buton, hap, seçici      → tema vurgusu (`--flow-pill-accent`)
+     Eskiden buradaki odak da accent halkasıydı; yani alan ile düğme aynı
+     dili konuşuyordu ve markanın imzası hiçbir yerde görünmüyordu.
+
+     HALKA NASIL ÇİZİLİYOR: kenarlık şeffaf bırakılır, iki katmanlı bir
+     background verilir — üstteki düz yüzey rengi `padding-box`a, alttaki
+     degrade `border-box`a kırpılır. Böylece degrade YALNIZ 1px'lik kenarda
+     görünür. Gerçek bir `border-image` değil, çünkü border-image yuvarlak
+     köşeleri takip etmiyor.
+
+     ⚠ TUZAK: bu alana `background:` KISAYOLU yazma, `background-color` yaz.
+     Kısayol `background-image` katmanını da sıfırlar ve halka sessizce
+     kaybolur — FlowUI'da iki dosyada yaşandı. */
+  /* ÖLÇÜ FLOWUI'DAN: alan zemini YÜZEYDEN BİR TON AÇIK (`surface-2`) —
+     alan, üstünde durduğu karttan ayrışsın. 8px köşe, 7px/10px dolgu,
+     14px punto. Bendeki hâl 12px köşe ve iki katı dolguyla çok daha
+     iri duruyordu. */
   .input-base {
-    @apply w-full bg-white border border-line rounded-xl px-4 py-3
-      transition-all duration-200
-      focus:outline-none focus:border-accent focus:ring-4 focus:ring-accent-soft;
+    /* Punto `px` — `text-sm` kök 13px'te 11.4px veriyordu, FlowUI'da 14px
+       ölçüldü. Ölçülen değer ölçüldüğü birimde saklanır. */
+    @apply w-full bg-yuzey2 border border-line rounded-flow-sm px-[10px] py-[7px] text-[14px]
+      transition-all duration-200 focus:outline-none;
+  }
+
+  /* KURAL ETİKET SEVİYESİNDE, SINIF SEVİYESİNDE DEĞİL.
+     Yalnız `.input-base`e bağlansaydı sınıfsız yazılmış alanlar imzasız
+     kalırdı — ölçtüm, giriş ekranının kendi alanları tam olarak öyle
+     (`className=""`). Odak dili yüzeyden yüzeye değişemez.
+
+     HANGİ ALANLAR: yazı girişi ve textarea. Onay kutusu, radyo, kaydırıcı,
+     dosya ve renk seçici DIŞARIDA — onları tarayıcı kendi çiziyor, kenarlık
+     katmanı yok ve halka görünmüyor bile. Düğmeler de dışarıda: onların
+     vurgusu `--flow-pill-accent`, proje iki vurgu dilini karıştırmıyor. */
+  input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]),
+  textarea {
+    transition:
+      border-color var(--flow-transition),
+      box-shadow var(--flow-transition);
+  }
+
+  input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):hover:not(:focus):not(:disabled),
+  textarea:hover:not(:focus):not(:disabled) {
+    border-color: transparent;
+    background-image: linear-gradient(var(--flow-surface), var(--flow-surface)), var(--flow-ring-soft);
+    background-origin: padding-box, border-box;
+    background-clip: padding-box, border-box;
+  }
+
+  input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):focus,
+  textarea:focus {
+    outline: none;
+    border-color: transparent;
+    background-image: linear-gradient(var(--flow-surface), var(--flow-surface)), var(--flow-ring);
+    background-origin: padding-box, border-box;
+    background-clip: padding-box, border-box;
+    /* Işık halkanın KENDİ rengiyle değil, TEMANIN vurgusuyla: dört renkli
+       bir gölge kutuyu bulanık gösteriyordu. */
+    box-shadow: 0 0 10px color-mix(in srgb, var(--flow-pill-accent) 25%, transparent);
+  }
+
+  /* Düğme odak ışığı TEK YERDE: üç düğme sınıfı da aynı dili konuşur. */
+  .btn-primary:focus-visible,
+  .btn-ghost:focus-visible,
+  .btn-icon:focus-visible {
+    box-shadow:
+      0 0 0 3px var(--flow-primary-soft),
+      var(--flow-pill-glow, 0 0 0 0 rgba(0, 0, 0, 0));
   }
 
   .eyebrow {
@@ -163,15 +373,15 @@ body {
   }
 
   .chip {
-    @apply inline-flex items-center gap-1.5 bg-white border border-line rounded-full
+    @apply inline-flex items-center gap-1.5 bg-yuzey border border-line rounded-full
       px-3 py-1 text-sm font-semibold;
   }
 
   .btn-icon {
-    @apply relative inline-grid place-items-center w-9 h-9 shrink-0 rounded-lg
+    @apply relative inline-grid place-items-center w-9 h-9 shrink-0 rounded-flow-sm
       text-muted hover:text-ink hover:bg-line/60 transition-colors
       active:bg-line active:text-ink
-      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40
+      focus-visible:outline-none
       disabled:opacity-30 disabled:hover:bg-transparent;
   }
 
@@ -218,7 +428,7 @@ body {
      Dokunma hedefi 72px'in altına inmez, punto büyüktür, seçenek azdır.
      Kokpit sınıflarını burada kullanma — 44px'lik buton eldivenle ıskalanıyor. */
   .kiosk-btn {
-    @apply inline-flex min-h-[72px] w-full items-center justify-center gap-3 rounded-2xl
+    @apply inline-flex min-h-[72px] w-full items-center justify-center gap-3 rounded-flow
       px-6 text-xl font-bold cursor-pointer select-none transition-all duration-150
       active:scale-[0.99] focus-visible:outline-none focus-visible:ring-4;
   }
@@ -229,7 +439,7 @@ body {
   }
 
   .kiosk-btn-ghost {
-    @apply kiosk-btn border-2 border-line bg-white text-ink hover:border-accent/60
+    @apply kiosk-btn border-2 border-line bg-yuzey text-ink hover:border-accent/60
       focus-visible:ring-accent-soft disabled:opacity-30 disabled:cursor-default;
   }
 
@@ -238,7 +448,7 @@ body {
      çünkü ölçüler satır içi yazıldığında ikinci simge düğmesinde kopyalanır ve
      biri er geç küçük kalır. */
   .kiosk-btn-ikon {
-    @apply inline-grid h-[72px] w-[72px] shrink-0 place-items-center rounded-2xl
+    @apply inline-grid h-[72px] w-[72px] shrink-0 place-items-center rounded-flow
       text-muted transition-colors hover:bg-line/60 hover:text-ink
       focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
   }
@@ -246,7 +456,7 @@ body {
   /* Kiosk'ta seçilebilir şık: seçili hâli UZAKTAN okunmalı (renk tek başına
      yetmez — kalın kenar + dolgu birlikte). */
   .kiosk-secenek {
-    @apply flex w-full items-center gap-4 rounded-2xl border-2 border-line bg-white
+    @apply flex w-full items-center gap-4 rounded-flow border-2 border-line bg-yuzey
       px-6 py-5 text-left text-lg font-semibold transition-all cursor-pointer
       hover:border-accent/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft;
   }

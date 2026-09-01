@@ -80,7 +80,27 @@ kontrol(/\.kiosk-btn\b[\s\S]*?min-h-\[72px\]/.test(css), "`.kiosk-btn` en az 72p
 kontrol(/\.kiosk-btn\b[\s\S]*?focus-visible:ring/.test(css), "`.kiosk-btn` odak halkası taşıyor");
 kontrol(/\.kiosk-secenek\b[\s\S]*?py-5/.test(css), "`.kiosk-secenek` satırı kalın dolgulu (72px'lik hedef)");
 kontrol(/\.kiosk-secenek\b[\s\S]*?focus-visible:ring/.test(css), "`.kiosk-secenek` odak halkası taşıyor");
-kontrol(/\.input-base\b[\s\S]*?focus:ring/.test(css), "metin alanı odak halkası taşıyor");
+/* METİN ALANININ GÖRÜNÜR ODAK GÖSTERGESİ.
+   Kural aynı, GÖSTERGE değişti: eskiden Tailwind'in `focus:ring` yardımcısıydı,
+   artık FlowUI'dan gelen İMZA HALKASI (`--flow-ring`) + tema vurgusu ışığı.
+   Sınav göstergenin ADINI değil VARLIĞINI ölçmeli, yoksa dil her
+   değiştiğinde erişilebilirlik kuralı da düşer.
+
+   İKİNCİ ÖLÇÜM DAHA GÜÇLÜ: kural artık ETİKET seviyesinde, yani sınıfsız
+   yazılmış bir `<input>` de halkayı alıyor. Önceden yalnız `.input-base`
+   giyenler korunuyordu ve giriş ekranının alanları sınıfsızdı — kural
+   yazılıydı ama en çok gerektiği yerde işlemiyordu. */
+const odakGostergesi = /:focus[\s\S]{0,400}?(--flow-ring\)|focus:ring)/;
+kontrol(odakGostergesi.test(css), "metin alanı odak göstergesi taşıyor");
+kontrol(
+  /input:not\(\[type="hidden"\]\)[\s\S]{0,600}?:focus[\s\S]{0,300}?--flow-ring\)/.test(css),
+  "odak halkası SINIFSIZ input'lara da işliyor (etiket seviyesinde kural)",
+);
+/* Halka YALNIZ yazı alanlarında: onay kutusu ve düğme kapsam DIŞINDA
+   olmalı, yoksa projenin iki vurgu dili birbirine karışır. */
+for (const disarida of ["checkbox", "radio", "submit", "button", "file"]) {
+  kontrol(css.includes(`:not([type="${disarida}"])`), `halka kapsamı ${disarida} tipini dışlıyor`);
+}
 
 /* ── 2. Kiosk yüzeyinde KOKPİT düğme sınıfları yok ──────────────────────────
    `.btn-icon` 36px, `.btn-primary`/`.btn-ghost` ~44px. Üçü de eldivenle
@@ -200,11 +220,31 @@ kontrol(kiosk && /relatedTarget/.test(kiosk.metin), "odak geri çekme koşullu �
 kontrol(/prefers-reduced-motion/.test(css), "hareket azaltma tercihi karşılanıyor");
 
 /* ── 13. Renk kontrastı — durum metni koyu tonda ────────────────────────────
-   `#16a34a` beyaz üstünde 3.30:1, WCAG AA'nın 4.5:1 eşiğini geçmiyor. Metinde
-   koyu karşılıkları kullanılmalı. */
+   Dolgu rengi metin olarak okunmuyor: eski `#16a34a` beyaz üstünde 3.30:1,
+   WCAG AA'nın 4.5:1 eşiğinin altında. Metinde AYRI bir ton kullanılmalı.
+
+   ÖLÇÜ HEX DEĞİL, BAĞLANTI. Renkler artık `flow-tokens.css`teki token
+   katmanından geliyor ve TEMAYA GÖRE değişiyor — açık temada
+   `--flow-success-text` #0b7a52, koyuda #6ee7a8. Sabit bir hex arayan
+   sınav, doğru çalışan bir yapıyı düşürürdü. Aranan şey artık kuralın
+   kendisi: `dark` tonu VAR MI ve dolgunun kendisinden AYRI bir token'a mı
+   bakıyor. Değerlerin eşiği geçtiği token katmanında yazılı ve orada
+   gerçek ekranda ölçüldü. */
 const tw = readFileSync("tailwind.config.ts", "utf8");
-esit(/iyi:\s*\{[^}]*dark:\s*"(#[0-9a-f]{6})"/i.exec(tw)?.[1], "#15803d", "iyi/dark metin tonu duruyor");
-esit(/orta:\s*\{[^}]*dark:\s*"(#[0-9a-f]{6})"/i.exec(tw)?.[1], "#b45309", "orta/dark metin tonu duruyor");
+const jetonu = (ad) => new RegExp(ad + ":\\s*\\{[^}]*dark:\\s*jeton\\(\"(--flow-[a-z-]+)\"\\)", "i").exec(tw)?.[1];
+esit(jetonu("iyi"), "--flow-success-text", "iyi/dark AYRI bir metin token'ına bağlı");
+esit(jetonu("orta"), "--flow-warning-text", "orta/dark AYRI bir metin token'ına bağlı");
+/* Dolgu ile metin AYNI token olamaz: tek değere düşerse kural sessizce ölür
+   (açık temada amber dolgusu metin olarak 1.69 veriyordu). */
+const dolgusu = (ad) => new RegExp(ad + ":\\s*\\{[^}]*DEFAULT:\\s*jeton\\(\"(--flow-[a-z-]+)\"\\)", "i").exec(tw)?.[1];
+kontrol(!!jetonu("iyi") && dolgusu("iyi") !== jetonu("iyi"), "iyi: dolgu ile metin ayrı token");
+kontrol(!!jetonu("orta") && dolgusu("orta") !== jetonu("orta"), "orta: dolgu ile metin ayrı token");
+/* Token katmanı bu dört değeri GERÇEKTEN tanımlıyor mu? Tailwind var olmayan
+   bir değişkene bakarsa renk sessizce şeffaf çizilir — metin kaybolur. */
+const jetonKatmani = readFileSync("src/styles/flow-tokens.css", "utf8");
+for (const ad of ["--flow-success-text", "--flow-warning-text", "--flow-success", "--flow-warning"]) {
+  kontrol(jetonKatmani.includes(ad + ":"), `${ad} token katmanında tanımlı`);
+}
 const acikDurumMetni = tumTsx.filter((d) => /text-(iyi|orta)(?!-dark)\b/.test(d.metin));
 kontrol(
   acikDurumMetni.length === 0,

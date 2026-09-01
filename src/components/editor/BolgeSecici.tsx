@@ -132,7 +132,7 @@ export default function BolgeSecici({
 
   if (!gorselId) {
     return (
-      <p className="mt-3 flex items-start gap-2 rounded-xl border border-dashed border-orta/50 bg-orta/5 px-4 py-3 text-sm text-orta-dark">
+      <p className="mt-3 flex items-start gap-2 rounded-flow border border-dashed border-orta/50 bg-orta/5 px-4 py-3 text-sm text-orta-dark">
         <Icon name="warning" size={16} />
         <span>
           <strong>Önce soru görseli seçin.</strong> Bu tipte bölgeler görselin üzerine çizilir; görsel olmadan sorulacak
@@ -154,7 +154,7 @@ export default function BolgeSecici({
         onPointerMove={surukle}
         onPointerUp={birak}
         onPointerCancel={() => setCizim(null)}
-        className={`relative inline-block max-w-full touch-none select-none overflow-hidden rounded-xl border border-line ${
+        className={`relative inline-block max-w-full touch-none select-none overflow-hidden rounded-flow border border-line ${
           kilitli ? "" : "cursor-crosshair"
         }`}
       >
@@ -213,17 +213,17 @@ export default function BolgeSecici({
       </div>
 
       {gecerli.length === 0 ? (
-        <p className="mt-2 flex items-start gap-2 rounded-xl border border-dashed border-orta/50 bg-orta/5 px-4 py-3 text-sm text-orta-dark">
+        <p className="mt-2 flex items-start gap-2 rounded-flow border border-dashed border-orta/50 bg-orta/5 px-4 py-3 text-sm text-orta-dark">
           <Icon name="warning" size={16} />
           <span>Henüz bölge yok — görselin üzerine bir kutu çizin, yoksa soruda işaretlenecek hiçbir yer olmaz.</span>
         </p>
       ) : (
         <ul className="mt-3 space-y-2">
           {gecerli.map((k, sira) => (
-            <li key={k.i} className="rounded-xl border border-line p-2.5">
+            <li key={k.i} className="rounded-flow border border-line p-2.5">
               <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold text-white ${
+                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-flow-sm text-xs font-bold text-white ${
                     dogru.includes(k.i) ? "bg-brand" : "bg-accent"
                   }`}
                 >
@@ -287,7 +287,7 @@ export default function BolgeSecici({
       )}
 
       {gecerli.length > 0 && isaretli === 0 ? (
-        <p className="mt-2 flex items-start gap-2 rounded-xl border border-brand/30 bg-brand-soft px-4 py-3 text-sm font-semibold text-brand-dark">
+        <p className="mt-2 flex items-start gap-2 rounded-flow border border-brand/30 bg-brand-soft px-4 py-3 text-sm font-semibold text-brand-dark">
           <Icon name="warning" size={16} />
           <span>Hiçbir bölge tehlikeli işaretlenmedi — bu soruyu kimse doğru cevaplayamaz.</span>
         </p>

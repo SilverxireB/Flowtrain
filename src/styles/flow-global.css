@@ -1,0 +1,1184 @@
+/* ============================================================
+   FLOW GLOBAL DİLİ — FlowUI'dan devralındı
+
+   `_flow-effects.scss`in (7471 satır) FlowTrain'de KARŞILIĞI OLAN
+   kısmı. Gelmeyenler bilerek dışarıda: reactstrap, react-select,
+   KGC, MDM, videowall ve station popover blokları FlowUI'a özel
+   bileşenlere bağlı ve burada tutunacak bir şey yok.
+
+   Renk yok, ölçü yok — hepsi `flow-tokens.css`ten. Bu dosya
+   BİÇİM ve DAVRANIŞ taşır.
+
+   ⚠ PUNTOLAR `px` — `rem` DEĞİL, ve bu bilinçli.
+   Bu dosyadaki punto değerleri FlowUI'ın ÇALIŞAN hâlinden piksel olarak
+   ölçüldü. Önce `rem` yazılmışlardı (16px kök varsayımıyla); sonra kök
+   Flow ölçeğine, 13px'e indirildi ve HEPSİ SESSİZCE %19 KÜÇÜLDÜ. Tablo
+   15px yerine 12.19px çiziliyordu — kullanıcı "tablolar hâlâ aynı değil"
+   diye bildirdi ve haklıydı.
+   Ölçülen bir değeri saklamanın doğru birimi, ölçüldüğü birimdir.
+
+   Kaynak kararların gerekçeleri `FlowUI/CLAUDE.md` ve tasarım el
+   kitabında (`/design-system`); buraya taşınırken sebepleriyle
+   birlikte yazıldı — sebebi olmayan kural, ilk itirazda düşer.
+   ============================================================ */
+
+/* ── HAP DİLİ (preset, süzgeç, sekme) ────────────────────────────────────
+   Dönen degrade halka BURADA KULLANILMAZ. Halka giriş alanlarının dili;
+   hap ve düğmelerin vurgusu temanın kendi kimliğinden gelir
+   (`--flow-pill-accent`: koyu = Beko mavisi, açık = Arçelik kırmızısı).
+   İkisi denendi ve rengarenk dağıtım da geri alındı.
+
+   Işığın ŞİDDETİ de temanın kararı: koyu zeminde glow doğal duruyor,
+   açık zeminde renkli gölge çiğ kaçtığı için orada ışık kapalı, yerine
+   çok hafif dolgu var. Yeni tema gelirse üç token tanımlamak yeter. */
+.flow-hap-serit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.flow-hap {
+  /* `inline-flex` ŞART: hap içinde simge + yazı yan yana durmalı. Blok
+     olarak bırakıldığında SVG kendi satırını alıyor ve "≡ / Filtreler"
+     alt alta düşüyordu (ekran görüntüsüyle yakalandı). */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  background-color: transparent;
+  color: var(--flow-text-2);
+  border: 1px solid var(--flow-border);
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  cursor: pointer;
+  transition:
+    color var(--flow-transition),
+    border-color var(--flow-transition),
+    background-color var(--flow-transition);
+}
+
+.flow-hap:hover {
+  color: var(--flow-text);
+  border-color: var(--flow-pill-accent, var(--flow-primary));
+  background-color: var(--flow-pill-fill, transparent);
+}
+
+.flow-hap[aria-pressed="true"],
+.flow-hap.secili {
+  color: var(--flow-text);
+  font-weight: 600;
+  border-color: var(--flow-pill-accent, var(--flow-primary));
+  background-color: var(--flow-pill-fill, transparent);
+  box-shadow: var(--flow-pill-glow, 0 0 0 0 rgba(0, 0, 0, 0));
+}
+
+/* ── BOŞ DURUMLAR ────────────────────────────────────────────────────────
+   Gri kutu YASAK (FlowUI'da Bootstrap `bg-light` yasağı). Boş durum
+   yüzeyin kendisidir, kesikli kenarla "burada bir şey OLABİLİRDİ" der. */
+.flow-bos-satir {
+  text-align: center;
+  color: var(--flow-text-2);
+  padding: 24px 16px;
+  border: 1px dashed var(--flow-border);
+  border-radius: var(--flow-radius);
+  background-color: var(--flow-surface);
+}
+
+.flow-bos-kart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 260px;
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--flow-text-2);
+  background-color: var(--flow-surface);
+  border: 1px dashed var(--flow-border);
+  border-radius: var(--flow-radius);
+}
+
+/* ── BÖLÜM ETİKETİ ───────────────────────────────────────────────────────
+   Kart GÖVDESİ içindeki ikincil başlık. Ana başlıkla yarışmaz; süzgeç
+   şeridindeki alan etiketleriyle aynı ağırlıkta konuşur. */
+.flow-bolum-basligi {
+  color: var(--flow-text-2);
+  font-size: 12.8px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* ── YERİNDE YENİLEME ────────────────────────────────────────────────────
+   İÇERİK SÖKÜLMEZ, üstüne buzlu cam iner. Tablo yenilenirken listeyi
+   kaldırıp spinner koymak iki şeyi bozuyordu: sayfa boyu zıplıyor ve
+   kullanıcı "veri gitti mi" diye tereddüt ediyordu. Rozet, arama kutusu
+   ve preset'ler yerinden oynamaz.
+
+   GECİKMELİ GİRİŞ: kısa sorgularda perde çakıp kaybolmasın diye 350 ms
+   geçmeden görünmez. Hızlı yanıtta hiç görünmez, yavaşta yumuşak gelir. */
+.flow-yenileme-kap {
+  position: relative;
+  min-height: 220px;
+}
+
+.flow-yenileme-perde {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  backdrop-filter: blur(3px);
+  background-color: color-mix(in srgb, var(--flow-bg) 45%, transparent);
+  border-radius: var(--flow-radius);
+  opacity: 0;
+  animation: flowGecikmeliGiris 0.25s ease 0.35s forwards;
+}
+
+@keyframes flowGecikmeliGiris {
+  to {
+    opacity: 1;
+  }
+}
+
+/* İLK YÜKLEME (arkada içerik yok): tül çizme, alanın ortasında sade dursun.
+   Yoksa boş sayfanın üstünde koyu bir dikdörtgen oluşuyor. */
+.flow-yenileme-perde:only-child {
+  position: static;
+  min-height: 55vh;
+  align-items: center;
+  padding-top: 0;
+  background-color: transparent;
+  backdrop-filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-yenileme-perde {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ── UYARI GÖSTERGESİ ────────────────────────────────────────────────────
+   Ünlem SVG olarak çizilir, simge fontuyla DEĞİL: font dolu daire içinde
+   oyuk ünlem veriyordu, istenen ikonik dil bunun tersi.
+
+   Rengi `--flow-uyari-renk` ile değişir; varsayılan tehlike. Sarı ikaz
+   gerektiğinde tek satır yeter. Kapsayıcısı `position: relative` olmalı. */
+.flow-alarm {
+  --flow-uyari-renk: var(--flow-danger);
+
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--flow-uyari-renk);
+  line-height: 1;
+  z-index: 20;
+  cursor: help;
+  /* Simgenin kendi ışığı: halka sönse bile ünlem parlar. */
+  filter: drop-shadow(0 0 4px var(--flow-uyari-renk));
+}
+
+.flow-alarm svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Yayılan uyarı ışığı — iki halka, arada gecikme; nabız gibi. */
+.flow-alarm::before,
+.flow-alarm::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1.5px solid var(--flow-uyari-renk);
+  opacity: 0;
+  animation: flowUyariYayil 2s ease-out infinite;
+  pointer-events: none;
+}
+
+.flow-alarm::after {
+  animation-delay: 1s;
+}
+
+@keyframes flowUyariYayil {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+/* Hareket azaltmada YAYILMA DURUR, SİMGE KALIR — uyarının kendisi
+   erişilebilirlik tercihine kurban edilmez. */
+@media (prefers-reduced-motion: reduce) {
+  .flow-alarm::before,
+  .flow-alarm::after {
+    animation: none;
+    opacity: 0.3;
+    transform: scale(1.35);
+  }
+}
+
+/* ── TABLO DİLİ ──────────────────────────────────────────────────────────
+   Yapışkan başlık şeridi, aynı hücre ritmi, satır vurgusu, token kenarlık.
+
+   ⚠ BİR KURAL BİLEREK FARKLI: FlowUI'da hücreler ORTALI ve gerekçesi
+   yazılı — "bu tablolar rozet ve düğme ağırlıklı, ortalı dizilim sütunları
+   düzgün gösteriyor". FlowTrain'in tabloları METİN ağırlıklı: sicil, ad,
+   bölüm, eğitim adı. Ortalamak, farklı uzunluktaki adları ortadan hizalayıp
+   göz için taranamaz hâle getirirdi. Kararın GEREKÇESİ burada geçerli
+   olmadığı için harfi de taşınmadı; ortalı hâl `--ortali` ile duruyor.
+
+   Bu, dili bozmak değil dilin kendi mantığını uygulamak: FlowUI'ın notu da
+   "kolon isterse hizasını seçer" diyor. */
+.flow-tablo {
+  width: 100%;
+  /* FlowUI'ın kokpit tablosuyla AYNI şema: tablo `--flow-text`, hücre
+     `--flow-text-2`. Önce `--flow-tablo-metin` diye ayrı bir token
+     vardı ve koyu temada #f2f5ff idi — başlıkla hücre aynı parlaklıkta
+     kalıyor, tabloda hiyerarşi hiç okunmuyordu. Ölçüldü: FlowUI'da
+     başlık 12.89:1, hücre 9.54:1 (surface-2 üstünde). */
+  color: var(--flow-text);
+  font-size: 15px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* KAP: tablo kendi yüzeyinde oturur ve köşeleri yuvarlaktır. Sayfalama
+   şeridi bu kabın İÇİNDE kalır — FlowUI kuralı: "sayfalama tablonun
+   DEVAMIDIR, ayrı kutu gibi durmaz". Ayrı bir kutu olarak çizildiğinde
+   listenin bittiği yer belirsizleşiyordu. */
+.flow-tablo-kap {
+  background-color: var(--flow-surface);
+  border: 1px solid var(--flow-border);
+  border-radius: var(--flow-radius);
+  overflow: hidden;
+}
+
+/* Sayfalama şeridi: aynı zemin, üstünde tek çizgi. */
+.flow-tablo-alt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--flow-border);
+  color: var(--flow-text-2);
+  font-size: 14px;
+}
+
+.flow-tablo th,
+.flow-tablo td {
+  border: none;
+  border-bottom: 1px solid var(--flow-border);
+  vertical-align: middle;
+  /* ORTALI — FlowUI'ın ÇALIŞAN hâlinde ölçüldü (`th` ve `td` ikisi de
+     `center`). Önce "FlowTrain'in tabloları metin ağırlıklı" diye sola
+     yaslamıştım; gerekçe makuldü ama ölçüm aksini söylüyor ve amaç aynı
+     aileden görünmek. Sola yaslı hâl `--sola` ile duruyor. */
+  text-align: center;
+}
+
+.flow-tablo--sola th,
+.flow-tablo--sola td {
+  text-align: left;
+}
+
+/* SATIRIN KENDİ YÜZEYİ VAR — saydam bırakıldığında yapışkan başlığın
+   altından geçen satırlar başlığa karışıyordu. */
+.flow-tablo tbody tr {
+  background-color: var(--flow-surface);
+}
+
+/* ⚠ ÖNCEKİ NOT YANLIŞTI, DÜZELTİLDİ (29.08.2026).
+   "FlowUI'da kırpma yok" ölçümü YANLIŞ TABLOYA yapılmıştı: sonda
+   `.flow-inline-table` sınıfını okumuş, o ise FORM İÇİ küçük liste
+   dili. `.flow-tablo`nun taklit ettiği şey KOKPİT tablosu
+   (SimpleDataTable) ve orada kırpma var:
+     .table td { max-width: 220px; white-space: nowrap;
+                 overflow: hidden; text-overflow: ellipsis; }
+   Kırpma olmayınca uzun eğitim adı sütunu şişirip komşularını
+   eziyordu — iki ürünü ayıran görünür farklardan biri buydu.
+   DERS: hangi tabloyu ölçtüğünü doğrula; FlowUI'da iki ayrı tablo
+   dili var ve kuralları farklı. */
+
+/* Yalnız ÜST köşeler yuvarlak: alt köşeleri sayfalama şeridi kapatıyor. */
+.flow-tablo thead th:first-child {
+  border-top-left-radius: var(--flow-radius);
+}
+
+.flow-tablo thead th:last-child {
+  border-top-right-radius: var(--flow-radius);
+}
+
+/* Sayılar HER ZAMAN sağda ve tabular: soldan hizalı rakam sütunu
+   karşılaştırılamaz. */
+.flow-tablo .sayi {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.flow-tablo td {
+  max-width: 220px;
+  padding: 8px 12px;
+  color: var(--flow-text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flow-tablo th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 12px;
+  background-color: var(--flow-surface-2);
+  /* `background-clip` olmadan yapışkan başlığın altından satırlar
+     sızıyordu (kenarlık ile zemin arasında bir piksel). */
+  background-clip: padding-box;
+  color: var(--flow-text);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* TABLO İÇİNDEKİ BAĞLANTI RENGİNİ MİRAS ALIR, mavi DEĞİLDİR.
+   `globals.css`teki `a { color: var(--flow-primary) }` kuralı satır
+   başlıklarını da maviye boyuyordu; oysa işaretleme zaten
+   `hover:text-accent` diyerek "normalde metin, üstüne gelince vurgu"
+   niyetini yazmıştı — global kural bu niyeti eziyordu.
+
+   ÖLÇÜLEBİLİR SONUÇ: #556ee6 koyu temada kart zemininde 3.7:1, yani AA
+   metin eşiğinin (4.5) ALTINDA. Tablonun en önemli sütunu okunması en zor
+   sütun oluyordu. Satırın tamamı zaten tıklanabilir ve sonunda "›" var;
+   mavi boya bilgi taşımıyor, yalnız kontrast kaybettiriyordu.
+
+   ⚠ ÖZGÜLLÜK BURADA İŞİN KENDİSİ, süsü değil. Üç kural yarışıyor:
+     `a`                        0,0,1  (globals.css — mavi)
+     bu kural                   0,0,2  (`:where` sarmalı sayesinde)
+     `.hover\:text-accent:hover` 0,2,0  (Tailwind — üstüne gelince vurgu)
+   Aradaki dar bant şart: yükseğe çıkarsam (`.flow-tablo tbody a` = 0,2,1)
+   hover'ı da eziyorum, alçağa inersem `a` beni eziyor. İlk denemem
+   `:not([class*="text-"])` idi ve KENDİNİ vurdu — işaretlemedeki
+   `hover:text-accent` sınıf adının içinde de "text-" geçiyor.
+   Rengini SÖYLEYEN bağlantılar (`text-*` sınıfı) 0,1,0 ile yine kazanır. */
+:where(.flow-tablo) tbody a {
+  color: inherit;
+}
+
+.flow-tablo th[role="button"],
+.flow-tablo th.siralanabilir {
+  cursor: pointer;
+  user-select: none;
+}
+
+.flow-tablo tbody tr {
+  transition: background-color var(--flow-transition);
+}
+
+.flow-tablo tbody tr:hover {
+  background-color: var(--flow-hover);
+}
+
+.flow-tablo tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── KAYDIRMA ÇUBUĞU ─────────────────────────────────────────────────────
+   Tarayıcının kendi çubuğu koyu temada beyaz kalıyordu. `color-scheme`
+   çoğunu hallediyor ama kart içi yatay kaplar ince çubuk istiyor. */
+.flow-kaydir-x {
+  overflow-x: auto;
+}
+
+.flow-kaydir-x::-webkit-scrollbar {
+  height: 8px;
+}
+
+.flow-kaydir-x::-webkit-scrollbar-track {
+  background: var(--flow-scroll-track);
+  border-radius: 4px;
+}
+
+.flow-kaydir-x::-webkit-scrollbar-thumb {
+  background-color: var(--flow-scroll-thumb);
+  border-radius: 4px;
+}
+
+.flow-kaydir-x::-webkit-scrollbar-thumb:hover {
+  background-color: var(--flow-scroll-thumb-hover);
+}
+
+/* Sayfanın kendi çubuğu da dilin parçası. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--flow-scroll-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--flow-scroll-thumb);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--flow-scroll-thumb-hover);
+}
+
+/* ── ZORUNLU ALAN ────────────────────────────────────────────────────────
+   Yıldız ANLAM rengini taşır, süs değildir. */
+.flow-zorunlu::after {
+  content: "*";
+  color: var(--flow-danger-text);
+  margin-left: 0.25em;
+  font-weight: 700;
+}
+
+/* ── CAM PANEL ───────────────────────────────────────────────────────────
+   Cam ancak ARKASIYLA ARASINDA FARK varsa cam okunur. Yüzey ile zemin
+   aynı koyuluktaysa saydamlığın gösterecek bir şeyi olmaz. Bu yüzden
+   zemin renk alanları taşır, kart dolgu boya değil TÜL'dür.
+
+   Değerler FlowUI'ın cam laboratuvarından geldi (`design-lab/cam-lab.html`);
+   vurgu gücü %56 TAVANDIR — en aydınlık köşede ikinci ton metin 4.65
+   veriyor (eşik 4.5). %68 denendi, 3.81'e düştü. */
+.flow-cam-zemin {
+  position: relative;
+  background-color: var(--flow-bg);
+  isolation: isolate;
+}
+
+.flow-cam-zemin::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(
+      60% 55% at 12% 8%,
+      color-mix(in srgb, var(--flow-panel-vurgu-1, var(--flow-primary)) var(--flow-panel-vurgu-opak, 40%), transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      55% 50% at 88% 92%,
+      color-mix(in srgb, var(--flow-panel-vurgu-2, var(--flow-primary)) var(--flow-panel-vurgu-opak, 40%), transparent),
+      transparent 70%
+    );
+}
+
+.flow-cam-panel {
+  background-color: var(--flow-glass-panel);
+  border: 1px solid var(--flow-glass-panel-kenar);
+  border-radius: var(--flow-radius);
+  backdrop-filter: blur(10px);
+}
+
+/* ── HOVER'DA KUTU YER DEĞİŞTİRMEZ ───────────────────────────────────────
+   SESSİZ HATA, FlowUI'da ölçüldü: kart hover'da 3px yukarı kalkınca imleç
+   kartın dışında kalıyor, hover düşüyor, kart geri iniyor — kart titriyor.
+   Titreme sırasında `mousedown` ile `mouseup` aynı öğede tamamlanmadığı
+   için tarayıcı `click` ÜRETMİYOR: kullanıcı tıklıyor, hiçbir şey olmuyor.
+   Konsolda iz yok, ölçümde "öğe en üstte" görünüyor.
+
+   Vurgu YERİNDE kalarak yapılır: kenarlık, zemin, gölge. */
+.flow-tiklanir {
+  cursor: pointer;
+  transition:
+    border-color var(--flow-transition),
+    background-color var(--flow-transition),
+    box-shadow var(--flow-transition);
+}
+
+.flow-tiklanir:hover {
+  border-color: var(--flow-pill-accent, var(--flow-primary));
+  background-color: var(--flow-hover);
+}
+
+/* ── VERİ YOKSA TIKLANABİLİR BIRAKMA ─────────────────────────────────────
+   Ayrım SOLGUNLUK DEĞİL: solgun göstermek sayının kendisini de şüpheli
+   yapıyor, oysa taşıdığı sayı gerçek. Kesik kenar + sebep yazısı. */
+.flow-veri-yok {
+  border-style: dashed;
+  cursor: default;
+}
+
+/* ── SEÇİCİ DİLİ ─────────────────────────────────────────────────────────
+   ODAK DİLİ İKİYE AYRILIR ve seçici HALKA TARAFINDA DEĞİL: yazı girişi ve
+   textarea imza halkasını alır, seçici ve düğmeler tema vurgusunun ışığını
+   (`--flow-pill-accent`). FlowUI'da bu bir kullanıcı kararı — halka arama
+   ve şifre alanlarında hoş duruyor, seçicide değil.
+
+   FlowUI native `<select>` kullanmıyor (react-select ile değiştirdi) çünkü
+   açılır listeyi işletim sistemi çiziyor ve CSS oraya işlemiyor. FlowTrain
+   O YOLU İZLEYEMEZ: kapalı ağ ürününde yeni npm paketi eklenmez (CLAUDE.md
+   8) ve sıfırdan seçici yazmak, kazandığından çok bakım yükü getirirdi.
+
+   Bunun yerine kuralın ARDINDAKİ derdi çözüyoruz: açılır listenin temaya
+   uymaması. `color-scheme` token katmanında bildiriliyor, yani listeyi
+   tarayıcı KOYU çiziyor — FlowUI'ın token dosyasında da tam olarak bu
+   gerekçeyle duruyor. Kapalı hâl aşağıda dile giydiriliyor. */
+/* ⚠ SEÇİCİNİN ZEMİNİ — İNCE DENGE, DEĞİŞTİRMEDEN ÖNCE OKU.
+
+   Chrome/Windows'ta `<select>`e ÖZEL BİR ZEMİN vermek, açılır listeyi
+   "stilli" kipe sokuyor ve o kipte `color-scheme` devre dışı kalıp liste
+   AÇIK renk açılıyor. Yani kutuyu güzelleştiren satır, listeyi bozuyor.
+   Kullanıcı iki kez ekran görüntüsüyle bildirdi.
+
+   ÇÖZÜM: zemin SEÇİCİDE DEĞİL, sarmalayıcıda. `select` saydam kalıyor —
+   böylece Chrome native (koyu) listeyi çiziyor — görünen zemini altındaki
+   `.flow-secici` veriyor. Kapalı hâl dilde, açık hâl tarayıcının koyu
+   çiziminde.
+
+   `background-color: transparent` ŞART: kaldırılırsa tarayıcı kendi gri
+   zeminini koyuyor (ölçüldü: rgb(59,59,59)). */
+select {
+  background-color: transparent;
+  color: var(--flow-text);
+  border: 1px solid var(--flow-border);
+  border-radius: var(--flow-radius-sm);
+}
+
+/* Seçici alanı — `.input-base`in seçici karşılığı. Aynı ölçü, aynı kenar,
+   ama ZEMİN YOK: zemin `select`e verilirse Chrome açılır listeyi açık
+   renk çiziyor (yukarıdaki gerekçe). Görünen zemin `background` yerine
+   `box-shadow` ile veriliyor — o, listeyi "stilli" kipe sokmuyor. */
+.flow-secici-alan {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--flow-border);
+  border-radius: var(--flow-radius-sm);
+  color: var(--flow-text);
+  background-color: transparent;
+  box-shadow: inset 0 0 0 100vmax var(--flow-surface);
+  transition:
+    border-color var(--flow-transition),
+    box-shadow var(--flow-transition);
+}
+
+.flow-secici-alan:hover:not(:focus):not(:disabled) {
+  border-color: var(--flow-pill-accent, var(--flow-primary));
+}
+
+.flow-secici-alan:focus {
+  outline: none;
+  border-color: var(--flow-pill-accent, var(--flow-primary));
+  box-shadow:
+    inset 0 0 0 100vmax var(--flow-surface),
+    var(--flow-pill-glow, 0 0 0 3px var(--flow-primary-soft));
+}
+
+/* Seçicinin görünen zemini. `select`i saran her yer bunu giyer; sarmayan
+   yerde seçici sayfanın zemininde durur ve yine okunur. */
+.flow-secici {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--flow-surface);
+  border-radius: var(--flow-radius-sm);
+}
+
+.flow-secici > select {
+  border-radius: var(--flow-radius-sm);
+}
+
+/* ⛔ `select option`A ZEMİN YAZILMAZ — bu kural buradaydı ve BEYAZ AÇILIR
+   LİSTENİN SEBEBİYDİ (kullanıcı ekran görüntüsüyle yakaladı).
+
+   Chrome'da `option`a renk vermek açılır listeyi "stilli" kipe sokuyor ve
+   o kipte `color-scheme` devre dışı kalıp liste AÇIK renk çiziliyor. Yani
+   listeyi temaya uydurmak için yazılan satır, tam tersini yapıyordu.
+
+   Doğru yol: hiç dokunmamak. `color-scheme: dark` token katmanında
+   bildiriliyor, listeyi tarayıcı KENDİ koyu çizimiyle açıyor — üstelik
+   klavye gezinme vurgusu da işletim sistemininki gibi doğru kalıyor.
+
+   FlowUI'da `option` renklendirmesi var ama orada seçicilerin neredeyse
+   tamamı react-select (menüyü kendi çiziyor); native liste nadir. Burada
+   native liste ASIL yol, o yüzden kural farklı uygulanıyor. */
+
+select:hover:not(:focus):not(:disabled) {
+  border-color: var(--flow-pill-accent, var(--flow-primary));
+}
+
+select:focus,
+select:focus-visible {
+  outline: none;
+  border-color: var(--flow-pill-accent, var(--flow-primary));
+  box-shadow: var(--flow-pill-glow, 0 0 0 3px var(--flow-primary-soft));
+}
+
+/* ── ONAY KUTUSU VE RADYO ────────────────────────────────────────────────
+   `accent-color` YETMEZ (FlowUI ölçümü): yalnız İŞARETLİ hâli boyar, BOŞ
+   kutu tarayıcının kendi çizimi olarak kalır ve temayla ilgisi olmaz. Koyu
+   temada beyaz-gri bir kare olarak duruyordu.
+
+   Kutu tamamen bizim: `appearance: none` ile tarayıcının çizimi kapatılıyor,
+   tik `::after` ile çiziliyor. Dokunma hedefi küçülmüyor — ölçü çağıran
+   sınıftan (`h-4 w-4` / `h-5 w-5`) gelmeye devam ediyor. */
+input[type="checkbox"],
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-content: center;
+  background-color: var(--flow-surface);
+  border: 1px solid var(--flow-border);
+  cursor: pointer;
+  transition:
+    background-color var(--flow-transition),
+    border-color var(--flow-transition),
+    box-shadow var(--flow-transition);
+}
+
+input[type="checkbox"] {
+  border-radius: 5px;
+}
+
+input[type="radio"] {
+  border-radius: 50%;
+}
+
+input[type="checkbox"]:hover:not(:disabled),
+input[type="radio"]:hover:not(:disabled) {
+  border-color: var(--flow-pill-accent, var(--flow-primary));
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+  background-color: var(--flow-primary);
+  border-color: var(--flow-primary);
+}
+
+/* Tik ÇİZİLİYOR, karakter olarak yazılmıyor: "✓" karakteri yazı tipine göre
+   bir tık kayıyor ve küçük kutuda ortalanmıyor. Kenarlıktan L harfi kurup
+   döndürmek her puntoda aynı duruyor. */
+input[type="checkbox"]::after {
+  content: "";
+  width: 0.3em;
+  height: 0.55em;
+  border: solid var(--flow-primary-contrast);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-0.05em, -0.08em);
+  opacity: 0;
+  transition: opacity var(--flow-transition);
+}
+
+input[type="checkbox"]:checked::after {
+  opacity: 1;
+}
+
+input[type="radio"]::after {
+  content: "";
+  width: 0.4em;
+  height: 0.4em;
+  border-radius: 50%;
+  background-color: var(--flow-primary-contrast);
+  opacity: 0;
+  transition: opacity var(--flow-transition);
+}
+
+input[type="radio"]:checked::after {
+  opacity: 1;
+}
+
+/* Odak: burada da HALKA DEĞİL hap ışığı — onay kutusu bir yazı alanı değil. */
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible {
+  outline: none;
+  border-color: var(--flow-pill-accent, var(--flow-primary));
+  box-shadow: 0 0 0 3px var(--flow-primary-soft);
+}
+
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ── ARAMA KUTUSU — TEK ORTAK KİMLİK ─────────────────────────────────────
+   Tablo araması da sayfa araması da bu sınıfı giyer. Hap biçimli, ODAKTA
+   VE İÇİNDE SORGU VARKEN sağa doğru büyür: boştayken şeritte az yer kaplar,
+   yazarken uzun sicil/ad sığar. Dar kapsayıcıda `max-width` büyümeyi
+   kendiliğinden kısar.
+
+   İmza halkasını etiket seviyesindeki kuraldan alıyor — burası bir YAZI
+   ALANI, yani halka tarafında. FlowUI'ın notu da "halka arama ve şifre
+   alanlarında hoş duruyor" diyor. */
+.flow-arama {
+  background-color: var(--flow-surface);
+  color: var(--flow-text);
+  border: 1px solid var(--flow-border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  width: 200px;
+  max-width: 100%;
+  /* Punto FlowUI'da ölçüldü: 13px. Devralınan 16px kutuyu şişiriyordu. */
+  font-size: 13px;
+  transition:
+    border-color var(--flow-transition),
+    box-shadow var(--flow-transition),
+    width var(--flow-transition);
+}
+
+.flow-arama:focus,
+.flow-arama:not(:placeholder-shown) {
+  width: 260px;
+}
+
+.flow-arama::placeholder {
+  color: var(--flow-text-muted);
+}
+
+/* ── SÜZGEÇ KOKPİTİ ──────────────────────────────────────────────────────
+   TEK SATIR: kayıt rozeti solda · tarih hapları · "Filtreler" çipi ·
+   tabloda-ara · dışa aktarım sağda.
+
+   ⛔ KOKPİT KABI YOKTUR. FlowUI'da denendi ve KALDIRILDI: denetimleri ince
+   cam + tam yuvarlak bir kaba almak dar ekranda hoş duruyor ama şerit
+   uzadıkça hap biçimi çirkinleşiyor. Denetimler tablonun üstünde SERBEST
+   durur. (Ben önce kart içine almıştım — tam olarak reddedilen hâl.)
+
+   TEK SATIRA ZORLANMAZ: zorlandığında aktif çipler araya giriyor ve rozet
+   kırpılıyordu. Sığmama durumunda kaybedilecek şeyin SIRASI:
+     1) preset hapları (Bu ay → Son 7 gün → Dün; "Bugün" kalır)
+     2) arama yuvası daralır
+     3) en son satır atlanır — rozet ve çipler ASLA kırpılmaz. */
+.flow-kokpit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* Rozet HAP DİLİNDE ve asla kırpılmaz. */
+.flow-kokpit-rozet {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  background-color: var(--flow-primary-soft);
+  color: var(--flow-text-2);
+  border: 1px solid var(--flow-border);
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.flow-kokpit-rozet strong {
+  color: var(--flow-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Arama YUVASI sabit yer ayırır: satır kırma hesabı odakla DEĞİŞMEZ, yani
+   kutu büyürken şerit zıplamaz. Girdi yuvanın içinde büyür. */
+.flow-arama-yuva {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 240px;
+  min-width: 130px;
+}
+
+.flow-arama-yuva .flow-arama {
+  width: 100%;
+  padding-left: 34px;
+}
+
+.flow-arama-simge {
+  position: absolute;
+  left: 11px;
+  display: inline-flex;
+  color: var(--flow-text-muted);
+  pointer-events: none;
+}
+
+/* Panel KAPALI BAŞLAR, uygulanınca kendini toplar; durumu aktif çipler
+   anlatır. Zorunlu alanı olan sayfada açık başlar — burada yok. */
+/* Panel kokpitin ALTINDA kendi yüzeyini taşır: kokpit kapsız olduğu için
+   panelin de tutunacağı bir kart yok. Kesikli üst kenar "bu, üstteki
+   şeridin açılımı" der. */
+.flow-suzgec-panel {
+  margin-bottom: 10px;
+  padding: 12px 14px;
+  background-color: var(--flow-surface);
+  border: 1px solid var(--flow-border);
+  border-radius: var(--flow-radius);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── AKTİF SÜZGEÇ ÇİPLERİ ────────────────────────────────────────────────
+   Panel KAPALIYKEN neyin süzüldüğünü bunlar anlatır. Onlar olmadan panel
+   kapanınca kullanıcı "liste neden kısa" diye takılıyor ve süzgecin açık
+   olduğunu ancak paneli tekrar açınca görüyordu.
+
+   Çip DURUM DEĞİL EYLEM taşır: her birinin kendi kaldırma düğmesi var,
+   yani süzgeci gevşetmek için panele dönmek gerekmiyor. Kaldırma düğmesi
+   hover'da TEHLİKE rengine döner — bastığında bir şey kaybedeceğini söyler. */
+.flow-cip-serit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.flow-cip-etiket {
+  color: var(--flow-text-muted);
+  font-size: 13px;
+}
+
+.flow-cip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--flow-primary-soft);
+  color: var(--flow-text);
+  border: 1px solid var(--flow-border);
+  border-radius: 999px;
+  padding: 3px 6px 3px 12px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* Alan adı sakin, DEĞER baskın: "Bölüm: Montaj" okunurken göz değere gider. */
+.flow-cip-anahtar {
+  color: var(--flow-text-muted);
+}
+
+.flow-cip-sil {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background-color: transparent;
+  color: var(--flow-text-2);
+  cursor: pointer;
+  line-height: 1;
+  transition:
+    background-color var(--flow-transition),
+    color var(--flow-transition);
+}
+
+/* SİLME "×" HOVER'DA DOLU KIRMIZIYA GEÇER, TENTE DEĞİL — FlowUI'ın
+   `btn-outline-danger:hover` dili (dolu zemin + `--flow-primary-contrast`).
+   Eskiden tentli zemin üstünde `--flow-danger` metin olarak yazılıyordu;
+   açık tema alarm rengi FlowUI ile eşitlenince (#b71c1c → #e03131) o
+   birleşim 5.5'ten 3.77'ye düştü. ÖLÇÜLDÜ: dolu zemin üstünde beyaz 4.51,
+   tentli zeminde metin token'ıyla bile 4.49'da kalıyordu.
+   `--flow-danger` DOLGU token'ıdır; metin gerektiğinde `--flow-danger-text`
+   ya da bu desen kullanılır. */
+.flow-cip-sil:hover {
+  background-color: var(--flow-danger);
+  color: var(--flow-primary-contrast);
+}
+
+/* ── KOKPİT ARAÇ DÜĞMESİ ─────────────────────────────────────────────────
+   Dışa aktarım kokpitte SİMGE ÖLÇÜSÜNDE durur, sayfa düğmesi ölçüsünde
+   değil. `btn-ghost` (px-5 py-2.5) şeridi şişiriyor ve asıl iş olan
+   listeden dikkat çalıyordu — kokpit bir araç çubuğu, eylem alanı değil. */
+.flow-arac {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--flow-surface);
+  color: var(--flow-text-2);
+  border: 1px solid var(--flow-border);
+  border-radius: var(--flow-radius-sm);
+  padding: 5px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color var(--flow-transition),
+    border-color var(--flow-transition),
+    background-color var(--flow-transition);
+}
+
+.flow-arac:hover:not(:disabled) {
+  color: var(--flow-text);
+  border-color: var(--flow-pill-accent, var(--flow-primary));
+  background-color: var(--flow-hover);
+}
+
+.flow-arac:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ── SEÇİCİ (kendi menümüz) ──────────────────────────────────────────────
+   Ölçüler ÇALIŞAN FlowUI'dan alındı (react-select sınıfları sondayla
+   ölçüldü): kontrol yüzey zemininde, MENÜ BİR TON AÇIK (`surface-2`) —
+   menü kontrolün üstüne bindiğinde ayrışsın diye. 8px köşe, 13px punto,
+   asgari 37px yükseklik, menü z-index 1200.
+
+   NEDEN NATIVE `<select>` DEĞİL: açılır listeyi işletim sistemi çiziyor ve
+   CSS oraya işlemiyor. Chrome/Windows'ta seçiciye zemin vermek listeyi
+   "stilli" kipe sokup AÇIK renk açıyor; zemini kaldırınca da kutu
+   tarayıcının grisine düşüyor. İki ucu da denendi, ikisi de bozuk.
+   FlowUI aynı sebeple react-select'e geçmiş; burada yeni paket yasak
+   (CLAUDE.md 8), o yüzden menüyü kendimiz çiziyoruz. */
+.flow-secici-kap {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.flow-secici-dugme {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 37px;
+  padding: 4px 10px;
+  background-color: var(--flow-surface);
+  color: var(--flow-text);
+  border: 1px solid var(--flow-border);
+  border-radius: var(--flow-radius-sm);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--flow-transition),
+    box-shadow var(--flow-transition);
+}
+
+.flow-secici-dugme:hover:not(:disabled) {
+  border-color: var(--flow-pill-accent, var(--flow-primary));
+}
+
+/* Odak HAP IŞIĞI — seçici imza halkası ALMAZ (odak dili ikiye ayrılır). */
+.flow-secici-dugme:focus-visible,
+.flow-secici-kap[data-acik="evet"] > .flow-secici-dugme {
+  outline: none;
+  border-color: var(--flow-pill-accent, var(--flow-primary));
+  box-shadow: var(--flow-pill-glow, 0 0 0 3px var(--flow-primary-soft));
+}
+
+.flow-secici-dugme:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Yer tutucu (value="" seçili) sakin tonda. */
+.flow-secici-dugme[data-bos="evet"] {
+  color: var(--flow-text-muted);
+}
+
+.flow-secici-ok {
+  flex-shrink: 0;
+  color: var(--flow-text-muted);
+  transition: transform var(--flow-transition);
+}
+
+.flow-secici-kap[data-acik="evet"] .flow-secici-ok {
+  transform: rotate(180deg);
+}
+
+/* MENÜ bir ton açık yüzeyde: kontrolün üstüne bindiğinde ayrışsın. */
+.flow-secici-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 100%;
+  max-width: min(28rem, 90vw);
+  max-height: 16rem;
+  overflow-y: auto;
+  z-index: 1200;
+  background-color: var(--flow-surface-2);
+  border: 1px solid var(--flow-border);
+  border-radius: var(--flow-radius-sm);
+  box-shadow: var(--flow-shadow);
+  padding: 4px;
+  margin: 0;
+  list-style: none;
+}
+
+.flow-secici-secenek {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: calc(var(--flow-radius-sm) - 2px);
+  background-color: transparent;
+  color: var(--flow-text-2);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ODAKTAKİ ile SEÇİLİ ayrı şeyler: biri klavyenin nerede olduğunu, diğeri
+   hangi değerin yürürlükte olduğunu söyler. Tek renge indirilirse klavyeyle
+   gezerken seçim değişmiş gibi görünüyor. */
+.flow-secici-secenek[data-odak="evet"] {
+  background-color: var(--flow-hover);
+  color: var(--flow-text);
+}
+
+.flow-secici-secenek[aria-selected="true"] {
+  background-color: var(--flow-primary);
+  color: var(--flow-primary-contrast);
+}
+
+/* ── TEMA MENÜSÜ ─────────────────────────────────────────────────────────
+   Seçici menüsüyle aynı dil; ayrı bileşen çünkü bu bir ARAÇ menüsü, form
+   alanı değil (seçenekler simge taşıyor, `name`/`value` sözleşmesi yok). */
+.flow-tema-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1200;
+  min-width: 11rem;
+  padding: 4px;
+  margin: 0;
+  list-style: none;
+  background-color: var(--flow-surface-2);
+  border: 1px solid var(--flow-border);
+  border-radius: var(--flow-radius-sm);
+  box-shadow: var(--flow-shadow);
+}
+
+.flow-tema-secenek {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: calc(var(--flow-radius-sm) - 2px);
+  background-color: transparent;
+  color: var(--flow-text-2);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.flow-tema-secenek:hover {
+  background-color: var(--flow-hover);
+  color: var(--flow-text);
+}
+
+.flow-tema-secenek[aria-checked="true"] {
+  color: var(--flow-text);
+  font-weight: 600;
+}
+
+/* ── KART BAŞLIK KUŞAĞI ──────────────────────────────────────────────────
+   FlowUI'ın kart kimliğinin en görünür parçası ve FlowTrain'de HİÇ YOKTU.
+   Ölçüldü: zemin `--flow-primary`, beyaz yazı, 10px/20px dolgu, üst köşeler
+   karttan devralınıyor, punto 1.6em, kalınlık 600.
+
+   Kuşak RENKLİ olduğu için içindeki metin kontrast rengini kullanır —
+   `--flow-text` yazılsaydı koyu temada beyaz zemine yakın bir maviye
+   düşerdi. FlowUI'ın "kontrast rengi yalnız dolgu üstünde" kuralı burada. */
+.flow-kart-kusak {
+  background-color: var(--flow-primary);
+  color: var(--flow-primary-contrast);
+  padding: 10px 20px;
+  font-size: 1.6em;
+  font-weight: 600;
+  /* Tam yarıçap: FlowUI'da 12px ölçüldü, `-1px` düzeltmesi kuşağı
+     karttan bir piksel içeri alıyordu. */
+  border-radius: var(--flow-radius) var(--flow-radius) 0 0;
+}
+
+/* Kuşaklı kartın gövdesi 20px dolgu alır ve kuşak kenara oturur —
+   kartın kendi dolgusu sıfırlanır. */
+.flow-kart-kusakli {
+  padding: 0;
+  overflow: hidden;
+}
+
+.flow-kart-kusakli > .flow-kart-govde {
+  padding: 20px;
+}
+
+/* ── ROZET ───────────────────────────────────────────────────────────────
+   FlowUI ölçüsü: 4px köşe, 0.75em punto, kalınlık 500, çok dar dolgu.
+   FlowTrain'in `.chip`i hap biçimli ve 14px'ti — rozet ile hap ayrı
+   şeyler: hap TIKLANIR (süzgeç), rozet OKUNUR (durum). */
+.flow-rozet {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.25em 0.4em;
+  border-radius: 4px;
+  font-size: 0.75em;
+  font-weight: 500;
+  white-space: nowrap;
+  background-color: var(--flow-primary);
+  color: var(--flow-primary-contrast);
+}
+
+/* YUMUŞAK ROZET: dolgu yerine tent. Anlamı METİN taşır, zemin sakin kalır —
+   yan yana beş rozet renkli blok yığınına dönmesin. */
+.flow-rozet--yumusak {
+  background-color: var(--flow-primary-soft);
+  color: var(--flow-primary);
+  border: 1px solid var(--flow-primary);
+}
+
+.flow-rozet--hap {
+  border-radius: 999px;
+  padding: 0.25em 0.6em;
+}
+
+/* ── VERİ KUTUSU ─────────────────────────────────────────────────────────
+   Sayıyı taşıyan kutu: marka renginin çok soluk dolgusu + orta güçte kenar.
+   Ölçüldü: dolgu %11, kenar %45. */
+.flow-veri-kutu {
+  background-color: color-mix(in srgb, var(--flow-primary) 11%, transparent);
+  border: 1px solid color-mix(in srgb, var(--flow-primary) 45%, transparent);
+  border-radius: var(--flow-radius);
+  color: var(--flow-text);
+  box-shadow: var(--flow-kutu-isik);
+}
+
+/* ── KAHRAMAN (hero) ─────────────────────────────────────────────────────
+   Vitrin yüzeyi: kart kuşağı YOK, cam var. Ölçüldü — zemin saydam, kenar
+   metin renginin %22'si, üstte 1px içeriden beyaz ışık çizgisi ve altta
+   geniş yumuşak gölge. O ince üst çizgi camın "kalınlığını" veriyor;
+   kaldırılırsa yüzey düz bir dikdörtgene dönüyor. */
+.flow-kahraman {
+  position: relative;
+  background-color: transparent;
+  border: 1px solid color-mix(in srgb, var(--flow-text) 22%, transparent);
+  border-radius: var(--flow-radius);
+  box-shadow:
+    inset 0 1px 0 0 color-mix(in srgb, #ffffff 26%, transparent),
+    0 10px 40px -14px rgba(0, 0, 0, 0.6);
+}

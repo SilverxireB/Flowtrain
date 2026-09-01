@@ -87,7 +87,7 @@ export default function AktarimFormu({ takmalar }: { takmalar: Record<AktarimAla
 
       <section className="card mt-4 p-5">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-lacivert/10 text-lacivert">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-flow bg-bilgi/10 text-bilgi-dark">
             <Icon name="upload" size={20} />
           </span>
           <div className="min-w-0 flex-1">
@@ -158,14 +158,14 @@ export default function AktarimFormu({ takmalar }: { takmalar: Record<AktarimAla
         {hata ? (
           <p
             role="alert"
-            className="mt-3 rounded-xl border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark"
+            className="mt-3 rounded-flow border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark"
           >
             {hata}
           </p>
         ) : null}
 
         {rapor && Object.keys(rapor.sutunlar).length > 0 ? (
-          <div className="mt-3 rounded-xl bg-wash px-3 py-2 text-xs">
+          <div className="mt-3 rounded-flow bg-wash px-3 py-2 text-xs">
             <p className="font-semibold text-muted">Okunan sütunlar</p>
             <p className="mt-1">
               {(Object.keys(rapor.sutunlar) as AktarimAlani[])

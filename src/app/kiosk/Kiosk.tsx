@@ -183,7 +183,7 @@ export default function Kiosk({
   }
 
   return (
-    <main className="bg-wash grid min-h-screen place-items-center px-5 py-10">
+    <main className="kiosk-olcek bg-wash grid min-h-screen place-items-center px-5 py-10">
       <KioskBekci />
       <div className="w-full max-w-xl">
         {ekran === "giris" ? (
@@ -193,7 +193,7 @@ export default function Kiosk({
               {/* QR ile gelindiğinde hangi eğitimin açılacağı ÖNCEDEN yazılır:
                   kişi sicilini girmeden ne olacağını bilmeli. */}
               {hedef ? (
-                <p className="mt-5 rounded-2xl border-2 border-accent/30 bg-accent-soft px-5 py-4 text-xl font-bold text-accent-dark">
+                <p className="mt-5 rounded-flow border-2 border-accent/30 bg-accent-soft px-5 py-4 text-xl font-bold text-accent-dark">
                   <Icon name="qr" size={22} className="mr-2 inline align-[-3px]" />
                   {hedef.ad}
                 </p>
@@ -231,14 +231,14 @@ export default function Kiosk({
             </form>
 
             {hedefGecersiz ? (
-              <p role="status" className="mt-6 rounded-2xl border-2 border-orta/40 bg-orta/5 px-6 py-5 text-center text-lg font-semibold">
+              <p role="status" className="mt-6 rounded-flow border-2 border-orta/40 bg-orta/5 px-6 py-5 text-center text-lg font-semibold">
                 Okuttuğunuz etiketin eğitimi şu anda yayında değil. Sicilinizi girin, bekleyen eğitimlerinizi
                 gösterelim.
               </p>
             ) : null}
 
             {hata ? (
-              <p role="alert" className="mt-6 rounded-2xl border-2 border-brand/30 bg-brand-soft px-6 py-5 text-center text-lg font-semibold text-brand-dark">
+              <p role="alert" className="mt-6 rounded-flow border-2 border-brand/30 bg-brand-soft px-6 py-5 text-center text-lg font-semibold text-brand-dark">
                 {hata}
               </p>
             ) : null}
@@ -259,7 +259,7 @@ export default function Kiosk({
             {/* QR'daki eğitim bu kişiye atanmamış — nazik açıklama, kapalı kapı
                 değil. */}
             {bilgi ? (
-              <p role="status" className="mb-6 rounded-2xl border-2 border-orta/40 bg-orta/5 px-6 py-5 text-lg font-semibold">
+              <p role="status" className="mb-6 rounded-flow border-2 border-orta/40 bg-orta/5 px-6 py-5 text-lg font-semibold">
                 {bilgi}
               </p>
             ) : null}
@@ -302,7 +302,7 @@ export default function Kiosk({
             )}
 
             {hata ? (
-              <p role="alert" className="mt-6 rounded-2xl border-2 border-brand/30 bg-brand-soft px-6 py-5 text-center text-lg font-semibold text-brand-dark">
+              <p role="alert" className="mt-6 rounded-flow border-2 border-brand/30 bg-brand-soft px-6 py-5 text-center text-lg font-semibold text-brand-dark">
                 {hata}
               </p>
             ) : null}

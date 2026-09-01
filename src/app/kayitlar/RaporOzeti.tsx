@@ -23,7 +23,7 @@ export default function RaporOzeti({ rapor }: { rapor: AktarimRaporu }) {
 
   return (
     <div className="mt-4 space-y-3">
-      <div className="rounded-xl border border-line bg-wash px-4 py-3 text-sm">
+      <div className="rounded-flow border border-line bg-wash px-4 py-3 text-sm">
         <p className="font-semibold">
           {rapor.gecerli} satır yazılacak
           {rapor.atlanan > 0 ? `, ${rapor.atlanan} satır atlanacak.` : "."}
@@ -36,7 +36,7 @@ export default function RaporOzeti({ rapor }: { rapor: AktarimRaporu }) {
       {uyarililar.length > 0 ? (
         <ul className="space-y-1 text-sm">
           {uyarililar.slice(0, 50).map((s) => (
-            <li key={`u${s.satirNo}`} className="rounded-lg border border-orta/40 bg-orta/5 px-3 py-2">
+            <li key={`u${s.satirNo}`} className="rounded-flow-sm border border-orta/40 bg-orta/5 px-3 py-2">
               <span className="font-mono text-xs text-muted">satır {s.satirNo}</span>{" "}
               <span className="font-semibold">{s.ozet}</span>
               <span className="ml-1 text-orta-dark">— {s.uyari}</span>

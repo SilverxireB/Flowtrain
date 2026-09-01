@@ -6,6 +6,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import RaporOzeti from "../RaporOzeti";
 import { sinifDenetleEylem, sinifKaydetEylem, type SinifGirdisi } from "../eylemler";
 import type { AktarimRaporu } from "@/lib/kayitAktarim";
+import FlowSecici from "@/components/FlowSecici";
 
 interface EgitimSecenegi {
   id: string;
@@ -147,7 +148,7 @@ export default function SinifFormu({
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
             <span className="text-xs font-semibold text-muted">Eğitim</span>
-            <select value={egitimId} onChange={(e) => egitimSec(e.target.value)} className="input-base mt-1">
+            <FlowSecici value={egitimId} onChange={egitimSec} sinif="mt-1" aria-label="Eğitim">
               <option value="">Seçin…</option>
               {egitimler.map((e) => (
                 <option key={e.id} value={e.id}>
@@ -155,7 +156,7 @@ export default function SinifFormu({
                   {e.durum !== "yayin" ? " (taslak)" : ""}
                 </option>
               ))}
-            </select>
+            </FlowSecici>
             {secilen && secilen.durum !== "yayin" ? (
               <span className="mt-1 block text-xs text-orta-dark">
                 Bu eğitim yayında değil. Kayıt yine de yazılır ama kayıtlar &quot;sürüm N&quot;e atıf yapar — taslak
@@ -222,7 +223,7 @@ export default function SinifFormu({
         {hata ? (
           <p
             role="alert"
-            className="rounded-xl border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark"
+            className="rounded-flow border border-brand/30 bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-dark"
           >
             {hata}
           </p>

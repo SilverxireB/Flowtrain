@@ -15,7 +15,7 @@ import {
   tohumla,
   type Bolge,
 } from "@/lib/sinav";
-import { yanlisAciklamalari, type YanlisAciklama } from "@/lib/kioskAkis";
+import { ileriAcikMi, sonrakiAsama, yanlisAciklamalari, type YanlisAciklama } from "@/lib/kioskAkis";
 import type { Egitim, Sayfa, Soru } from "@/lib/tipler";
 
 /**
@@ -187,12 +187,12 @@ export default function EgitimOyun({
    * ve insan provaya hiç girmiyordu. Provada kayıt zaten düşmüyor, dolayısıyla
    * beklemenin koruduğu bir şey de yok.
    */
-  const ileriAcik = prova || (kalan <= 0 && !videoBekliyor);
+  const ileriAcik = ileriAcikMi({ prova, kalanSaniye: kalan, videoBekliyor });
 
   const ileri = useCallback(() => {
     if (!ileriAcik) return;
     if (sonSayfa) {
-      setAsama(sinavSorulari.length > 0 ? "sinav" : prova ? "sonuc" : "imza");
+      setAsama(sonrakiAsama(sinavSorulari.length, prova));
       if (sinavSorulari.length === 0 && prova) setSonuc({ puan: 0, gecti: true });
     } else setIndeks((i) => i + 1);
   }, [ileriAcik, sonSayfa, sinavSorulari.length, prova]);
@@ -287,8 +287,10 @@ export default function EgitimOyun({
     setAsama("sonuc");
   }
 
+  /* KİOSK ÖLÇEĞİ: kök 13px'e indi (Flow ailesi ölçeği), ama oynatıcı bir
+     metreden ELDİVENLE okunuyor — burada 16px tabana dönülüyor. */
   return (
-    <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-5 py-6">
+    <div className="kiosk-olcek mx-auto flex min-h-screen max-w-3xl flex-col px-5 py-6">
       <div className="mb-6 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-muted">{egitim.ad}</p>
@@ -404,7 +406,7 @@ export default function EgitimOyun({
                    görsele alt metni yazdıysa soruyu ANLAŞILIR kılan odur —
                    "hangisi doğru duruş" sorusu görseli okunmadan cevaplanamaz. */
                 alt={(altMetinler?.[soru.gorselId] ?? "").trim() || "Soru görseli"}
-                className="mt-5 max-h-[34vh] w-full rounded-2xl border border-line object-contain"
+                className="mt-5 max-h-[34vh] w-full rounded-flow border border-line object-contain"
               />
             ) : null}
             {cokluSecim ? (
@@ -431,7 +433,7 @@ export default function EgitimOyun({
                   >
                     <span
                       className={`grid h-8 w-8 shrink-0 place-items-center ${
-                        cokluSecim ? "rounded-lg" : "rounded-full"
+                        cokluSecim ? "rounded-flow-sm" : "rounded-full"
                       } border-2 ${secili.includes(i) ? "border-accent bg-accent text-white" : "border-line"}`}
                     >
                       {secili.includes(i) ? <Icon name="check" size={16} /> : null}
@@ -473,7 +475,7 @@ export default function EgitimOyun({
           </p>
 
           {hata ? (
-            <p role="alert" className="mt-5 rounded-xl border border-brand/30 bg-brand-soft px-4 py-3 font-semibold text-brand-dark">
+            <p role="alert" className="mt-5 rounded-flow border border-brand/30 bg-brand-soft px-4 py-3 font-semibold text-brand-dark">
               {hata}
             </p>
           ) : null}
@@ -522,7 +524,7 @@ export default function EgitimOyun({
           </div>
 
           {hata ? (
-            <p role="alert" className="mt-5 rounded-xl border border-brand/30 bg-brand-soft px-4 py-3 font-semibold text-brand-dark">
+            <p role="alert" className="mt-5 rounded-flow border border-brand/30 bg-brand-soft px-4 py-3 font-semibold text-brand-dark">
               {hata}
             </p>
           ) : null}
@@ -623,7 +625,7 @@ function BoslukluSoru({ metin, secilenMetin }: { metin: string; secilenMetin?: s
         <Fragment key={i}>
           {i > 0 ? (
             <span
-              className={`mx-1 inline-block min-w-[6ch] rounded-lg border-b-4 px-2 text-center align-baseline ${
+              className={`mx-1 inline-block min-w-[6ch] rounded-flow-sm border-b-4 px-2 text-center align-baseline ${
                 dolgu ? "border-accent bg-accent-soft text-accent-dark" : "border-accent/50 bg-accent-soft/50"
               }`}
             >
@@ -717,7 +719,7 @@ function SiraliEsleme({
         {cevap.map((h, yuva) => (
           <li
             key={yuva}
-            className={`flex items-center gap-3 rounded-2xl border-2 p-3 ${
+            className={`flex items-center gap-3 rounded-flow border-2 p-3 ${
               h === BOS ? "border-dashed border-line bg-paper" : "border-accent bg-accent-soft"
             }`}
           >
@@ -838,13 +840,13 @@ function GorselIsaret({
         <button
           type="button"
           onClick={tikla}
-          className="relative mt-4 inline-block min-h-[72px] max-w-full cursor-pointer rounded-2xl border-2 border-line focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft"
+          className="relative mt-4 inline-block min-h-[72px] max-w-full cursor-pointer rounded-flow border-2 border-line focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={medyaYolu(soru.gorselId)}
             alt={(altMetinler?.[soru.gorselId] ?? "").trim() || "Soru görseli"}
-            className="max-h-[46vh] w-auto max-w-full rounded-2xl object-contain"
+            className="max-h-[46vh] w-auto max-w-full rounded-flow object-contain"
           />
           {secili.map((i) => {
             const b = bolgeler[i];
@@ -853,7 +855,7 @@ function GorselIsaret({
               <span
                 key={i}
                 aria-hidden
-                className="pointer-events-none absolute grid place-items-center rounded-xl border-4 border-accent bg-accent/25"
+                className="pointer-events-none absolute grid place-items-center rounded-flow border-4 border-accent bg-accent/25"
                 style={{ left: `${b.x}%`, top: `${b.y}%`, width: `${b.g}%`, height: `${b.y2}%` }}
               >
                 <span className="grid h-9 w-9 place-items-center rounded-full bg-accent text-white">
@@ -864,7 +866,7 @@ function GorselIsaret({
           })}
         </button>
       ) : (
-        <p className="mt-4 rounded-2xl border border-dashed border-line p-8 text-center text-muted">
+        <p className="mt-4 rounded-flow border border-dashed border-line p-8 text-center text-muted">
           Görsel eklenmemiş.
         </p>
       )}
@@ -927,7 +929,7 @@ function Aciklamalar({ yanlislar }: { yanlislar: YanlisAciklama[] }) {
       </h3>
       <ul className="mt-4 space-y-3">
         {aciklamali.map((y) => (
-          <li key={y.soruId} className="rounded-2xl border border-line bg-white p-5">
+          <li key={y.soruId} className="rounded-flow border border-line bg-yuzey p-5">
             <p className="font-bold leading-snug">{y.metin}</p>
             {/* BİÇİM DİLİ BURADA DA GEÇERLİ. Hazırlayan kart metninde `**` ile
                 vurgu yapıyor; aynı kişi açıklamayı da düzyazı olarak yazıyor.

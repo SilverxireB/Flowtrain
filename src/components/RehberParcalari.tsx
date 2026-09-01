@@ -18,8 +18,8 @@ import { Icon, IconName } from "@/components/Icon";
 export function Dugme({ children, icon, birincil }: { children?: ReactNode; icon?: IconName; birincil?: boolean }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-[13px] font-semibold align-middle ${
-        birincil ? "bg-accent text-white" : "bg-white border border-line text-ink"
+      className={`inline-flex items-center gap-1.5 rounded-flow px-2.5 py-1 text-[13px] font-semibold align-middle ${
+        birincil ? "bg-accent text-white" : "bg-yuzey border border-line text-ink"
       }`}
     >
       {icon && <Icon name={icon} size={13} />}
@@ -28,9 +28,11 @@ export function Dugme({ children, icon, birincil }: { children?: ReactNode; icon
   );
 }
 
-export function Tus({ children }: { children: ReactNode }) {
-  return <kbd className="rounded-md border border-line border-b-2 bg-white px-1.5 py-0.5 text-xs font-bold">{children}</kbd>;
-}
+/* `Tus` (klavye tuşu rozeti) BURADAYDI ve hiçbir rehber sayfası kullanmıyordu.
+   Rehber metinlerinde kısayollar düz yazıyla geçiyor ("Alt+↑"); bileşen
+   yazıldı ama hiç bağlanmadı. Kısayolları rozetle göstermeye karar verilirse
+   geri yazılır — kullanılmayan bir bileşen, kullanıldığında nasıl görüneceği
+   hiç görülmediği için zaten güvenilir değil. */
 
 export function Kutu({
   tur = "not",
@@ -46,11 +48,11 @@ export function Kutu({
     tur === "uyari"
       ? "bg-brand-soft border-brand/25"
       : tur === "ekran"
-        ? "bg-white border-line border-l-[3px] border-l-accent"
+        ? "bg-yuzey border-line border-l-[3px] border-l-accent"
         : "bg-paper border-line";
   const renk = tur === "uyari" ? "text-brand" : tur === "ekran" ? "text-accent-dark" : "text-muted";
   return (
-    <div className={`rounded-xl border p-3.5 ${stil}`}>
+    <div className={`rounded-flow border p-3.5 ${stil}`}>
       <p className={`eyebrow mb-1 ${renk}`}>{baslik}</p>
       <div className="text-[14.5px] leading-relaxed text-ink/85 flex flex-col gap-2">{children}</div>
     </div>
@@ -63,7 +65,7 @@ export function Adimlar({ items }: { items: { baslik: string; metin: ReactNode }
     <ol className="flex flex-col gap-4">
       {items.map((a, i) => (
         <li key={i} className="flex gap-3">
-          <span className="shrink-0 w-7 h-7 rounded-lg bg-accent text-white grid place-items-center text-[13px] font-bold tabular-nums">
+          <span className="shrink-0 w-7 h-7 rounded-flow-sm bg-accent text-white grid place-items-center text-[13px] font-bold tabular-nums">
             {i + 1}
           </span>
           <div className="min-w-0 flex-1">
@@ -78,7 +80,7 @@ export function Adimlar({ items }: { items: { baslik: string; metin: ReactNode }
 
 export function Tablo({ basliklar, satirlar }: { basliklar: string[]; satirlar: ReactNode[][] }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-line bg-white">
+    <div className="overflow-x-auto rounded-flow border border-line bg-yuzey">
       <table className="w-full text-[14px] border-collapse">
         <thead>
           <tr className="bg-accent-soft/60">

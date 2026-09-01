@@ -108,12 +108,12 @@ export default function SoruOnerici({
           <ul className="mt-3 space-y-2">
             {oneriler.map((o, i) => (
               <li key={i}>
-                <label className="flex cursor-pointer gap-3 rounded-xl border border-line p-3 hover:border-accent">
+                <label className="flex cursor-pointer gap-3 rounded-flow border border-line p-3 hover:border-accent">
                   <input
                     type="checkbox"
                     checked={secili.has(i)}
                     onChange={() => degistir(i)}
-                    className="mt-1 h-4 w-4 shrink-0 accent-accent"
+                    className="mt-1 h-4 w-4 shrink-0"
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold">{o.metin}</span>
@@ -131,7 +131,7 @@ export default function SoruOnerici({
                       {o.secenekler.map((sik, j) => (
                         <span
                           key={j}
-                          className={`rounded-lg border px-2 py-0.5 text-xs ${
+                          className={`rounded-flow-sm border px-2 py-0.5 text-xs ${
                             o.tip !== "siralama" && o.dogru.includes(j)
                               ? "border-iyi/40 bg-iyi/10 font-semibold text-iyi-dark"
                               : "border-line text-muted"

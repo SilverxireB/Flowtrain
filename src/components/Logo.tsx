@@ -41,21 +41,42 @@ export default function Logo({
       aria-label="FLOWTRAIN"
       style={{ fontSize, lineHeight: 1 }}
     >
+      {/* İKİ GÖRSEL BİRDEN ÇİZİLİR, biri CSS ile gizlenir.
+          `src`i temaya göre JS'te seçmek iki şeyi birden bozardı: sunucu
+          çiziminde tema bilinmiyor (hydration uyuşmazlığı) ve tema
+          değişince görsel yeniden indirilirken logo bir an kayboluyordu.
+          İkisi de ilk yüklemede önbelleğe giriyor, geçiş anında çizim var.
+
+          `onDark` prop'u DURUYOR: kiosk gibi tema ne olursa olsun koyu
+          kalan yüzeyler beyaz sürümü zorlar. */}
       {imgOk && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={onDark ? "/logo-o-train-white.png" : "/logo-o-train.png"}
-          alt=""
-          className="w-auto"
-          style={{ height: "1.05em" }}
-          onError={() => setImgOk(false)}
-        />
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-o-train.png"
+            alt=""
+            className={onDark ? "hidden" : "logo-isaret-acik w-auto"}
+            style={{ height: "1.05em" }}
+            onError={() => setImgOk(false)}
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-o-train-white.png"
+            alt=""
+            className={onDark ? "w-auto" : "logo-isaret-koyu w-auto"}
+            style={{ height: "1.05em" }}
+            onError={() => setImgOk(false)}
+          />
+        </>
       )}
       <span
         aria-hidden
         className="font-display font-semibold"
         style={{
-          color: onDark ? "#ffffff" : "#001e64",
+          /* Yazı rengi TOKENDEN: açık temada marka laciverti, koyu temada
+             beyaz. Sabit lacivert yazılınca koyu temada lacivert zemin
+             üstünde lacivert yazı kalıyor ve logo yarısı görünmez oluyordu. */
+          color: onDark ? "#ffffff" : "var(--flow-logo-yazi)",
           fontSize: "1em",
           lineHeight: 1,
           letterSpacing: "0.03em",

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { kapi } from "@/lib/kimlik";
 import * as depo from "@/lib/depo";
 
@@ -46,6 +47,7 @@ export async function kuralEkleEylem(_onceki: string | null, form: FormData): Pr
     iseGirisIcindeGun: gun ? Number(gun) : undefined,
   };
   const sonTarih = String(form.get("sonTarih") ?? "").trim() || undefined;
+  let hedefAdi = "";
 
   if (hedefTipi === "paket") {
     const grup = depo.grupGetir(hedefId);
@@ -59,17 +61,30 @@ export async function kuralEkleEylem(_onceki: string | null, form: FormData): Pr
     // egitimId BOŞ: paket kuralında tek bir eğitim yoktur, `grupId` taşır.
     depo.kuralEkle({ egitimId: "", grupId: grup.id, kosul, sonTarih, aktif: true });
     depo.izBirak(ben.kullanici, `pakete atama kuralı ekledi: ${grup.ad}`);
+    hedefAdi = grup.ad;
   } else {
     const egitim = depo.egitimGetir(hedefId);
     if (!egitim) return "Eğitim bulunamadı.";
     depo.kuralEkle({ egitimId: egitim.id, kosul, sonTarih, aktif: true });
     depo.izBirak(ben.kullanici, `atama kuralı ekledi: ${egitim.ad}`);
+    hedefAdi = egitim.ad;
   }
 
   revalidatePath("/atama");
   revalidatePath("/egitimler");
   revalidatePath("/gruplar");
-  return null;
+
+  /* SONUÇ ADRESE KONUP YÖNLENDİRİLİYOR — form durumunda değil.
+     Kural eklendikten sonra ekranda HİÇBİR ŞEY değişmiyordu: form aynen
+     duruyor, "142 kişiye gidecek" yazısı aynen duruyor, tek fark aşağıdaki
+     listeye düşen bir satır (sayfa yukarıdaysa görünmez bile). Kullanıcı
+     gidip gitmediğini anlamadığı için ikinci kez basıyor ve AYNI KURALDAN
+     İKİ TANE yazılıyordu — `kuralEkle`de mükerrer koruması yok.
+
+     Aynı desen `kayitlar/YazmaSonucu.tsx`te kurulmuştu ve CLAUDE.md'ye kural
+     olarak yazılmıştı: eylem sonrası mesajı bileşen durumuna emanet etme.
+     Burada uygulanmamıştı. */
+  redirect(`/atama?eklendi=${encodeURIComponent(hedefAdi)}`);
 }
 
 export async function kuralDurumEylem(id: string, aktif: boolean): Promise<void> {

@@ -1,0 +1,357 @@
+/* ============================================================
+   FLOW TASARIM TOKEN KATMANI — FlowUI'dan devralındı
+
+   KOPYALANDI, BAĞLANMADI (CLAUDE.md 6). Değerler FlowUI'daki
+   `src/assets/scss/_flow-tokens.scss` dosyasının bugünkü hâlinden
+   BİREBİR alındı; kontrast oranları orada gerçek ekranda ölçüldü ve
+   yorumlarıyla birlikte taşındı. Buradaki hiçbir sayı yeniden
+   yorumlanmadı — ölçülmüş bir değeri "daha güzel" diye değiştirmek
+   ölçümü çöpe atmak demek.
+
+   TEK FARK SEÇİCİ: FlowUI `body[data-bs-theme]` kullanıyor (Bootstrap
+   mirası). Burada `:root[data-tema]` — Next.js'te tema boya başlamadan
+   `<html>` üzerine yazılıyor, yoksa sayfa bir kare açık temada çizilip
+   koyuya atlıyor.
+
+   KURAL: bileşenlerde ve sayfalarda hex YAZILMAZ. Tema bloğu da
+   bileşene yazılmaz — bu katman hallediyor.
+
+   Katmanlar:
+     1) Zemin      : bg, surface, surface-2, hover, border
+     2) Metin      : text, text-2, text-muted
+     3) Marka      : primary, primary-strong, primary-soft
+     4) Durum      : success, warning, danger, info
+     5) Veri havuzu: chart-1..20
+     6) Biçim      : radius, shadow, transition
+   ============================================================ */
+
+/* ---------- AÇIK TEMA ---------- */
+:root,
+:root[data-tema="acik"] {
+  /* Tarayıcının kendi çizdiği parçalar (açılır liste, kaydırma çubuğu,
+     takvim) temanın modunu BURADAN öğrenir; bildirilmezse işletim
+     sisteminin moduna göre bir lacivert bir beyaz açılıyor. */
+  color-scheme: light;
+  /* CAM PANELİN İKİ TONLU VURGUSU — FlowUI'dan birebir (25.08.2026).
+     `flow-global.css` bu üçünü çağırıyordu ama tanımlı değillerdi;
+     yedek değer ikisini de `--flow-primary`e düşürüyor, iki durak aynı
+     renk olunca degrade görünmüyordu. Sessiz kayıptı: yedek olduğu için
+     hiçbir şey kırılmıyor, yalnız etki yok oluyordu. */
+  --flow-panel-vurgu-1: #dbe4fa;
+  --flow-panel-vurgu-2: #f6dcdf;
+  --flow-panel-vurgu-opak: 70%;
+
+
+  /* Zemin */
+  --flow-bg: #f4f6fb;
+  --flow-surface: #ffffff;
+  --flow-surface-2: #eef1fa;
+  --flow-hover: #e7ebf8;
+  --flow-border: #dce1f0;
+
+  /* Cam yüzey (giriş kartı, bildirimler) */
+  --flow-glass: rgba(255, 255, 255, 0.82);
+  --flow-glass-thin: rgba(255, 255, 255, 0.55);
+  --flow-glass-border: rgba(26, 33, 69, 0.1);
+
+  /* PANEL CAMI — içeriği ÖRTEN değil, içeriği TAŞIYAN cam.
+     `--flow-glass` içerik üstüne gelen perdeler içindir ve koyu temada
+     neredeyse siyahtır; panel kartında kullanılınca kart zemine gömülür.
+     Bu token yüzey renginden TÜRETİLİR ve custom property'ler geç
+     çözüldüğü için her temada o temanın kendi yüzeyini kullanır. */
+  --flow-glass-panel: color-mix(in srgb, var(--flow-surface-2) 62%, transparent);
+  --flow-glass-panel-kenar: color-mix(in srgb, var(--flow-text) 12%, transparent);
+
+  /* Metin — beyaz / surface-2 / sayfa zemini üzerinde ölçülen kontrast:
+       text       15.59 / 13.80 / 14.41
+       text-2      7.31 /  6.48 /  6.76
+       text-muted  5.65 /  5.00 /  5.23
+     Üçü de 4.5 eşiğinin üstünde, hiyerarşi korunuyor. */
+  --flow-text: #1a2145;
+  --flow-text-2: #4a5480;
+  /* SAKİN METİN, FLOWUI'DA ÖLÇÜLDÜ: açık temada `.text-muted` = rgb(74,84,128).
+     Burada bir kademe daha soluk (#5c6689) duruyordu; FlowUI'da ikincil metin
+     ile sakin metin AYNI rengi paylaşıyor, ayrım punto ve ağırlıkta. Uydurma
+     bir ara kademe eklemek hem kontrastı 8.0'dan 6.2'ye düşürüyor hem de
+     "aynı aile" hedefini bozuyordu. */
+  --flow-text-muted: #5c6689;
+  /* GÖVDE METNİ — başlıktan bir kademe sakin. Çalışan FlowUI'da ölçüldü:
+     açık temada `rgb(73,80,87)`. Gövdeyi `--flow-text` ile yazmak başlık
+     ile paragrafı aynı ağırlığa getirip hiyerarşiyi siliyordu. */
+  --flow-govde: #495057;
+  /* ⛔ `--flow-tablo-metin` KALDIRILDI (29.08.2026). O token, FlowUI'da
+     yanlış tabloya yapılmış bir ölçümden doğmuştu: sonda
+     `.flow-inline-table` okumuş, oranın `td`si renk vermediği için
+     gövdeden miras alan beyazı "tablo metni" sanmıştık. Kokpit
+     tablosu (SimpleDataTable) ise açıkça yazıyor:
+       .table    { color: var(--flow-text)   }
+       .table td { color: var(--flow-text-2) }
+     Yani tablo gövdeden PARLAK değil; başlık parlak, hücre sakin.
+     İkinci bir metin token'ı tutmuyoruz — tek kaynak text/text-2. */
+
+  /* Marka — AÇIK TEMA ARÇELİK KIRMIZISI EKSENİNDE.
+     Koyu temada Beko mavisi olan her yer açıkta kırmızıya döner: kart
+     kuşağı, birincil düğmeler, vurgu hapları. İki tema birbirinin soluk
+     kopyası değil, ayrı kimlikler. Beyaz üzerinde ölçülen: 6.60.
+
+     ⚠ MARKA KIRMIZISI ALARM KIRMIZISI DEĞİLDİR (FlowUI'da ölçüldü,
+     25.08.2026'da buraya alındı). Burada eskiden #c0161e vardı ve
+     `--flow-danger` #b71c1c idi: ikisi de doygun kırmızı, yan yana
+     ayrışmıyordu — "kaydet" düğmesi ile "silinecek" uyarısı aynı
+     renkti. Çözüm ÇİFT olarak çalışır: marka bir ton yumuşadı
+     (#a8323a), alarm ters yöne parladı (#e03131). Birini alıp
+     diğerini bırakma, ayrım kaybolur. */
+  --flow-primary: #a8323a;
+  /* BAĞLANTI RENGİ MARKA RENGİNDEN AYRI BİR TOKEN.
+     Açık temada ikisi AYNI: #a8323a beyaz üstünde 6.60, metin olarak
+     sorunsuz. Ayrı token olmasının sebebi koyu tema (aşağıda). */
+  --flow-link: #a8323a;
+  --flow-primary-strong: #8c2129;
+  --flow-primary-soft: rgba(168, 50, 58, 0.14);
+  --flow-primary-contrast: #ffffff;
+
+  /* Durum renkleri — AÇIK TEMAYA ÖZEL. Ortak değerler koyu zemin için
+     seçilmişti, beyazda hiçbiri metin olarak okunmuyordu (en kötüsü
+     warning 1.69). Buradakiler beyaz VE surface-2 üstünde 4.5'in üstünde.
+     `danger` marka renginden daha PARLAK (#e03131): marka yumuşak bir
+     kırmızı olduğu için alarm ters yöne ayrışır.
+
+     ⚠ `--flow-danger` DOLGU TOKEN'IDIR, METİN DEĞİL. Tarayıcıda ölçüldü
+     (beyaz / surface-2 / sayfa zemini):
+       --flow-danger      #e03131 → 4.51 / 4.00 / 4.17   metin eşiğinin ALTINDA
+       --flow-danger-text #d02020 → 5.37 / 4.76 / 4.97   üçünde de geçer
+     Metin gerektiğinde `-text` kullanılır; dolu zemin gerektiğinde
+     `--flow-danger` + `--flow-primary-contrast` (beyaz, 4.51). */
+  --flow-success: #0b7a52;
+  --flow-success-text: #0b7a52;
+  /* Amber'in İKİ işi var ve açık temada aynı değeri paylaşamazlar:
+       --flow-warning      → DOLGU (rozet zemini), üstüne KOYU metin gelir
+       --flow-warning-text → METİN (açık zeminde okunmalı, 7.09)
+     Tek değer kullanılınca "Onay bekler" rozeti kahverengi bir bloğa
+     dönüşüyordu. */
+  --flow-warning: #e8a33d;
+  --flow-warning-text: #7d4e00;
+  --flow-danger: #e03131;
+  --flow-danger-text: #d02020;
+  --flow-info: #1565c0;
+  --flow-info-text: #1565c0;
+  --flow-success-soft: rgba(11, 122, 82, 0.12);
+  --flow-warning-soft: rgba(125, 78, 0, 0.12);
+  --flow-danger-soft: rgba(224, 49, 49, 0.12);
+  --flow-info-soft: rgba(21, 101, 192, 0.12);
+
+  /* Tentli rozetlerde METİN tonu: rozetin kendi rengi siyaha doğru bu
+     oranda karıştırılır. Açık zeminde palet renkleri metin olarak
+     okunmuyor; %55 hepsini eşiğin üstüne çıkarıyor (en kötü 4.76). */
+  --flow-tint-text-mix: 55%;
+
+  /* Palet rengi METİN olarak kullanıldığında renk TEMA METNİNE doğru bu
+     oranda karıştırılır: açıkta koyulaşır, koyuda beyaza yaklaşır.
+     Açıkta oran daha DÜŞÜK — metin rengi saf siyah değil koyu lacivert,
+     %55 ile amber 3.81'de kalıyordu. */
+  --flow-palet-metin-mix: 45%;
+
+  /* Vurgu hapları: açık zeminde renkli gölge çiğ duruyor, ışık yerine çok
+     hafif dolgu. Gölge "yok" olamaz — listede yer tutması gerek. */
+  --flow-pill-accent: #a8323a;
+  --flow-pill-glow: 0 0 0 0 rgba(0, 0, 0, 0);
+  --flow-pill-fill: rgba(192, 22, 30, 0.13);
+  --flow-kutu-isik: 0 2px 10px -6px rgba(0, 0, 0, 0.35);
+
+  /* Logonun yazı kısmı ("TRAIN"). Marka laciverti — işaretin dört yayı
+     tema üstüdür ama YAZI okunmak zorunda: koyu temada lacivert zemin
+     üstünde lacivert yazı görünmüyordu. */
+  --flow-logo-yazi: #001e64;
+
+  /* Kaydırma çubuğu */
+  --flow-scroll-track: #eef1fa;
+  --flow-scroll-thumb: #c3cbe8;
+  --flow-scroll-thumb-hover: #a8b2d9;
+}
+
+/* ---------- KOYU TEMA (marka laciverti #0A0A40 rampası) ---------- */
+:root[data-tema="koyu"] {
+  color-scheme: dark;
+  /* CAM PANELİN İKİ TONLU VURGUSU — FlowUI'dan birebir (25.08.2026).
+     `flow-global.css` bu üçünü çağırıyordu ama tanımlı değillerdi;
+     yedek değer ikisini de `--flow-primary`e düşürüyor, iki durak aynı
+     renk olunca degrade görünmüyordu. Sessiz kayıptı: yedek olduğu için
+     hiçbir şey kırılmıyor, yalnız etki yok oluyordu. */
+  --flow-panel-vurgu-1: #4a6cf0;
+  --flow-panel-vurgu-2: #183bc9;
+  --flow-panel-vurgu-opak: 56%;
+
+
+  --flow-bg: #0a0a40;
+  --flow-surface: #111756;
+  --flow-surface-2: #1a2170;
+  --flow-hover: #232b85;
+  --flow-border: #2a3390;
+
+  --flow-glass: rgba(14, 17, 46, 0.72);
+  --flow-glass-thin: rgba(14, 17, 46, 0.34);
+  --flow-glass-border: rgba(255, 255, 255, 0.1);
+
+  --flow-text: #f2f5ff;
+  --flow-text-2: #b8c4f2;
+  --flow-text-muted: #7d89c4;
+  /* ⚠ FLOWUI'DAN BİLİNÇLİ SAPMA — KULLANICI KARARI.
+     Ölçülen değer `rgb(166,176,207)` (#a6b0cf) idi ve birebir taşınmıştı;
+     kullanıcı "koyu temada beyaz ağırlıklı olsun, görünüm az" dedi.
+     FlowUI ofis ekranında okunuyor, FlowTrain fabrika kokpitinde — ortam
+     ışığı ve bakış mesafesi aynı değil.
+
+     ÜÇÜ BİRDEN AÇILDI ki hiyerarşi korunsun: yalnız gövdeyi açmak, gövde
+     ile ikincil metni aynı ağırlığa getirip kademeyi silerdi.
+     Zemin #0a0a40 üstünde ölçülen kontrast:
+       text       #f2f5ff → ~16:1   (başlık, vurgu)
+       text-2     #ccd6f5 → ~12.6:1 (ikincil, tablo hücresi)
+       govde      #dde4fa → ~14:1   (gövde metni)
+       muted      #c3cbe4 → ~11.5:1 (sakin bilgi — FlowUI ölçümü)
+     Dördü de eşiğin çok üstünde; ayrım artık parlaklıkta değil, TON'da. */
+  --flow-govde: #a6b0cf;  /* FlowUI'da ÖLÇÜLDÜ: rgb(166,176,207) */
+
+  --flow-primary: #556ee6;
+  /* ⚠ KOYU TEMADA BAĞLANTI, MARKA MAVİSİ DEĞİL — ÖLÇÜLMÜŞ SEBEP.
+     #556ee6 bir DOLGU rengidir: üstüne beyaz yazılır ve orada 4.4:1 ile
+     iş görür. Aynı rengi lacivert zemine METİN olarak yazınca 3.7:1'e
+     düşüyor — AA eşiğinin (4.5) altı.
+
+     Bu tek satır sanılandan çok daha geniş bir alanı boyuyordu: `a` kuralı
+     miras yoluyla hub kartlarının başlıklarını, şeritteki `<Link>`
+     düğmelerini ve tablo satır başlıklarını da maviye çeviriyordu. Yani
+     uygulamanın gezinme metinlerinin çoğu eşiğin altındaydı ve hiçbiri
+     "bağlantı gibi" görünmesi gereken bir yer değildi.
+
+     #8093ee, aile mavisinin ekseninde kalıp üç yüzeyde de eşiği geçen EN
+     KÜÇÜK adım: bg 6.5:1 · surface 5.7:1 · surface-2 (hover) 4.9:1.
+     Daha parlak adaylar (#8ea2ff, #a3b4ff) daha güvenli ama tonu mordan
+     yana kaydırıp Flow mavisi olmaktan çıkıyorlardı.
+
+     DOLGU RENGİ DEĞİŞMEDİ: düğme zeminleri, kenarlıklar, vurgu ve grafik
+     serisi hâlâ #556ee6. Ayrılan tek şey METİN olarak kullanılan hâli. */
+  --flow-link: #8093ee;
+  --flow-primary-strong: #3f51b5;
+  --flow-primary-soft: rgba(85, 110, 230, 0.18);
+  --flow-primary-contrast: #ffffff;
+
+  /* Koyu zeminde METİN olarak kullanılan anlam renkleri, dolgunun
+     kendisinden bir tık AÇIKTIR: tentli rozet zemininde dolgu değeri
+     eşiğin altında kalıyordu (kırmızı 3.68, ölçüldü). */
+  --flow-success-text: #6ee7a8;
+  --flow-warning-text: #ffd27a;
+  --flow-danger-text: #ff9b9b;
+  --flow-info-text: #8ec7ff;
+
+  /* Koyu zeminde palet renkleri olduğu gibi okunuyor. */
+  --flow-tint-text-mix: 100%;
+  --flow-palet-metin-mix: 72%;
+
+  --flow-pill-accent: #1b8dec; /* Beko mavisi ekseni */
+  --flow-pill-glow: 0 0 14px -3px var(--flow-pill-accent);
+  --flow-pill-fill: transparent;
+  --flow-kutu-isik: 0 10px 26px -12px var(--flow-kutu-renk, var(--flow-primary)),
+    0 0 20px -12px var(--flow-kutu-renk, var(--flow-primary));
+
+  /* Koyu zeminde logo yazısı BEYAZ. Marka laciverti burada okunmuyor. */
+  --flow-logo-yazi: #ffffff;
+
+  --flow-scroll-track: #10154e;
+  --flow-scroll-thumb: #333c9e;
+  --flow-scroll-thumb-hover: #4550b8;
+}
+
+/* ---------- TEMA ÜSTÜ: marka, veri havuzu, biçim ---------- */
+:root {
+  /* Marka logosunun dört yayı — tema üstü, ASLA değişmez. */
+  --flow-logo-red: #d30b14;
+  --flow-logo-blue: #1b8dec;
+  --flow-logo-orange: #f17e2b;
+  --flow-logo-green: #197031;
+
+  /* DURUM RENKLERİ — sahada evrensel: yeşil iyi, kırmızı alarm.
+     Bu değerler KOYU ZEMİN için seçildi; açık tema yukarıda kendi
+     karşılıklarıyla eziyor (beyazda bunların hiçbiri metin olarak
+     okunmuyordu, en kötüsü warning 1.69).
+
+     ⚠ BURAYA YAZILMALARININ SEBEBİ: koyu tema bloğu bunları TANIMLAMAZ,
+     buradan alır. Bu blok boş bırakıldığında koyu tema açık temanın
+     değerlerini miras alıyordu — yani lacivert zeminin üstünde beyaz için
+     seçilmiş koyu yeşil (#0b7a52) ve açık temanın kendi alarm kırmızısı
+     çiziliyordu ve rozetler okunmuyordu. Sessiz bir hataydı, `tests/tasarim-dili.test.mjs`
+     yakaladı. */
+  --flow-success: #34c38f;
+  --flow-warning: #ffbb44;
+  --flow-danger: #f46a6a;
+  --flow-info: #50a5f1;
+  --flow-success-soft: rgba(52, 195, 143, 0.15);
+  --flow-warning-soft: rgba(255, 187, 68, 0.15);
+  --flow-danger-soft: rgba(244, 106, 106, 0.15);
+  --flow-info-soft: rgba(80, 165, 241, 0.15);
+
+  /* Kararsız / yetersiz bilgi: SABİT anlam rengi, temayla dönmez.
+     Turuncu burada "karar verilemedi" demek. */
+  --flow-undecided: #ed7d31;
+  --flow-undecided-soft: rgba(237, 125, 49, 0.18);
+
+  /* Veri görselleştirme havuzu.
+     1-5   çekirdek (günlük işlerin %90'ı)
+     6-12  ikinci halka (kalabalık grafikler)
+     13-20 son halka (nadir; 10+ seride desenle eşleşir) */
+  --flow-chart-1: #556ee6; /* indigo (marka) */
+  --flow-chart-2: #34c38f; /* yeşil */
+  --flow-chart-3: #ffbb44; /* amber */
+  --flow-chart-4: #50a5f1; /* gök mavisi */
+  --flow-chart-5: #f46a6a; /* mercan */
+  --flow-chart-6: #8b5cf6; /* mor */
+  --flow-chart-7: #00c2c7; /* turkuaz */
+  --flow-chart-8: #f1734f; /* turuncu */
+  --flow-chart-9: #6bcb77; /* çimen */
+  --flow-chart-10: #e56ab3; /* pembe */
+  --flow-chart-11: #7986cb; /* puslu indigo */
+  --flow-chart-12: #c9a227; /* zeytin altını */
+  --flow-chart-13: #4dd0e1; /* açık camgöbeği */
+  --flow-chart-14: #ff8fa3; /* gül */
+  --flow-chart-15: #a3d977; /* limon yeşili */
+  --flow-chart-16: #d4a5ff; /* lavanta */
+  --flow-chart-17: #ffd166; /* açık amber */
+  --flow-chart-18: #5eead4; /* nane */
+  --flow-chart-19: #b3c2ff; /* açık menekşe */
+  --flow-chart-20: #99a3c4; /* gri-mavi */
+
+  /* ---------- İMZA HALKASI ----------
+     Logo renklerinin kesintisiz, eşit ağırlıklı karışımı. Tonlar algısal
+     parlaklığa göre dengelendi (koyu yeşil ve kırmızı hafif aydınlatıldı) —
+     ilke "tam renk değil, hissiyatı".
+
+     DÖNEN KONİK DEĞİL, DURAN İNCE. FlowUI'da halka laboratuvarında denendi
+     (varyant 14 seçildi): konik yay kutu uzadıkça kırmızı/turuncu tarafa
+     kayıyordu, yani aynı imza kısa bir arama kutusunda başka, uzun bir metin
+     alanında başka görünüyordu. Yatay degrade kutu boyuna EŞİT yayılır.
+     1px ve soluk: imzayı taşır, göze batmaz. Dönme animasyonları kaldırıldı.
+
+     YALNIZ YAZI GİRİŞİ VE TEXTAREA ODAĞINDA. Butonlarda, haplarda ve
+     seçicilerde kullanılmaz — onların vurgusu `--flow-pill-accent`. Proje
+     iki vurgu dili taşıyor ve karıştırılmıyor. */
+  --flow-ring: linear-gradient(
+    90deg,
+    rgba(63, 155, 238, 0.55),
+    rgba(242, 140, 70, 0.55),
+    rgba(53, 163, 90, 0.55),
+    rgba(224, 74, 81, 0.55)
+  );
+  /* Hover: imzanın yumuşak hâli — göze sokmadan, az aydınlatma. */
+  --flow-ring-soft: linear-gradient(
+    90deg,
+    rgba(63, 155, 238, 0.3),
+    rgba(242, 140, 70, 0.3),
+    rgba(53, 163, 90, 0.3),
+    rgba(224, 74, 81, 0.3)
+  );
+
+  /* Biçim */
+  --flow-radius: 12px;
+  --flow-radius-sm: 8px;
+  --flow-shadow: 0 2px 12px rgba(10, 10, 64, 0.18);
+  --flow-transition: 0.18s ease;
+}

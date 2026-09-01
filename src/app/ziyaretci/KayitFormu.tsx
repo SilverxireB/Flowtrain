@@ -5,6 +5,7 @@ import { useFormState, useFormStatus } from "react-dom";
 import Icon from "@/components/Icon";
 import { ziyaretciKaydetEylem } from "./eylemler";
 import { egitimleriCoz, type ZiyaretciSoru } from "@/lib/ziyaretci";
+import FlowSecici from "@/components/FlowSecici";
 
 /**
  * ZİYARETÇİ KAYIT FORMU.
@@ -99,12 +100,12 @@ export default function KayitFormu({
           ))}
         </div>
       ) : (
-        <p className="rounded-xl border border-line bg-paper px-4 py-3 text-sm text-muted">
+        <p className="rounded-flow border border-line bg-paper px-4 py-3 text-sm text-muted">
           Kayıt sorusu tanımlanmamış. Herkese yalnız varsayılan bilgilendirme verilir.
         </p>
       )}
 
-      <div className="rounded-xl border border-accent/30 bg-accent-soft/40 p-4">
+      <div className="rounded-flow border border-accent/30 bg-accent-soft/40 p-4">
         <p className="text-sm font-semibold">Verilecek bilgilendirmeler · {verilecek.length}</p>
         {verilecek.length === 0 ? (
           <p className="mt-2 text-sm text-muted">Henüz yok — varsayılan seçilmemiş ve hiçbir soru bilgilendirme bağlamadı.</p>
@@ -143,12 +144,15 @@ export default function KayitFormu({
             elle ekleyebilir. Çıkarma yalnız elle eklenende var. */}
         <label className="mt-4 block">
           <span className="mb-1.5 block text-xs font-semibold text-muted">Elle bilgilendirme ekle</span>
-          <select
+          {/* DEĞER HEP BOŞ: bu seçici bir alan değil, bir EKLEME aracı.
+              Seçilen eğitim listeye ekleniyor ve kutu "Seçin…"e dönüyor,
+              böylece arka arkaya birkaç eğitim eklenebiliyor. */}
+          <FlowSecici
             value=""
-            onChange={(e) => {
-              if (e.target.value) setEk((k) => [...new Set([...k, e.target.value])]);
+            onChange={(v) => {
+              if (v) setEk((k) => [...new Set([...k, v])]);
             }}
-            className="input-base py-2 text-sm"
+            aria-label="Eğitim ekle"
           >
             <option value="">Seçin…</option>
             {egitimler
@@ -158,12 +162,12 @@ export default function KayitFormu({
                   {e.ad}
                 </option>
               ))}
-          </select>
+          </FlowSecici>
         </label>
       </div>
 
       {hata ? (
-        <p role="alert" className="rounded-xl border border-brand/30 bg-brand-soft px-4 py-2.5 text-sm font-semibold text-brand-dark">
+        <p role="alert" className="rounded-flow border border-brand/30 bg-brand-soft px-4 py-2.5 text-sm font-semibold text-brand-dark">
           {hata}
         </p>
       ) : null}

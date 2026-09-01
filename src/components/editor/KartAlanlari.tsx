@@ -359,7 +359,7 @@ function Yuva({
       {id ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={medyaYolu(id)} alt="" className="h-24 w-full rounded-lg border border-line object-cover" />
+          <img src={medyaYolu(id)} alt="" className="h-24 w-full rounded-flow-sm border border-line object-cover" />
           <div className="mt-1 flex gap-1">
             <button type="button" disabled={kilitli} onClick={onSec} className="btn-ghost flex-1 py-1 text-[11px]">
               Değiştir
@@ -393,7 +393,7 @@ function Yuva({
           type="button"
           disabled={kilitli || kapali}
           onClick={onSec}
-          className="grid h-24 w-full place-items-center rounded-lg border border-dashed border-line text-center text-[11px] font-semibold text-muted transition-colors hover:border-accent hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+          className="grid h-24 w-full place-items-center rounded-flow-sm border border-dashed border-line text-center text-[11px] font-semibold text-muted transition-colors hover:border-accent hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className="flex flex-col items-center gap-1 px-2">
             <Icon name="image" size={18} />
@@ -433,9 +433,9 @@ function Galeri({
         {gorseller.map((g, i) => (
           <li key={g} className="relative w-40">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={medyaYolu(g)} alt="" className="h-20 w-40 rounded-lg border border-line object-cover" />
+            <img src={medyaYolu(g)} alt="" className="h-20 w-40 rounded-flow-sm border border-line object-cover" />
             {i === 0 ? (
-              <span className="absolute left-1 top-1 rounded-md bg-ink/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              <span className="absolute left-1 top-1 rounded-flow-sm bg-ink/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
                 Kapak
               </span>
             ) : null}

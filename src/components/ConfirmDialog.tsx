@@ -59,8 +59,8 @@ export default function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-label={title}
-        className={`w-full max-w-sm rounded-2xl p-5 animate-pop border ${
-          dark ? "bg-[#1e1b4b] border-white/15 text-white" : "bg-white border-line text-ink shadow-xl"
+        className={`w-full max-w-sm rounded-flow p-5 animate-pop border ${
+          dark ? "bg-[#1e1b4b] border-white/15 text-white" : "bg-yuzey border-line text-ink shadow-xl"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -73,8 +73,8 @@ export default function ConfirmDialog({
             onClick={onCancel}
             className={
               dark
-                ? "rounded-xl bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a5b4fc]/60"
-                : "rounded-xl border border-line bg-white px-4 py-2 text-sm font-semibold hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                ? "rounded-flow bg-white/10 border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a5b4fc]/60"
+                : "rounded-flow border border-line bg-yuzey px-4 py-2 text-sm font-semibold hover:bg-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
             }
           >
             {cancelLabel}
@@ -82,7 +82,7 @@ export default function ConfirmDialog({
           <button
             autoFocus
             onClick={onConfirm}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 ${
+            className={`rounded-flow px-4 py-2 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 ${
               danger
                 ? "bg-brand hover:bg-brand-dark focus-visible:ring-brand/40"
                 : "bg-accent hover:bg-accent-dark focus-visible:ring-accent/40"

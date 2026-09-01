@@ -94,7 +94,7 @@ export default function MedyaSecici({
         role="dialog"
         aria-modal="true"
         aria-label={video ? "Video seç" : "Görsel seç"}
-        className="animate-pop flex max-h-[85vh] w-full max-w-3xl flex-col rounded-2xl border border-line bg-white shadow-xl"
+        className="animate-pop flex max-h-[85vh] w-full max-w-3xl flex-col rounded-flow border border-line bg-yuzey shadow-xl"
       >
         <div className="flex items-center gap-3 border-b border-line px-5 py-4">
           <p className="font-semibold">{video ? "Video seç" : "Görsel seç"}</p>
@@ -125,7 +125,7 @@ export default function MedyaSecici({
         </div>
 
         {hata ? (
-          <p role="alert" className="mx-5 mt-4 rounded-xl border border-brand/30 bg-brand-soft px-4 py-2.5 text-sm font-semibold text-brand-dark">
+          <p role="alert" className="mx-5 mt-4 rounded-flow border border-brand/30 bg-brand-soft px-4 py-2.5 text-sm font-semibold text-brand-dark">
             {hata}
           </p>
         ) : null}
@@ -134,8 +134,8 @@ export default function MedyaSecici({
             Halka görselin ÜSTÜNDE duruyor, yanında değil: bekleme o dosyaya
             ait ve iki ayrı yere bakmak gerekmesin. */}
         {yukleme ? (
-          <div className="mx-5 mt-4 flex items-center gap-4 rounded-xl border border-accent/30 bg-accent-soft/30 p-3">
-            <span className="relative grid h-20 w-28 shrink-0 place-items-center overflow-hidden rounded-lg bg-ink/5">
+          <div className="mx-5 mt-4 flex items-center gap-4 rounded-flow border border-accent/30 bg-accent-soft/30 p-3">
+            <span className="relative grid h-20 w-28 shrink-0 place-items-center overflow-hidden rounded-flow-sm bg-ink/5">
               {yukleme.onizleme ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={yukleme.onizleme} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -167,7 +167,7 @@ export default function MedyaSecici({
           ) : null}
 
           {suzulmus.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-muted">
+            <p className="rounded-flow border border-dashed border-line px-4 py-8 text-center text-sm text-muted">
               {medyalar.length === 0
                 ? "Kütüphane henüz boş. Yüklediğiniz her görsel buraya düşer ve bir daha yüklemeniz gerekmez."
                 : "Aramaya uyan medya yok."}
@@ -178,7 +178,7 @@ export default function MedyaSecici({
                 <li key={m.id} className="group relative">
                   <button
                     onClick={() => onSec(m.id)}
-                    className="w-full overflow-hidden rounded-xl border border-line text-left transition hover:border-accent focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft"
+                    className="w-full overflow-hidden rounded-flow border border-line text-left transition hover:border-accent focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent-soft"
                   >
                     {video ? (
                       <span className="grid h-24 w-full place-items-center bg-paper text-muted">

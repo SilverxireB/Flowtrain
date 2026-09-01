@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import Icon from "@/components/Icon";
+import { PRESETLER, presetAraligi, eslesenPreset } from "@/lib/tarihPreset";
+import { suzgecCipleri } from "@/lib/suzgecCipleri";
+import { tabloSirala, sonrakiSira, type SiraYonu } from "@/lib/tabloSirala";
+import TabloBaslik from "@/components/TabloBaslik";
+import FlowSecici from "@/components/FlowSecici";
 import { csvYaz } from "@/lib/csv";
 import {
   BOS_SUZGEC,
@@ -54,6 +59,29 @@ const SERTIFIKA_SINIRI = 200;
  * olacağını önceden bilerek. Sınır ~42 satır/sayfa üzerinden hesaplandı.
  */
 const PDF_UYARI_SATIRI = 2000;
+
+/**
+ * SÜTUN → SIRALANACAK DEĞER.
+ *
+ * Modül seviyesinde: her çizimde yeniden kurulsaydı `useMemo` bağımlılığı
+ * her turda değişir ve sıralama boşuna tekrarlanırdı (CLAUDE.md'nin
+ * "parametre yakalayan yardımcı" uyarısıyla aynı aile).
+ *
+ * "Tamamlama" TÜRETİLMİŞ: kayıt bitmemişse başlangıç damgasıyla sıralanır,
+ * yoksa açık oturumların hepsi boş sayılıp sona yığılırdı — oysa onlar
+ * defterin en taze satırları.
+ */
+const SIRA_ALANI: Record<string, (k: KayitSatiri) => unknown> = {
+  tamamlama: (k) => k.bitis || k.baslangic,
+  sicil: (k) => k.sicil,
+  ad: (k) => k.ad,
+  bolum: (k) => k.bolum,
+  egitim: (k) => k.egitimAdi,
+  puan: (k) => k.puan,
+  sonuc: (k) => k.sonuc,
+  kaynak: (k) => k.kaynak,
+  egitmen: (k) => k.egitmen,
+};
 
 const CSV_BASLIKLARI = [
   { anahtar: "tamamlama", etiket: "Tamamlama" },
@@ -124,13 +152,40 @@ export default function Defter({
   kurum: string;
 }) {
   const [suzgec, setSuzgec] = useState<KayitSuzgeci>(BOS_SUZGEC);
+  /* SÜZGEÇ PANELİ KAPALI BAŞLAR (FlowUI dili). Kokpit tek satırdır; asıl
+     iş listeye bakmak, süzmek ikincil. Panel hep açık dursaydı ekranın
+     üçte biri her açılışta doldurulmamış alanlara giderdi. Durumu ALTTAKİ
+     ÇİPLER anlatıyor, yani kapalıyken de neyin süzüldüğü görünüyor.
+     Zorunlu alanı olan sayfalarda açık başlar — burada zorunlu alan yok. */
+  const [panelAcik, setPanelAcik] = useState(false);
+
+  /* SIRALAMA — üç kokpit tablosunun ortak dili. Defterde hiç yoktu:
+     "en son kim tamamladı" ya da "kim kaldı" sorusuna cevap vermek için
+     gözle taramak gerekiyordu. Varsayılan tamamlama tarihine göre AZALAN:
+     defteri açan kişinin ilk sorusu neredeyse her zaman "bugün ne oldu". */
+  const [sira, setSira] = useState<{ sutun: string; yon: SiraYonu }>({ sutun: "tamamlama", yon: "azalan" });
+
+  /* Çip listesi süzgeçten TÜRETİLİR, ayrı bir durumda tutulmaz: iki gerçek
+     yarışırsa çipler süzgeçle ayrışır ve ekran yalan söyler. */
+  const aktifCipler = suzgecCipleri(suzgec, {
+    egitimAdi: (id) => egitimler.find((e) => e.id === id)?.ad,
+    kaynakAdi: (k) => KAYNAK_ETIKET[k as OturumKaynagi],
+  });
   const [sayfaBoyu, setSayfaBoyu] = useState(20);
   const [sayfa, setSayfa] = useState(1);
   const [secili, setSecili] = useState<KayitSatiri | null>(null);
   const [calisiyor, setCalisiyor] = useState("");
 
   const suzulmus = useMemo(() => kayitlariSuz(satirlar, suzgec), [satirlar, suzgec]);
-  const { gorunen, gecerliSayfa, sonSayfa } = sayfala(suzulmus, sayfa, sayfaBoyu);
+
+  /* SIRALAMA SÜZGEÇTEN SONRA, SAYFALAMADAN ÖNCE. Sayfalanmış dilimi
+     sıralamak yalnız o sayfayı sıralardı — kullanıcı "en yüksek puan"
+     dediğinde ikinci sayfadaki 100'ü hiç görmezdi. */
+  const sirali = useMemo(
+    () => tabloSirala(suzulmus, (k) => SIRA_ALANI[sira.sutun]?.(k), sira.yon),
+    [suzulmus, sira],
+  );
+  const { gorunen, gecerliSayfa, sonSayfa } = sayfala(sirali, sayfa, sayfaBoyu);
   const gecenler = useMemo(() => suzulmus.filter((k) => k.sonuc === "gecti"), [suzulmus]);
 
   /* DÜZELTME BAĞLARI TEK GEÇİŞTE çıkarılır ve tüm defter için hesaplanır
@@ -138,6 +193,11 @@ export default function Defter({
      olabilir ve o zaman eski satır "düzeltildi" işaretini kaybederdi —
      denetimde en yanıltıcı hâl. */
   const duzeltmeler = useMemo(() => duzeltmeHaritasi(satirlar), [satirlar]);
+
+  function sutunaBas(sutun: string) {
+    setSira((s) => sonrakiSira(s, sutun));
+    setSayfa(1);
+  }
 
   function degistir(yama: Partial<KayitSuzgeci>) {
     setSuzgec((s) => ({ ...s, ...yama }));
@@ -209,25 +269,129 @@ export default function Defter({
 
   return (
     <div>
-      {/* ── süzgeçler ─────────────────────────────────────────────────────── */}
-      <div className="card p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="min-w-[220px] flex-1">
-            <span className="sr-only">Kişi ya da sicil ara</span>
-            <input
-              value={suzgec.sorgu}
-              onChange={(e) => degistir({ sorgu: e.target.value })}
-              placeholder="Ada ya da sicile göre ara"
-              className="input-base"
-            />
-          </label>
+      {/* ── SÜZGEÇ KOKPİTİ (FlowUI dili) ──────────────────────────────────
+          TEK SATIR: kayıt rozeti · tarih hapları · "Filtreler" çipi ·
+          tabloda-ara · dışa aktarım. Panel bunun ALTINDA ve kapalı başlıyor. */}
+      {/* KAP YOK: FlowUI'da kokpiti cam kutuya almak denendi ve kaldırıldı.
+          Denetimler tablonun üstünde serbest durur. */}
+      <div className="flow-kokpit">
+        <span className="flow-kokpit-rozet">
+          <strong>{suzulmus.length}</strong> kayıt
+          {suzulmus.length !== satirlar.length ? <span className="text-muted">/ {satirlar.length}</span> : null}
+        </span>
 
+          {/* TARİH PRESET HAPLARI — Defter'e bakan kişinin sorusu neredeyse
+              her zaman "bugün ne oldu"; iki takvim kutusu doldurmak o soruya
+              en pahalı cevap. Kutular panelde duruyor, sık aralık tek tıkla.
+
+              HAP, DÜĞME DEĞİL: vurgu temanın kimliğinden gelir, imza halkası
+              burada KULLANILMAZ. Aralık takvimden elle seçilse bile eşleşen
+              hap yanar. Sıra önem sırası: dar ekranda yalnız "Bugün" kalır. */}
+          <span className="flow-hap-serit">
+            {PRESETLER.map((p, i) => (
+              <button
+                key={p.anahtar}
+                type="button"
+                aria-pressed={eslesenPreset(suzgec, new Date()) === p.anahtar}
+                onClick={() => degistir(presetAraligi(p.anahtar, new Date()))}
+                className={`flow-hap${i > 0 ? " hidden sm:inline-flex" : ""}`}
+              >
+                {p.etiket}
+              </button>
+            ))}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setPanelAcik((a) => !a)}
+            aria-expanded={panelAcik}
+            aria-pressed={suzgecAcikMi(suzgec)}
+            className="flow-hap"
+          >
+            <Icon name="list" size={14} /> Filtreler
+          </button>
+
+        <label className="flow-arama-yuva">
+          <span className="sr-only">Kişi ya da sicil ara</span>
+          <span className="flow-arama-simge" aria-hidden>
+            <Icon name="search" size={15} />
+          </span>
+          <input
+            value={suzgec.sorgu}
+            onChange={(e) => degistir({ sorgu: e.target.value })}
+            placeholder="Tabloda ara"
+            className="flow-arama"
+          />
+        </label>
+
+        {/* Dışa aktarım SAĞDA ve ARAÇ ÖLÇÜSÜNDE. Sayfa düğmesi ölçüsünde
+            (`btn-ghost`) bırakıldığında şerit şişiyor ve asıl iş olan
+            listeden dikkat çalıyordu — kokpit bir araç çubuğu. */}
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <button onClick={csvIndir} className="flow-arac" title="Süzülmüş listeyi CSV olarak indir">
+            <Icon name="download" size={15} /> CSV
+          </button>
+          <button onClick={pdfIndir} disabled={!!calisiyor} className="flow-arac" title="Süzülmüş listeyi PDF olarak indir">
+            <Icon name="download" size={15} /> {calisiyor === "pdf" ? "Hazırlanıyor…" : "PDF"}
+          </button>
+          <button
+            onClick={() => sertifikaBas(gecenler)}
+            disabled={!!calisiyor || gecenler.length === 0}
+            className="flow-arac"
+            title={`Süzülmüş listedeki ${gecenler.length} geçti kaydı için tek PDF`}
+          >
+            <Icon name="print" size={15} />{" "}
+            {calisiyor === "sertifika" ? "Hazırlanıyor…" : `Sertifika (${gecenler.length})`}
+          </button>
+        </div>
+      </div>
+
+      {/* AKTİF SÜZGEÇ ÇİPLERİ — panel kapalıyken neyin süzüldüğünü bunlar
+          söylüyor. Olmadıkları sürece kullanıcı "liste neden kısa" diye
+          takılıyor ve süzgecin açık olduğunu ancak paneli açınca görüyordu.
+          Her çip kendi kaldırma düğmesini taşıyor: gevşetmek için panele
+          dönmek gerekmiyor. */}
+      {aktifCipler.length > 0 ? (
+        <div className="flow-cip-serit">
+          <span className="flow-cip-etiket">Süzgeç:</span>
+          {aktifCipler.map((c) => (
+            <span key={c.anahtar} className="flow-cip">
+              <span className="flow-cip-anahtar">{c.alan}:</span> {c.deger}
+              <button
+                type="button"
+                onClick={() => degistir(c.temizle)}
+                className="flow-cip-sil"
+                /* Etiket "… süzgeci" ile BAŞLAMIYOR: alanın kendi etiketiyle
+                    ("Sonuç süzgeci") çakışıyor ve hem ekran okuyucuda hem
+                    sınavda iki öğe aynı ada geliyordu. */
+                aria-label={`Kaldır: ${c.alan} — ${c.deger}`}
+              >
+                <Icon name="close" size={12} />
+              </button>
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              setSuzgec(BOS_SUZGEC);
+              setSayfa(1);
+            }}
+            className="flow-cip-etiket underline underline-offset-2 hover:text-ink"
+          >
+            hepsini temizle
+          </button>
+        </div>
+      ) : null}
+
+      {panelAcik ? (
+        <div className="flow-suzgec-panel">
           <label className="min-w-0 max-w-full">
             <span className="sr-only">Eğitim süzgeci</span>
-            <select
+            <FlowSecici
               value={suzgec.egitimId}
-              onChange={(e) => degistir({ egitimId: e.target.value })}
-              className="input-base w-auto max-w-full"
+              onChange={(v) => degistir({ egitimId: v })}
+              aria-label="Eğitim süzgeci"
+              sinif="max-w-full"
             >
               <option value="">Tüm eğitimler</option>
               {egitimler.map((e) => (
@@ -235,15 +399,16 @@ export default function Defter({
                   {e.ad}
                 </option>
               ))}
-            </select>
+            </FlowSecici>
           </label>
 
           <label className="min-w-0 max-w-full">
             <span className="sr-only">Bölüm süzgeci</span>
-            <select
+            <FlowSecici
               value={suzgec.bolum}
-              onChange={(e) => degistir({ bolum: e.target.value })}
-              className="input-base w-auto max-w-full"
+              onChange={(v) => degistir({ bolum: v })}
+              aria-label="Bölüm süzgeci"
+              sinif="max-w-full"
             >
               <option value="">Tüm bölümler</option>
               {bolumler.map((b) => (
@@ -251,15 +416,16 @@ export default function Defter({
                   {b}
                 </option>
               ))}
-            </select>
+            </FlowSecici>
           </label>
 
           <label className="min-w-0 max-w-full">
             <span className="sr-only">Kaynak süzgeci</span>
-            <select
+            <FlowSecici
               value={suzgec.kaynak}
-              onChange={(e) => degistir({ kaynak: e.target.value as OturumKaynagi | "" })}
-              className="input-base w-auto max-w-full"
+              onChange={(v) => degistir({ kaynak: v as OturumKaynagi | "" })}
+              aria-label="Kaynak süzgeci"
+              sinif="max-w-full"
             >
               <option value="">Tüm kaynaklar</option>
               {(Object.keys(KAYNAK_ETIKET) as OturumKaynagi[]).map((k) => (
@@ -267,15 +433,16 @@ export default function Defter({
                   {KAYNAK_ETIKET[k]}
                 </option>
               ))}
-            </select>
+            </FlowSecici>
           </label>
 
           <label className="min-w-0 max-w-full">
             <span className="sr-only">Sonuç süzgeci</span>
-            <select
+            <FlowSecici
               value={suzgec.sonuc}
-              onChange={(e) => degistir({ sonuc: e.target.value as SonucSuzgeci })}
-              className="input-base w-auto max-w-full"
+              onChange={(v) => degistir({ sonuc: v as SonucSuzgeci })}
+              aria-label="Sonuç süzgeci"
+              sinif="max-w-full"
             >
               <option value="">Tüm sonuçlar</option>
               {SONUC_SECENEKLERI.map((s) => (
@@ -283,9 +450,13 @@ export default function Defter({
                   {SONUC_ETIKET[s]}
                 </option>
               ))}
-            </select>
+            </FlowSecici>
           </label>
 
+          {/* PRESET HAPLARI BURADA DEĞİL, KOKPİTTE. Panele ikinci bir kopya
+              koymuştum: aynı dört hap ekranda iki kez çıkıyordu ve hangisinin
+              hangisi olduğu belirsizdi. Preset kokpitin işi — panel elle
+              yazılan aralık içindir. */}
           <span className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-muted">
             <Icon name="calendar" size={16} />
             <input
@@ -305,44 +476,31 @@ export default function Defter({
             />
           </span>
 
+          {/* UYGULANINCA PANEL KENDİNİ TOPLAR (FlowUI dili): süzgeç seçmek
+              bir amaç değil, listeye bakmanın yolu. Temizlemek de paneli
+              kapatır — geriye bakacak bir durum kalmıyor. */}
+          <button
+            type="button"
+            onClick={() => setPanelAcik(false)}
+            className="btn-primary shrink-0 py-2 text-sm"
+          >
+            <Icon name="check" size={16} /> Uygula
+          </button>
+
           {suzgecAcikMi(suzgec) ? (
             <button
               onClick={() => {
                 setSuzgec(BOS_SUZGEC);
                 setSayfa(1);
+                setPanelAcik(false);
               }}
-              className="btn-ghost shrink-0 text-sm"
+              className="btn-ghost shrink-0 py-2 text-sm"
             >
               <Icon name="close" size={16} /> Süzgeci temizle
             </button>
           ) : null}
         </div>
-      </div>
-
-      {/* ── dışa aktarım ──────────────────────────────────────────────────── */}
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <p className="text-sm text-muted">
-          <strong className="text-ink">{suzulmus.length}</strong> kayıt
-          {suzulmus.length !== satirlar.length ? ` (toplam ${satirlar.length} içinden)` : ""}
-        </p>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <button onClick={csvIndir} className="btn-ghost text-sm">
-            <Icon name="download" size={16} /> CSV
-          </button>
-          <button onClick={pdfIndir} disabled={!!calisiyor} className="btn-ghost text-sm disabled:opacity-60">
-            <Icon name="download" size={16} /> {calisiyor === "pdf" ? "Hazırlanıyor…" : "PDF"}
-          </button>
-          <button
-            onClick={() => sertifikaBas(gecenler)}
-            disabled={!!calisiyor || gecenler.length === 0}
-            className="btn-ghost text-sm disabled:opacity-40"
-            title={`Süzülmüş listedeki ${gecenler.length} geçti kaydı için tek PDF`}
-          >
-            <Icon name="print" size={16} />{" "}
-            {calisiyor === "sertifika" ? "Hazırlanıyor…" : `Sertifika (${gecenler.length})`}
-          </button>
-        </div>
-      </div>
+      ) : null}
       <p className="mt-1 text-xs text-muted">
         Çıktılar EKRANDAKİ SÜZGECİ izler. Her belgenin üstünde kurum adı, üretim anı, kayıt sayısı ve süzgeç özeti
         yazar; PDF&apos;te bunlar her sayfanın altında tekrarlanır ve sayfa numarası bulunur — denetçi tek bir yaprağa
@@ -361,34 +519,45 @@ export default function Defter({
 
       {/* ── liste ─────────────────────────────────────────────────────────── */}
       {gorunen.length === 0 ? (
-        <p className="card mt-4 p-8 text-center text-muted">
+        <p className="flow-bos-satir mt-4">
           {satirlar.length === 0
             ? "Henüz tamamlama kaydı yok. Kioskta yapılan eğitimler, sınıf kayıtları ve içe aktarılan geçmiş kayıtlar burada toplanır."
             : "Bu süzgeçle eşleşen kayıt yok."}
         </p>
       ) : (
-        <div className="card mt-4 overflow-x-auto p-0">
-          <table className="w-full min-w-[1080px] text-sm">
+        <div className="flow-tablo-kap flow-kaydir-x mt-4">
+          <table className="flow-tablo min-w-[1080px]">
             <thead>
-              <tr className="border-b border-line text-left text-xs text-muted">
-                <th className="px-4 py-3 font-semibold">Tamamlama</th>
-                <th className="px-4 py-3 font-semibold">Sicil</th>
-                <th className="px-4 py-3 font-semibold">Ad</th>
-                <th className="px-4 py-3 font-semibold">Bölüm</th>
-                <th className="px-4 py-3 font-semibold">Eğitim</th>
+              {/* Başlık şeridi ve kenarlık `.flow-tablo`dan; burada yalnız punto. */}
+              {/* SÜTUNLAR SIRALANABİLİR. Defterde hiç yoktu: "en son kim
+                  tamamladı", "kim kaldı", "hangi bölüm geride" sorularının
+                  hepsi gözle tarama gerektiriyordu. Ortak başlık bileşeni
+                  (`TabloBaslik`) üç tabloda da aynı davranışı veriyor.
+                  Sıralanamayan sütunlar (süre/deneme) türetilmiş değerler
+                  ve ayrı bir okuma gerektiriyor — bilerek dışarıda. */}
+              <tr className="text-xs">
+                <TabloBaslik sutun="tamamlama" etiket="Tamamlama" sira={sira} bas={sutunaBas} sinif="px-4 py-3 font-semibold" />
+                <TabloBaslik sutun="sicil" etiket="Sicil" sira={sira} bas={sutunaBas} sinif="px-4 py-3 font-semibold" />
+                <TabloBaslik sutun="ad" etiket="Ad" sira={sira} bas={sutunaBas} sinif="px-4 py-3 font-semibold" />
+                <TabloBaslik sutun="bolum" etiket="Bölüm" sira={sira} bas={sutunaBas} sinif="px-4 py-3 font-semibold" />
+                <TabloBaslik sutun="egitim" etiket="Eğitim" sira={sira} bas={sutunaBas} sinif="px-4 py-3 font-semibold" />
                 <th className="px-2 py-3 text-right font-semibold">Sür.</th>
                 <th className="px-2 py-3 text-right font-semibold">Süre</th>
-                <th className="px-2 py-3 text-right font-semibold">Puan</th>
-                <th className="px-4 py-3 font-semibold">Sonuç</th>
-                <th className="px-4 py-3 font-semibold">Kaynak</th>
-                <th className="px-4 py-3 font-semibold">Eğitmen</th>
+                <TabloBaslik sutun="puan" etiket="Puan" sira={sira} bas={sutunaBas} sagda sinif="px-2 py-3 font-semibold" />
+                <TabloBaslik sutun="sonuc" etiket="Sonuç" sira={sira} bas={sutunaBas} sinif="px-4 py-3 font-semibold" />
+                <TabloBaslik sutun="kaynak" etiket="Kaynak" sira={sira} bas={sutunaBas} sinif="px-4 py-3 font-semibold" />
+                <TabloBaslik sutun="egitmen" etiket="Eğitmen" sira={sira} bas={sutunaBas} sinif="px-4 py-3 font-semibold" />
                 <th className="px-2 py-3" />
               </tr>
             </thead>
             <tbody>
               {gorunen.map((k) => (
-                <tr key={k.id} className="border-b border-line last:border-0 hover:bg-wash">
-                  <td className="whitespace-nowrap px-4 py-2.5">
+                <tr key={k.id}>
+                  {/* İKİ SATIRLI HÜCRE: `.sarar` kırpma kuralının dışında
+                      bırakır — tamamlanmamış kayıtta altına "başladı …"
+                      satırı düşüyor ve tek satıra sıkıştırılırsa o bilgi
+                      kayboluyor. */}
+                  <td className="sarar whitespace-nowrap px-4 py-2.5">
                     {zamanMetni(k.bitis)}
                     {!k.bitis ? <span className="block text-xs text-muted">başladı {zamanMetni(k.baslangic)}</span> : null}
                   </td>
@@ -452,13 +621,12 @@ export default function Defter({
           >
             <Icon name="chevronRight" size={16} />
           </button>
-          <select
-            value={sayfaBoyu}
-            onChange={(e) => {
-              setSayfaBoyu(Number(e.target.value));
+          <FlowSecici
+            value={String(sayfaBoyu)}
+            onChange={(v) => {
+              setSayfaBoyu(Number(v));
               setSayfa(1);
             }}
-            className="input-base w-auto py-1 text-sm"
             aria-label="Sayfa başına kayıt"
           >
             {[20, 50, 100].map((n) => (
@@ -466,7 +634,7 @@ export default function Defter({
                 {n}
               </option>
             ))}
-          </select>
+          </FlowSecici>
         </span>
       </div>
 
@@ -573,7 +741,7 @@ function Ayrinti({
         </div>
 
         {kayit.notlar ? (
-          <div className="mt-4 rounded-xl bg-wash px-3 py-2 text-sm">
+          <div className="mt-4 rounded-flow bg-wash px-3 py-2 text-sm">
             <p className="text-xs font-semibold text-muted">Not</p>
             <p className="mt-0.5 whitespace-pre-line">{kayit.notlar}</p>
           </div>
@@ -583,7 +751,7 @@ function Ayrinti({
             mi" değil, "bu kaydın hikâyesi ne" — cevabı ancak iki yön birden
             görününce tamamlanır. */}
         {bunuDuzeltenler.length > 0 ? (
-          <p className="mt-3 rounded-xl border border-accent/40 bg-accent/5 px-3 py-2 text-sm">
+          <p className="mt-3 rounded-flow border border-accent/40 bg-accent/5 px-3 py-2 text-sm">
             <strong>Bu kayıt düzeltildi.</strong> Yerine geçen kayıt
             {bunuDuzeltenler.length > 1 ? "lar" : ""}:{" "}
             <span className="font-mono text-xs">{bunuDuzeltenler.join(", ")}</span>. Bu satır silinmedi, defterde
@@ -591,7 +759,7 @@ function Ayrinti({
           </p>
         ) : null}
         {bununDuzelttigi ? (
-          <p className="mt-3 rounded-xl border border-accent/40 bg-accent/5 px-3 py-2 text-sm">
+          <p className="mt-3 rounded-flow border border-accent/40 bg-accent/5 px-3 py-2 text-sm">
             <strong>Bu bir düzeltme kaydı.</strong> <span className="font-mono text-xs">{bununDuzelttigi}</span>{" "}
             numaralı kaydın yerine geçer.
           </p>

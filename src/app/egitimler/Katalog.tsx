@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import Icon from "@/components/Icon";
 import { eslesir } from "@/lib/arama";
+import FlowSecici from "@/components/FlowSecici";
 
 /**
  * EĞİTİM KATALOĞU — liste değil TABLO.
@@ -91,13 +92,12 @@ export default function Katalog({ satirlar, kategoriler }: { satirlar: KatalogSa
 
         <label className="shrink-0">
           <span className="sr-only">Kategori süzgeci</span>
-          <select
+          <FlowSecici
             value={kategori}
-            onChange={(e) => {
-              setKategori(e.target.value);
+            onChange={(v) => {
+              setKategori(v);
               setSayfa(1);
             }}
-            className="input-base w-auto"
           >
             <option value="">Tüm kategoriler</option>
             {kategoriler.map((k) => (
@@ -105,23 +105,22 @@ export default function Katalog({ satirlar, kategoriler }: { satirlar: KatalogSa
                 {k}
               </option>
             ))}
-          </select>
+          </FlowSecici>
         </label>
 
         <label className="shrink-0">
           <span className="sr-only">Durum süzgeci</span>
-          <select
+          <FlowSecici
             value={durum}
-            onChange={(e) => {
-              setDurum(e.target.value as "" | "yayin" | "taslak");
+            onChange={(v) => {
+              setDurum(v as "" | "yayin" | "taslak");
               setSayfa(1);
             }}
-            className="input-base w-auto"
           >
             <option value="">Taslak + yayında</option>
             <option value="yayin">Yalnız yayındakiler</option>
             <option value="taslak">Yalnız taslaklar</option>
-          </select>
+          </FlowSecici>
         </label>
 
         <button
@@ -140,12 +139,17 @@ export default function Katalog({ satirlar, kategoriler }: { satirlar: KatalogSa
       </div>
 
       {gorunen.length === 0 ? (
-        <p className="card mt-4 p-8 text-center text-muted">Eşleşen eğitim yok.</p>
+        <p className="flow-bos-satir mt-4">Eşleşen eğitim yok.</p>
       ) : (
-        <div className="card mt-4 overflow-x-auto p-0">
-          <table className="w-full min-w-[860px] text-sm">
+        /* Tablo KENDİ kabında: sayfalama şeridi bu kabın içinde kalıyor,
+           "sayfalama tablonun DEVAMIDIR" kuralı (FlowUI). Ayrı kutu olarak
+           durduğunda listenin bittiği yer belirsizleşiyordu. */
+        <div className="flow-tablo-kap mt-4">
+        <div className="flow-kaydir-x">
+          <table className="flow-tablo min-w-[860px]">
             <thead>
-              <tr className="border-b border-line text-left text-xs text-muted">
+              {/* Başlık şeridi ve kenarlık `.flow-tablo`dan; burada yalnız punto. */}
+              <tr className="text-xs">
                 <Baslik sutun="ad" etiket="Eğitim" aktif={sirala} ters={ters} bas={sutunaBas} />
                 <Baslik sutun="durum" etiket="Durum" aktif={sirala} ters={ters} bas={sutunaBas} />
                 <th className="px-3 py-3 font-semibold">İçerik</th>
@@ -157,7 +161,7 @@ export default function Katalog({ satirlar, kategoriler }: { satirlar: KatalogSa
             </thead>
             <tbody>
               {gorunen.map((s) => (
-                <tr key={s.id} className="border-b border-line last:border-0 hover:bg-wash">
+                <tr key={s.id}>
                   <td className="px-4 py-2.5">
                     <Link href={`/egitimler/${s.id}`} className="font-semibold hover:text-accent">
                       {s.ad}
@@ -238,14 +242,13 @@ export default function Katalog({ satirlar, kategoriler }: { satirlar: KatalogSa
             </tbody>
           </table>
         </div>
-      )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted">
-        <span>
+        <div className="flow-tablo-alt">
+        <span className="mr-auto">
           <strong className="text-ink">{suzulmus.length}</strong> eğitim
           {suzulmus.length !== satirlar.length ? ` (toplam ${satirlar.length})` : ""}
         </span>
-        <span className="ml-auto flex items-center gap-2">
+        <span className="flex items-center gap-2">
           <button
             onClick={() => setSayfa(gecerliSayfa - 1)}
             disabled={gecerliSayfa <= 1}
@@ -265,13 +268,12 @@ export default function Katalog({ satirlar, kategoriler }: { satirlar: KatalogSa
           >
             <Icon name="chevronRight" size={16} />
           </button>
-          <select
-            value={sayfaBoyu}
-            onChange={(e) => {
-              setSayfaBoyu(Number(e.target.value));
+          <FlowSecici
+            value={String(sayfaBoyu)}
+            onChange={(v) => {
+              setSayfaBoyu(Number(v));
               setSayfa(1);
             }}
-            className="input-base w-auto py-1 text-sm"
             aria-label="Sayfa başına eğitim"
           >
             {[20, 50, 100].map((n) => (
@@ -279,9 +281,11 @@ export default function Katalog({ satirlar, kategoriler }: { satirlar: KatalogSa
                 {n}
               </option>
             ))}
-          </select>
+          </FlowSecici>
         </span>
-      </div>
+        </div>
+        </div>
+      )}
     </div>
   );
 }
