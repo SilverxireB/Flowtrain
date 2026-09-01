@@ -23,6 +23,16 @@ yanlış rakam gösterir ve bir daha kimse ona güvenmez.
       GitHub → Settings → Change visibility.
 - [ ] Demo verisi temizlensin: `node scripts/demo-veri.mjs --sil`
 - [ ] Kurulum sırasında açılan deneme hesapları silinsin (Ayarlar → Hesaplar).
+- [ ] **⚠ VİTRİN HESABI KODDAN SİLİNSİN** — `src/lib/db.ts` içindeki
+      `VITRIN_HESAP` sabiti ve `vitrinHesabiniAc` fonksiyonu.
+      `Melihozturk / 123456`, Vercel demosunda giriş zorunlu olduğu için
+      29.08.2026'da geçici olarak eklendi.
+      *Not: unutulursa gerçek kurulumu ETKİLEMEZ* — hesap yalnız `VERCEL`
+      ortam değişkeni varken açılıyor, self-host'ta o fonksiyon tek bir
+      `if` okuyup dönüyor. Yine de kodda zayıf şifreli bir hesap
+      bırakmamak için listede duruyor.
+- [ ] Vitrin şeridi (`VitrinSeridi`, `src/app/layout.tsx`) kalabilir —
+      o da `VERCEL` değişkenine bağlı ve kurulumda hiç çizilmiyor.
 
 ## B. Sunucu
 
